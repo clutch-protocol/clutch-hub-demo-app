@@ -26,7 +26,7 @@ const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
 };
 
 const RideForm = () => {
-  const sdk = new ClutchHubSdk(API_URL);
+  const sdk = new ClutchHubSdk(API_URL, "0xdeb4cfb63db134698e1879ea24904df074726cc0");
   const [pickup, setPickup] = useState(null);
   const [dropoff, setDropoff] = useState(null);
 

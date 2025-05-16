@@ -39,13 +39,13 @@ const RideForm = () => {
     e.preventDefault();
     if (pickup && dropoff) {
       try {
-        // TODO: adjust fare as needed
+        // TODO: adjust fare as needed      
         const unsignedTx = await sdk.createUnsignedRideRequest({ pickup, dropoff, fare: 1000 });
         console.log('Unsigned transaction:', unsignedTx);
-        alert(`Unsigned transaction:\n${JSON.stringify(unsignedTx, null, 2)}`);
+        //alert(`Unsigned transaction:\n${JSON.stringify(unsignedTx, null, 2)}`);
       } catch (err) {
         console.error(err);
-        alert('Failed to fetch unsigned transaction');
+        //alert('Failed to fetch unsigned transaction');
       }
     }
   };

@@ -12,7 +12,7 @@
   "dependencies": {
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "clutch-hub-sdk-js": "*"
+    "clutch-hub-sdk-js": "file:../clutch-hub-sdk-js"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

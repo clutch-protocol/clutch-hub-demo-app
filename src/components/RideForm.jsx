@@ -26,9 +26,11 @@ const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
 };
 
 const RideForm = () => {
-  const sdk = new ClutchHubSdk(API_URL, "0xdeb4cfb63db134698e1879ea24904df074726cc0");
+  const [publicKey, setPublicKey] = useState('');
+  const [fare, setFare] = useState(1000);
   const [pickup, setPickup] = useState(null);
   const [dropoff, setDropoff] = useState(null);
+  const sdk = new ClutchHubSdk(API_URL, publicKey);
 
   const handleReset = () => {
     setPickup(null);
@@ -37,21 +39,39 @@ const RideForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (pickup && dropoff) {
+    if (pickup && dropoff && publicKey) {
       try {
-        // TODO: adjust fare as needed      
-        const unsignedTx = await sdk.createUnsignedRideRequest({ pickup, dropoff, fare: 1000 });
+        const unsignedTx = await sdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
         console.log('Unsigned transaction:', unsignedTx);
         //alert(`Unsigned transaction:\n${JSON.stringify(unsignedTx, null, 2)}`);
       } catch (err) {
         console.error(err);
-        //alert('Failed to fetch unsigned transaction');
+        alert('Failed to fetch unsigned transaction');
       }
     }
   };
 
   return (
     <form onSubmit={handleSubmit} style={{ textAlign: 'center' }}>
+      <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+        <input
+          type="text"
+          placeholder="Public Key"
+          value={publicKey}
+          onChange={e => setPublicKey(e.target.value)}
+          style={{ width: 340, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
+          required
+        />
+        <input
+          type="number"
+          placeholder="Fare"
+          value={fare}
+          onChange={e => setFare(e.target.value)}
+          style={{ width: 120, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
+          min={0}
+          required
+        />
+      </div>
       <p style={{ textAlign: 'center', marginBottom: '0.5rem', fontWeight: '500' }}>
         Click on the map to select Pickup and Dropoff locations
       </p>
@@ -101,7 +121,7 @@ const RideForm = () => {
         </button>
         <button
           type="submit"
-          disabled={!(pickup && dropoff)}
+          disabled={!(pickup && dropoff && publicKey)}
           style={{
             backgroundColor: '#646cff',
             color: '#ffffff',

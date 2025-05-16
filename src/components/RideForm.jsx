@@ -41,33 +41,66 @@ const RideForm = () => {
 
   return (
     <form onSubmit={handleSubmit} style={{ textAlign: 'center' }}>
-      <MapContainer center={[0, 0]} zoom={2} style={{ height: '400px', width: '100%' }}>
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
-        <LocationSelector
-          pickup={pickup}
-          dropoff={dropoff}
-          setPickup={setPickup}
-          setDropoff={setDropoff}
-        />
-        {pickup && (
-          <Marker position={pickup}>
-            <Popup>Pickup</Popup>
-          </Marker>
-        )}
-        {dropoff && (
-          <Marker position={dropoff}>
-            <Popup>Dropoff</Popup>
-          </Marker>
-        )}
-      </MapContainer>
-      <div style={{ marginTop: '1rem' }}>
-        <button type="button" onClick={handleReset} style={{ marginRight: '1rem' }}>
+      <p style={{ textAlign: 'center', marginBottom: '0.5rem', fontWeight: '500' }}>
+        Click on the map to select Pickup and Dropoff locations
+      </p>
+      <div style={{
+        borderRadius: 8,
+        overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        marginBottom: '1rem',
+      }}>
+        <MapContainer center={[0, 0]} zoom={2} style={{ height: '400px', width: '100%' }}>
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
+          <LocationSelector
+            pickup={pickup}
+            dropoff={dropoff}
+            setPickup={setPickup}
+            setDropoff={setDropoff}
+          />
+          {pickup && (
+            <Marker position={pickup}>
+              <Popup>Pickup</Popup>
+            </Marker>
+          )}
+          {dropoff && (
+            <Marker position={dropoff}>
+              <Popup>Dropoff</Popup>
+            </Marker>
+          )}
+        </MapContainer>
+      </div>
+      <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+        <button
+          type="button"
+          onClick={handleReset}
+          style={{
+            backgroundColor: '#f0f0f0',
+            color: '#333333',
+            border: '1px solid #cccccc',
+            padding: '0.5rem 1rem',
+            borderRadius: 4,
+            cursor: 'pointer',
+          }}
+        >
           Reset
         </button>
-        <button type="submit" disabled={!(pickup && dropoff)}>
+        <button
+          type="submit"
+          disabled={!(pickup && dropoff)}
+          style={{
+            backgroundColor: '#646cff',
+            color: '#ffffff',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            borderRadius: 4,
+            cursor: 'pointer',
+            opacity: pickup && dropoff ? 1 : 0.6,
+          }}
+        >
           Request Ride
         </button>
       </div>

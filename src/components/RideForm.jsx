@@ -4,6 +4,8 @@ import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+import { ClutchHubSdk } from 'clutch-hub-sdk-js';
+import { API_URL } from '../config';
 
 // Fix Leaflet's default icon paths
 delete L.Icon.Default.prototype._getIconUrl;
@@ -24,6 +26,7 @@ const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
 };
 
 const RideForm = () => {
+  const sdk = new ClutchHubSdk(API_URL);
   const [pickup, setPickup] = useState(null);
   const [dropoff, setDropoff] = useState(null);
 
@@ -32,10 +35,18 @@ const RideForm = () => {
     setDropoff(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (pickup && dropoff) {
-      alert(`Requesting ride from ${pickup.lat},${pickup.lng} to ${dropoff.lat},${dropoff.lng}`);
+      try {
+        // TODO: adjust fare as needed
+        const unsignedTx = await sdk.createUnsignedRideRequest({ pickup, dropoff, fare: 1000 });
+        console.log('Unsigned transaction:', unsignedTx);
+        alert(`Unsigned transaction:\n${JSON.stringify(unsignedTx, null, 2)}`);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to fetch unsigned transaction');
+      }
     }
   };
 

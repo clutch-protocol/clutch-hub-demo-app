@@ -50,7 +50,7 @@ const RideForm = () => {
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         marginBottom: '1rem',
       }}>
-        <MapContainer center={[0, 0]} zoom={2} style={{ height: '400px', width: '100%' }}>
+        <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '400px', width: '100%' }}>
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="&copy; OpenStreetMap contributors"

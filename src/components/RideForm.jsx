@@ -49,18 +49,8 @@ const RideForm = () => {
           alert('Signing cancelled.');
           return;
         }
-        // If unsignedTx is not Uint8Array, convert from hex/base64/array as needed
-        let txBytes = unsignedTx;
-        if (!(txBytes instanceof Uint8Array)) {
-          // Try to convert from hex string or array
-          if (typeof txBytes === 'string') {
-            // Assume hex string
-            txBytes = Uint8Array.from(txBytes.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-          } else if (Array.isArray(txBytes)) {
-            txBytes = Uint8Array.from(txBytes);
-          }
-        }
-        const signature = await sdk.signTransaction(txBytes, privateKey);
+        // Directly sign the JSON object
+        const signature = await sdk.signTransaction(unsignedTx, privateKey);
         console.log('Signature:', signature);
         alert('Signature:\n' + JSON.stringify(signature, null, 2));
       } catch (err) {

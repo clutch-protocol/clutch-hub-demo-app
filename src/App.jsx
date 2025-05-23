@@ -14,7 +14,7 @@ function App() {
     }}>
       <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>Clutch Hub Demo App</h1>
       <RideForm />
-    </div>
+      </div>
   );
 }
 

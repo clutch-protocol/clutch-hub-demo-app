@@ -78,6 +78,21 @@ const RideForm = () => {
         const signature = await sdk.signTransaction(unsignedTx, privateKey);
         console.log('Signature:', signature);
         
+        // Prepare transaction for submission
+        setTransactionStatus({ type: 'info', message: 'Submitting transaction to the network...' });
+        
+        // Submit the transaction to the blockchain
+        const response = await sdk.submitTransaction({
+          from: unsignedTx.from,
+          nonce: unsignedTx.nonce,
+          payload: signature.rawTransaction,
+          r: signature.r,
+          s: signature.s,
+          v: signature.v
+        });
+        
+        console.log('Transaction response:', response);
+        
         // Record transaction in history
         const txRecord = {
           type: 'Ride Request',
@@ -94,7 +109,7 @@ const RideForm = () => {
         
         setTransactionStatus({ 
           type: 'success', 
-          message: 'Transaction signed successfully!'
+          message: 'Transaction submitted successfully! Network confirmation pending.'
         });
       } catch (err) {
         console.error(err);

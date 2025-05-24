@@ -52,7 +52,6 @@ const RideForm = () => {
         // Directly sign the JSON object
         const signature = await sdk.signTransaction(unsignedTx, privateKey);
         console.log('Signature:', signature);
-        alert('Signature:\n' + JSON.stringify(signature, null, 2));
       } catch (err) {
         console.error(err);
         alert('Failed to fetch unsigned transaction');

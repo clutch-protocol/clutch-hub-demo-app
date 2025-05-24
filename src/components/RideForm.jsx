@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -35,17 +35,18 @@ const RideForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState(null);
 
-  const handleProfileUpdate = (profile) => {
+  // Use useCallback to memoize this function
+  const handleProfileUpdate = useCallback((profile) => {
     setUserProfile(profile);
-  };
+  }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setPickup(null);
     setDropoff(null);
     setTransactionStatus(null);
-  };
+  }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (pickup && dropoff && userProfile.publicKey) {
       try {
@@ -122,7 +123,7 @@ const RideForm = () => {
         setIsLoading(false);
       }
     }
-  };
+  }, [pickup, dropoff, userProfile, fare]);
 
   return (
     <div>

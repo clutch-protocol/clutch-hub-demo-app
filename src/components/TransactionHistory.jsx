@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const TransactionHistory = ({ userPublicKey }) => {
   const [transactions, setTransactions] = useState([]);
@@ -6,37 +6,44 @@ const TransactionHistory = ({ userPublicKey }) => {
 
   // Load transactions from localStorage when the component mounts or user changes
   useEffect(() => {
-    if (userPublicKey) {
-      // Get transactions from localStorage
-      const storedTransactions = localStorage.getItem(`clutch_tx_${userPublicKey}`);
-      if (storedTransactions) {
-        try {
-          setTransactions(JSON.parse(storedTransactions));
-        } catch (error) {
-          console.error('Failed to parse transaction history:', error);
+    const loadTransactions = () => {
+      if (userPublicKey) {
+        // Get transactions from localStorage
+        const storedTransactions = localStorage.getItem(`clutch_tx_${userPublicKey}`);
+        if (storedTransactions) {
+          try {
+            setTransactions(JSON.parse(storedTransactions));
+          } catch (error) {
+            console.error('Failed to parse transaction history:', error);
+            setTransactions([]);
+          }
+        } else {
           setTransactions([]);
         }
       } else {
         setTransactions([]);
       }
-    } else {
-      setTransactions([]);
-    }
-  }, [userPublicKey]);
-
-  // Function to add a new transaction to history
-  const addTransaction = (transaction) => {
-    const updatedTransactions = [transaction, ...transactions];
-    setTransactions(updatedTransactions);
+    };
     
-    // Save to localStorage
-    if (userPublicKey) {
-      localStorage.setItem(
-        `clutch_tx_${userPublicKey}`, 
-        JSON.stringify(updatedTransactions.slice(0, 10)) // Store only last 10 transactions
-      );
-    }
-  };
+    loadTransactions();
+  }, [userPublicKey]); // Only dependency is userPublicKey
+
+  // Memoize the addTransaction function to avoid recreation on each render
+  const addTransaction = useCallback((transaction) => {
+    setTransactions(currentTransactions => {
+      const updatedTransactions = [transaction, ...currentTransactions];
+      
+      // Save to localStorage
+      if (userPublicKey) {
+        localStorage.setItem(
+          `clutch_tx_${userPublicKey}`, 
+          JSON.stringify(updatedTransactions.slice(0, 10)) // Store only last 10 transactions
+        );
+      }
+      
+      return updatedTransactions;
+    });
+  }, [userPublicKey]);
 
   // No transactions or no user logged in
   if (!userPublicKey || transactions.length === 0) {

@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const UserProfile = ({ onProfileUpdate }) => {
   const [publicKey, setPublicKey] = useState('');
   const [privateKey, setPrivateKey] = useState('');
   const [rememberKeys, setRememberKeys] = useState(false);
   const [isProfileSaved, setIsProfileSaved] = useState(false);
+
+  // Memoize the profile update callback to prevent infinite loops
+  const updateParentProfile = useCallback((profileData) => {
+    if (onProfileUpdate) {
+      onProfileUpdate(profileData);
+    }
+  }, [onProfileUpdate]);
 
   // Load saved keys from localStorage on component mount
   useEffect(() => {
@@ -21,15 +28,14 @@ const UserProfile = ({ onProfileUpdate }) => {
       
       setIsProfileSaved(true);
       
-      // Notify parent component
-      if (onProfileUpdate) {
-        onProfileUpdate({ 
-          publicKey: savedPublicKey, 
-          privateKey: savedPrivateKey || '' 
-        });
-      }
+      // Notify parent component - using memoized callback
+      updateParentProfile({ 
+        publicKey: savedPublicKey, 
+        privateKey: savedPrivateKey || '' 
+      });
     }
-  }, [onProfileUpdate]);
+    // Only run this effect once on mount
+  }, [updateParentProfile]);
 
   const handleSaveProfile = (e) => {
     e.preventDefault();

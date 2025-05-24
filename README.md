@@ -1,6 +1,68 @@
 # Clutch Hub Demo App
 
-A simple React app for ride requests, built with Vite.
+A decentralized ride-sharing application showcasing blockchain integration using the Clutch Hub SDK.
+
+## Features
+
+### User Profile Management
+- Store public and private keys securely
+- Option to remember keys between sessions
+- Visual feedback for active profile
+
+### Ride Request
+- Interactive map to select pickup and dropoff locations
+- Simple fare input
+- Automatic transaction signing when keys are stored
+- Visual feedback during transaction processing
+
+### Transaction History
+- Records all ride requests (successful and failed)
+- Collapsible interface to save space
+- Persistent storage tied to user's public key
+
+## Security Considerations
+
+- Private keys are optionally stored in the browser's localStorage
+- Warning is displayed about the risks of storing private keys
+- Keys are never transmitted to any server except during transaction signing
+- All blockchain interactions happen client-side
+
+## Decentralization Benefits
+
+This application demonstrates several key blockchain principles:
+
+1. **User sovereignty**: Users own and control their keys
+2. **Transparency**: All transactions are recorded and visible
+3. **No central authority**: Ride requests are processed by the blockchain network
+4. **Trustless operations**: Smart contracts enforce the rules without third-party oversight
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies with `npm install`
+3. Start the development server with `npm run dev`
+4. Visit `http://localhost:5173` in your browser
+
+## Development
+
+### Dependencies
+- React for UI components
+- Leaflet for interactive maps
+- Clutch Hub SDK for blockchain interactions
+
+### Local Storage
+The application uses the following localStorage keys:
+- `clutchPublicKey`: User's public key
+- `clutchPrivateKey`: User's private key (if "remember keys" is enabled)
+- `clutch_tx_[publicKey]`: Transaction history for a specific user
+
+## Best Practices
+
+The application follows blockchain best practices:
+- Minimizes private key exposure
+- Uses client-side signing
+- Keeps transaction history for transparency
+- Provides clear feedback on transaction status
 
 ## Project Structure
 
@@ -17,13 +79,6 @@ clutch-hub-demo-app/
 ├── vite.config.js
 ├── README.md
 └── .gitignore
-```
-
-## Getting Started
-
-```bash
-npm install
-npm run dev
 ```
 
 ## Using with clutch-hub-sdk-js (local npm link)

@@ -19,7 +19,12 @@ const UserProfile = ({ onProfileUpdate }) => {
     const savedPrivateKey = localStorage.getItem('clutchPrivateKey');
     
     if (savedPublicKey) {
-      setPublicKey(savedPublicKey);
+      // Normalize loaded saved key to ensure '0x' prefix
+      let normalizedKey = savedPublicKey.trim();
+      if (!normalizedKey.startsWith('0x')) {
+        normalizedKey = '0x' + normalizedKey;
+      }
+      setPublicKey(normalizedKey);
       setRememberKeys(true);
       
       if (savedPrivateKey) {
@@ -30,7 +35,7 @@ const UserProfile = ({ onProfileUpdate }) => {
       
       // Notify parent component - using memoized callback
       updateParentProfile({ 
-        publicKey: savedPublicKey, 
+        publicKey: normalizedKey, 
         privateKey: savedPrivateKey || '' 
       });
     }
@@ -41,12 +46,18 @@ const UserProfile = ({ onProfileUpdate }) => {
     e.preventDefault();
     
     if (publicKey) {
-      // Store in state
+      // Normalize to ensure '0x' prefix
+      let normalizedKey = publicKey.trim();
+      if (!normalizedKey.startsWith('0x')) {
+        normalizedKey = '0x' + normalizedKey;
+      }
+      // Update state with normalized key
+      setPublicKey(normalizedKey);
       setIsProfileSaved(true);
       
       // Save to localStorage if remember is checked
       if (rememberKeys) {
-        localStorage.setItem('clutchPublicKey', publicKey);
+        localStorage.setItem('clutchPublicKey', normalizedKey);
         if (privateKey) {
           localStorage.setItem('clutchPrivateKey', privateKey);
         }
@@ -56,9 +67,9 @@ const UserProfile = ({ onProfileUpdate }) => {
         localStorage.removeItem('clutchPrivateKey');
       }
       
-      // Notify parent component
+      // Notify parent component with normalized key
       if (onProfileUpdate) {
-        onProfileUpdate({ publicKey, privateKey });
+        onProfileUpdate({ publicKey: normalizedKey, privateKey });
       }
     }
   };

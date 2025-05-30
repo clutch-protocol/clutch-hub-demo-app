@@ -81,15 +81,8 @@ const RideForm = () => {
         // Prepare transaction for submission
         setTransactionStatus({ type: 'info', message: 'Submitting transaction to the network...' });
         
-        // Submit the transaction to the blockchain
-        const response = await sdk.submitTransaction({
-          from: unsignedTx.from,
-          nonce: unsignedTx.nonce,
-          payload: signature.rawTransaction,
-          r: signature.r,
-          s: signature.s,
-          v: signature.v
-        });
+        // Submit the raw transaction string to the blockchain
+        const response = await sdk.submitTransaction(signature.rawTransaction);
         
         console.log('Transaction response:', response);
         

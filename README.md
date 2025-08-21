@@ -10,6 +10,8 @@
 
 A decentralized ride-sharing application showcasing blockchain integration using the Clutch Hub SDK.
 
+**Created and maintained by [Mehran Mazhar](https://github.com/MehranMazhar)**
+
 ## Features
 
 ### User Profile Management
@@ -104,6 +106,13 @@ clutch-hub-demo-app/
 ---
 
 Stay true to the philosophy of decentralization and blockchain.
+
+## Author & Maintainer
+
+**Mehran Mazhar**
+- GitHub: [@MehranMazhar](https://github.com/MehranMazhar)
+- Website: [MehranMazhar.com](https://MehranMazhar.com)
+- Email: mehran.mazhar@gmail.com
 
 # React + Vite
 

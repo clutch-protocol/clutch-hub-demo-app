@@ -1,5 +1,13 @@
 # Clutch Hub Demo App
 
+![Alpha](https://img.shields.io/badge/status-alpha-orange.svg)
+![Experimental](https://img.shields.io/badge/stage-experimental-red.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)
+
+> ⚠️ **ALPHA SOFTWARE** - This project is in active development and is considered experimental. Use at your own risk. Features may not work as expected and APIs may change without notice.
+
 A decentralized ride-sharing application showcasing blockchain integration using the Clutch Hub SDK.
 
 ## Features

@@ -6,19 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:prod": "npm run install:prod && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "install:prod": "npm install --production",
-    "update:sdk": "npm update clutch-hub-sdk-js",
-    "check:sdk": "npm list clutch-hub-sdk-js"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "clutch-hub-sdk-js": "^1.3.0",
-    "leaflet": "^1.9.4",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-leaflet": "^5.0.0"
+    "clutch-hub-sdk-js": "1.3.1",
+    "leaflet": "1.9.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-leaflet": "5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

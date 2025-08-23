@@ -52,17 +52,17 @@ const RideForm = () => {
       try {
         setIsLoading(true);
         setTransactionStatus({ type: 'info', message: 'Creating transaction...' });
-        
+
         const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-        const unsignedTx = await sdk.createUnsignedRideRequest({ 
-          pickup, 
-          dropoff, 
-          fare: Number(fare) 
+        const unsignedTx = await sdk.createUnsignedRideRequest({
+          pickup,
+          dropoff,
+          fare: Number(fare)
         });
-        
+
         console.log('Unsigned transaction:', unsignedTx);
         setTransactionStatus({ type: 'info', message: 'Transaction created. Signing...' });
-        
+
         // Use stored private key if available, otherwise prompt
         let privateKey = userProfile.privateKey;
         if (!privateKey) {
@@ -73,19 +73,19 @@ const RideForm = () => {
             return;
           }
         }
-        
+
         // Sign transaction
         const signature = await sdk.signTransaction(unsignedTx, privateKey);
         console.log('Signature:', signature);
-        
+
         // Prepare transaction for submission
         setTransactionStatus({ type: 'info', message: 'Submitting transaction to the network...' });
-        
+
         // Submit the raw transaction string to the blockchain
         const response = await sdk.submitTransaction(signature.rawTransaction);
-        
+
         console.log('Transaction response:', response);
-        
+
         // Record transaction in history
         const txRecord = {
           type: 'Ride Request',
@@ -96,17 +96,17 @@ const RideForm = () => {
           status: 'success',
           txHash: signature.r.substring(0, 10) // Just for display purposes
         };
-        
+
         // Add to transaction history
         TransactionHistory.addTransaction(userProfile.publicKey, txRecord);
-        
-        setTransactionStatus({ 
-          type: 'success', 
+
+        setTransactionStatus({
+          type: 'success',
           message: 'Transaction submitted successfully! Network confirmation pending.'
         });
       } catch (err) {
         console.error(err);
-        
+
         // Record failed transaction
         if (pickup && dropoff && userProfile.publicKey) {
           const txRecord = {
@@ -118,13 +118,13 @@ const RideForm = () => {
             status: 'failed',
             error: err.message
           };
-          
+
           // Add to transaction history
           TransactionHistory.addTransaction(userProfile.publicKey, txRecord);
         }
-        
-        setTransactionStatus({ 
-          type: 'error', 
+
+        setTransactionStatus({
+          type: 'error',
           message: 'Transaction failed: ' + (err.message || 'Unknown error')
         });
       } finally {
@@ -136,25 +136,25 @@ const RideForm = () => {
   return (
     <div>
       <UserProfile onProfileUpdate={handleProfileUpdate} />
-      
+
       {transactionStatus && (
         <div style={{
           padding: '0.75rem',
           marginBottom: '1rem',
           borderRadius: '4px',
-          backgroundColor: 
+          backgroundColor:
             transactionStatus.type === 'success' ? '#d4edda' :
-            transactionStatus.type === 'error' ? '#f8d7da' :
-            transactionStatus.type === 'warning' ? '#fff3cd' : '#cce5ff',
-          color: 
+              transactionStatus.type === 'error' ? '#f8d7da' :
+                transactionStatus.type === 'warning' ? '#fff3cd' : '#cce5ff',
+          color:
             transactionStatus.type === 'success' ? '#155724' :
-            transactionStatus.type === 'error' ? '#721c24' :
-            transactionStatus.type === 'warning' ? '#856404' : '#004085',
+              transactionStatus.type === 'error' ? '#721c24' :
+                transactionStatus.type === 'warning' ? '#856404' : '#004085',
         }}>
           {transactionStatus.message}
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} style={{ textAlign: 'center' }}>
         <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
           <input
@@ -231,7 +231,7 @@ const RideForm = () => {
           </button>
         </div>
       </form>
-      
+
       <TransactionHistory userPublicKey={userProfile.publicKey} />
     </div>
   );

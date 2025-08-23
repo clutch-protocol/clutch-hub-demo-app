@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "clutch-hub-sdk-js": "file:../clutch-hub-sdk-js",
+    "clutch-hub-sdk-js": "^0.1.0",
     "leaflet": "^1.9.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

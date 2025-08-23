@@ -91,17 +91,26 @@ clutch-hub-demo-app/
 └── .gitignore
 ```
 
-## Using with clutch-hub-sdk-js (local npm link)
+## Using the Clutch Hub SDK
 
-1. In your `clutch-hub-sdk-js` directory:
-   ```bash
-   npm run build
-   npm link
-   ```
-2. In this project directory:
-   ```bash
-   npm link clutch-hub-sdk-js
-   ```
+This demo app uses the published [clutch-hub-sdk-js](https://www.npmjs.com/package/clutch-hub-sdk-js) npm package from the registry.
+
+The SDK is automatically installed when you run `npm install` and imported in the components as:
+```javascript
+import { ClutchHubSdk } from 'clutch-hub-sdk-js';
+```
+
+### SDK Installation
+The demo app uses the latest stable version of the SDK. To update to the latest version:
+```bash
+npm update clutch-hub-sdk-js
+```
+
+### Using Canary Builds
+For testing latest features, you can use canary builds:
+```bash
+npm install clutch-hub-sdk-js@canary
+```
 
 ---
 

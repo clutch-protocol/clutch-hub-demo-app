@@ -53,6 +53,18 @@ This application demonstrates several key blockchain principles:
 3. Start the development server with `npm run dev`
 4. Visit `http://localhost:5173` in your browser
 
+### Docker
+
+```bash
+# Build (API URL defaults to http://localhost:3000)
+docker build -t clutch-hub-demo-app .
+
+# Run
+docker run -p 5173:80 clutch-hub-demo-app
+```
+
+Or use [clutch-deploy](https://github.com/clutchprotocol/clutch-deploy) with `--profile demo` to run the full stack including the demo app.
+
 ## Development
 
 ### Dependencies

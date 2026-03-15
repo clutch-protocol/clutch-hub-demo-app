@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { generateWallet } from '../utils/wallet';
 
 const UserProfile = ({ onProfileUpdate }) => {
   const [publicKey, setPublicKey] = useState('');
@@ -71,6 +72,22 @@ const UserProfile = ({ onProfileUpdate }) => {
       if (onProfileUpdate) {
         onProfileUpdate({ publicKey: normalizedKey, privateKey });
       }
+    }
+  };
+
+  const handleGenerateWallet = () => {
+    const { address, privateKey } = generateWallet();
+    setPublicKey(address);
+    setPrivateKey(privateKey);
+    setRememberKeys(true);
+    setIsProfileSaved(true);
+
+    // Save to localStorage (one-click flow: generate + remember)
+    localStorage.setItem('clutchPublicKey', address);
+    localStorage.setItem('clutchPrivateKey', privateKey);
+
+    if (onProfileUpdate) {
+      onProfileUpdate({ publicKey: address, privateKey });
     }
   };
 
@@ -147,6 +164,29 @@ const UserProfile = ({ onProfileUpdate }) => {
       boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
     }}>
       <h3 style={{ marginTop: 0, marginBottom: '0.75rem', color: '#333' }}>User Profile</h3>
+      <div style={{ marginBottom: '1rem' }}>
+        <button
+          type="button"
+          onClick={handleGenerateWallet}
+          style={{
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '0.5rem 1rem',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+            fontWeight: '600'
+          }}
+        >
+          Generate New Wallet
+        </button>
+        <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: '#6c757d' }}>
+          Create a new wallet with one click. Keys are stored on this device.
+        </p>
+      </div>
+      <hr style={{ border: 'none', borderTop: '1px solid #dee2e6', margin: '1rem 0' }} />
+      <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#6c757d' }}>Or enter existing keys:</p>
       <form onSubmit={handleSaveProfile}>
         <div style={{ marginBottom: '1rem' }}>
           <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>

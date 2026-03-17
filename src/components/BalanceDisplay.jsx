@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
 
-const BalanceDisplay = ({ publicKey }) => {
+const BalanceDisplay = ({ publicKey, refreshTrigger = 0 }) => {
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -33,7 +33,7 @@ const BalanceDisplay = ({ publicKey }) => {
     };
 
     fetchBalance();
-  }, [publicKey]);
+  }, [publicKey, refreshTrigger]);
 
   if (!publicKey) {
     return null;

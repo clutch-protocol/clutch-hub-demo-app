@@ -35,6 +35,7 @@ const RideForm = () => {
   const [dropoff, setDropoff] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState(null);
+  const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
 
   // Use useCallback to memoize this function
   const handleProfileUpdate = useCallback((profile) => {
@@ -105,6 +106,9 @@ const RideForm = () => {
           type: 'success',
           message: 'Transaction submitted successfully! Network confirmation pending.'
         });
+
+        // Trigger a balance refresh
+        setRefreshBalanceCounter(prev => prev + 1);
       } catch (err) {
         console.error(err);
 
@@ -138,7 +142,7 @@ const RideForm = () => {
     <div>
       <UserProfile onProfileUpdate={handleProfileUpdate} />
       
-      <BalanceDisplay publicKey={userProfile.publicKey} />
+      <BalanceDisplay publicKey={userProfile.publicKey} refreshTrigger={refreshBalanceCounter} />
 
       {transactionStatus && (
         <div style={{

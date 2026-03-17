@@ -14,14 +14,11 @@ const BalanceDisplay = ({ publicKey, refreshTrigger = 0 }) => {
         setError(null);
         return;
       }
-
       try {
         setLoading(true);
         setError(null);
-
         const sdk = new ClutchHubSdk(API_URL, publicKey);
         const accountBalance = await sdk.getAccountBalance(publicKey);
-
         setBalance(accountBalance);
       } catch (err) {
         console.error('Error fetching balance:', err);
@@ -31,59 +28,28 @@ const BalanceDisplay = ({ publicKey, refreshTrigger = 0 }) => {
         setLoading(false);
       }
     };
-
     fetchBalance();
   }, [publicKey, refreshTrigger]);
 
-  if (!publicKey) {
-    return null;
-  }
+  if (!publicKey) return null;
 
   return (
-    <div style={{
-      padding: '1rem',
-      backgroundColor: '#e7f3ff',
-      borderRadius: '8px',
-      marginBottom: '1rem',
-      borderLeft: '4px solid #0066cc',
-    }}>
-      <h3 style={{ marginTop: 0, marginBottom: '0.75rem', color: '#0066cc' }}>
-        Account Balance
-      </h3>
-
+    <div className="card" style={{ borderLeft: '4px solid var(--accent)' }}>
+      <h3 className="card-title">Balance</h3>
       {loading && (
-        <div style={{ color: '#666', fontSize: '0.95rem' }}>
-          <span style={{ display: 'inline-block', marginRight: '0.5rem' }}>⏳</span>
-          Loading balance...
-        </div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Loading…</div>
       )}
-
       {error && (
-        <div style={{ color: '#d32f2f', fontSize: '0.95rem' }}>
-          <span style={{ display: 'inline-block', marginRight: '0.5rem' }}>⚠️</span>
-          {error}
-        </div>
+        <div style={{ color: 'var(--error)', fontSize: '0.95rem' }}>{error}</div>
       )}
-
       {balance !== null && !loading && !error && (
         <div>
-          <div style={{ marginBottom: '0.5rem' }}>
-            <span style={{ fontWeight: 'bold', color: '#333' }}>Balance:</span>
-            <span style={{ 
-              marginLeft: '0.5rem',
-              fontSize: '1.25rem',
-              fontWeight: '600',
-              color: '#0066cc'
-            }}>
-              {typeof balance === 'object' ? balance.toString() : balance}
-            </span>
-            <span style={{ marginLeft: '0.25rem', color: '#666' }}>CLT</span>
+          <div style={{ fontSize: '1.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+            {typeof balance === 'object' ? balance.toString() : balance}
+            <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '0.5rem' }}>CLT</span>
           </div>
-          <div style={{ fontSize: '0.8rem', color: '#666' }}>
-            <span style={{ fontWeight: '500' }}>Address:</span>
-            <span style={{ marginLeft: '0.5rem', wordBreak: 'break-all' }}>
-              {publicKey.substring(0, 10)}...{publicKey.substring(publicKey.length - 10)}
-            </span>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+            {publicKey.substring(0, 12)}…{publicKey.substring(publicKey.length - 10)}
           </div>
         </div>
       )}

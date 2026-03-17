@@ -10,13 +10,8 @@ import UserProfile from './UserProfile';
 import BalanceDisplay from './BalanceDisplay';
 import TransactionHistory from './TransactionHistory';
 
-// Fix Leaflet's default icon paths
 delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconUrl,
-  iconRetinaUrl,
-  shadowUrl,
-});
+L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
 
 const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
   useMapEvents({
@@ -37,11 +32,7 @@ const RideForm = () => {
   const [transactionStatus, setTransactionStatus] = useState(null);
   const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
 
-  // Use useCallback to memoize this function
-  const handleProfileUpdate = useCallback((profile) => {
-    setUserProfile(profile);
-  }, []);
-
+  const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
   const handleReset = useCallback(() => {
     setPickup(null);
     setDropoff(null);
@@ -50,198 +41,112 @@ const RideForm = () => {
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    if (pickup && dropoff && userProfile.publicKey) {
-      try {
-        setIsLoading(true);
-        setTransactionStatus({ type: 'info', message: 'Creating transaction...' });
+    if (!pickup || !dropoff || !userProfile.publicKey) return;
+    try {
+      setIsLoading(true);
+      setTransactionStatus({ type: 'info', message: 'Creating transaction...' });
 
-        const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-        const unsignedTx = await sdk.createUnsignedRideRequest({
-          pickup,
-          dropoff,
-          fare: Number(fare)
-        });
+      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const unsignedTx = await sdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
+      setTransactionStatus({ type: 'info', message: 'Transaction created. Signing...' });
 
-        console.log('Unsigned transaction:', unsignedTx);
-        setTransactionStatus({ type: 'info', message: 'Transaction created. Signing...' });
-
-        // Use stored private key if available, otherwise prompt
-        let privateKey = userProfile.privateKey;
+      let privateKey = userProfile.privateKey;
+      if (!privateKey) {
+        privateKey = window.prompt('Enter your private key to sign the transaction:');
         if (!privateKey) {
-          privateKey = window.prompt('Enter your private key to sign the transaction:');
-          if (!privateKey) {
-            setTransactionStatus({ type: 'warning', message: 'Signing cancelled.' });
-            setIsLoading(false);
-            return;
-          }
+          setTransactionStatus({ type: 'warning', message: 'Signing cancelled.' });
+          setIsLoading(false);
+          return;
         }
-
-        // Sign transaction
-        const signature = await sdk.signTransaction(unsignedTx, privateKey);
-        console.log('Signature:', signature);
-
-        // Prepare transaction for submission
-        setTransactionStatus({ type: 'info', message: 'Submitting transaction to the network...' });
-
-        // Submit the raw transaction string to the blockchain
-        const response = await sdk.submitTransaction(signature.rawTransaction);
-
-        console.log('Transaction response:', response);
-
-        // Record transaction in history
-        const txRecord = {
-          type: 'Ride Request',
-          timestamp: Date.now(),
-          pickup,
-          dropoff,
-          fare: Number(fare),
-          status: 'success',
-          txHash: signature.r.substring(0, 10) // Just for display purposes
-        };
-
-        // Add to transaction history
-        TransactionHistory.addTransaction(userProfile.publicKey, txRecord);
-
-        setTransactionStatus({
-          type: 'success',
-          message: 'Transaction submitted successfully! Network confirmation pending.'
-        });
-
-        // Trigger a balance refresh
-        setRefreshBalanceCounter(prev => prev + 1);
-      } catch (err) {
-        console.error(err);
-
-        // Record failed transaction
-        if (pickup && dropoff && userProfile.publicKey) {
-          const txRecord = {
-            type: 'Ride Request',
-            timestamp: Date.now(),
-            pickup,
-            dropoff,
-            fare: Number(fare),
-            status: 'failed',
-            error: err.message
-          };
-
-          // Add to transaction history
-          TransactionHistory.addTransaction(userProfile.publicKey, txRecord);
-        }
-
-        setTransactionStatus({
-          type: 'error',
-          message: 'Transaction failed: ' + (err.message || 'Unknown error')
-        });
-      } finally {
-        setIsLoading(false);
       }
+
+      const signature = await sdk.signTransaction(unsignedTx, privateKey);
+      setTransactionStatus({ type: 'info', message: 'Submitting transaction to the network...' });
+      await sdk.submitTransaction(signature.rawTransaction);
+
+      TransactionHistory.addTransaction(userProfile.publicKey, {
+        type: 'Ride Request',
+        timestamp: Date.now(),
+        pickup,
+        dropoff,
+        fare: Number(fare),
+        status: 'success',
+        txHash: signature.r?.substring(0, 10) || '',
+      });
+
+      setTransactionStatus({ type: 'success', message: 'Transaction submitted successfully! Network confirmation pending.' });
+      setRefreshBalanceCounter((prev) => prev + 1);
+    } catch (err) {
+      console.error(err);
+      TransactionHistory.addTransaction(userProfile.publicKey, {
+        type: 'Ride Request',
+        timestamp: Date.now(),
+        pickup,
+        dropoff,
+        fare: Number(fare),
+        status: 'failed',
+        error: err.message,
+      });
+      setTransactionStatus({ type: 'error', message: 'Transaction failed: ' + (err.message || 'Unknown error') });
+    } finally {
+      setIsLoading(false);
     }
   }, [pickup, dropoff, userProfile, fare]);
 
   return (
     <div>
       <UserProfile onProfileUpdate={handleProfileUpdate} />
-      
       <BalanceDisplay publicKey={userProfile.publicKey} refreshTrigger={refreshBalanceCounter} />
 
       {transactionStatus && (
-        <div style={{
-          padding: '0.75rem',
-          marginBottom: '1rem',
-          borderRadius: '4px',
-          backgroundColor:
-            transactionStatus.type === 'success' ? '#d4edda' :
-              transactionStatus.type === 'error' ? '#f8d7da' :
-                transactionStatus.type === 'warning' ? '#fff3cd' : '#cce5ff',
-          color:
-            transactionStatus.type === 'success' ? '#155724' :
-              transactionStatus.type === 'error' ? '#721c24' :
-                transactionStatus.type === 'warning' ? '#856404' : '#004085',
-        }}>
+        <div className={`status-banner ${transactionStatus.type}`}>
           {transactionStatus.message}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ textAlign: 'center' }}>
-        <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+      <div className="card">
+        <h3 className="card-title">Request Ride</h3>
+        <form onSubmit={handleSubmit}>
+          <label className="label">Fare (CLT)</label>
           <input
             type="number"
-            placeholder="Fare"
             value={fare}
-            onChange={e => setFare(e.target.value)}
-            style={{ width: 120, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
+            onChange={(e) => setFare(e.target.value)}
+            className="input-field"
+            style={{ width: 140, marginBottom: '1rem' }}
             min={0}
             required
           />
-        </div>
-        <p style={{ textAlign: 'center', marginBottom: '0.5rem', fontWeight: '500' }}>
-          Click on the map to select Pickup and Dropoff locations
-        </p>
-        <div style={{
-          borderRadius: 8,
-          overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          marginBottom: '1rem',
-        }}>
-          <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '400px', width: '100%' }}>
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&copy; OpenStreetMap contributors"
-            />
-            <LocationSelector
-              pickup={pickup}
-              dropoff={dropoff}
-              setPickup={setPickup}
-              setDropoff={setDropoff}
-            />
-            {pickup && (
-              <Marker position={pickup}>
-                <Popup>Pickup</Popup>
-              </Marker>
-            )}
-            {dropoff && (
-              <Marker position={dropoff}>
-                <Popup>Dropoff</Popup>
-              </Marker>
-            )}
-          </MapContainer>
-        </div>
-        <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-          <button
-            type="button"
-            onClick={handleReset}
-            style={{
-              backgroundColor: '#f0f0f0',
-              color: '#333333',
-              border: '1px solid #cccccc',
-              padding: '0.5rem 1rem',
-              borderRadius: 4,
-              cursor: 'pointer',
-            }}
-          >
-            Reset
-          </button>
-          <button
-            type="submit"
-            disabled={!(pickup && dropoff && userProfile.publicKey) || isLoading}
-            style={{
-              backgroundColor: '#646cff',
-              color: '#ffffff',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: 4,
-              cursor: 'pointer',
-              opacity: (pickup && dropoff && userProfile.publicKey && !isLoading) ? 1 : 0.6,
-            }}
-          >
-            {isLoading ? 'Processing...' : 'Request Ride'}
-          </button>
-        </div>
-      </form>
+          <p className="map-hint">Click on the map to select pickup (first) and dropoff (second) locations</p>
+          <div className="map-wrapper">
+            <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '380px', width: '100%' }}>
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+              />
+              <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={setPickup} setDropoff={setDropoff} />
+              {pickup && <Marker position={pickup}><Popup>Pickup</Popup></Marker>}
+              {dropoff && <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>}
+            </MapContainer>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button type="button" onClick={handleReset} className="btn-secondary">
+              Reset
+            </button>
+            <button
+              type="submit"
+              disabled={!(pickup && dropoff && userProfile.publicKey) || isLoading}
+              className="btn-primary"
+            >
+              {isLoading ? 'Processing…' : 'Request Ride'}
+            </button>
+          </div>
+        </form>
+      </div>
 
       <TransactionHistory userPublicKey={userProfile.publicKey} />
     </div>
   );
 };
 
-export default RideForm; 
+export default RideForm;

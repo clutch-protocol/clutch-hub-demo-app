@@ -7,71 +7,40 @@ const UserProfile = ({ onProfileUpdate }) => {
   const [rememberKeys, setRememberKeys] = useState(false);
   const [isProfileSaved, setIsProfileSaved] = useState(false);
 
-  // Memoize the profile update callback to prevent infinite loops
   const updateParentProfile = useCallback((profileData) => {
-    if (onProfileUpdate) {
-      onProfileUpdate(profileData);
-    }
+    if (onProfileUpdate) onProfileUpdate(profileData);
   }, [onProfileUpdate]);
 
-  // Load saved keys from localStorage on component mount
   useEffect(() => {
     const savedPublicKey = localStorage.getItem('clutchPublicKey');
     const savedPrivateKey = localStorage.getItem('clutchPrivateKey');
-    
+
     if (savedPublicKey) {
-      // Normalize loaded saved key to ensure '0x' prefix
       let normalizedKey = savedPublicKey.trim();
-      if (!normalizedKey.startsWith('0x')) {
-        normalizedKey = '0x' + normalizedKey;
-      }
+      if (!normalizedKey.startsWith('0x')) normalizedKey = '0x' + normalizedKey;
       setPublicKey(normalizedKey);
       setRememberKeys(true);
-      
-      if (savedPrivateKey) {
-        setPrivateKey(savedPrivateKey);
-      }
-      
+      if (savedPrivateKey) setPrivateKey(savedPrivateKey);
       setIsProfileSaved(true);
-      
-      // Notify parent component - using memoized callback
-      updateParentProfile({ 
-        publicKey: normalizedKey, 
-        privateKey: savedPrivateKey || '' 
-      });
+      updateParentProfile({ publicKey: normalizedKey, privateKey: savedPrivateKey || '' });
     }
-    // Only run this effect once on mount
   }, [updateParentProfile]);
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
-    
     if (publicKey) {
-      // Normalize to ensure '0x' prefix
       let normalizedKey = publicKey.trim();
-      if (!normalizedKey.startsWith('0x')) {
-        normalizedKey = '0x' + normalizedKey;
-      }
-      // Update state with normalized key
+      if (!normalizedKey.startsWith('0x')) normalizedKey = '0x' + normalizedKey;
       setPublicKey(normalizedKey);
       setIsProfileSaved(true);
-      
-      // Save to localStorage if remember is checked
       if (rememberKeys) {
         localStorage.setItem('clutchPublicKey', normalizedKey);
-        if (privateKey) {
-          localStorage.setItem('clutchPrivateKey', privateKey);
-        }
+        if (privateKey) localStorage.setItem('clutchPrivateKey', privateKey);
       } else {
-        // Clear localStorage if remember is unchecked
         localStorage.removeItem('clutchPublicKey');
         localStorage.removeItem('clutchPrivateKey');
       }
-      
-      // Notify parent component with normalized key
-      if (onProfileUpdate) {
-        onProfileUpdate({ publicKey: normalizedKey, privateKey });
-      }
+      if (onProfileUpdate) onProfileUpdate({ publicKey: normalizedKey, privateKey });
     }
   };
 
@@ -81,182 +50,82 @@ const UserProfile = ({ onProfileUpdate }) => {
     setPrivateKey(privateKey);
     setRememberKeys(true);
     setIsProfileSaved(true);
-
-    // Save to localStorage (one-click flow: generate + remember)
     localStorage.setItem('clutchPublicKey', address);
     localStorage.setItem('clutchPrivateKey', privateKey);
-
-    if (onProfileUpdate) {
-      onProfileUpdate({ publicKey: address, privateKey });
-    }
+    if (onProfileUpdate) onProfileUpdate({ publicKey: address, privateKey });
   };
 
   const handleClearProfile = () => {
-    // Clear state
     setPublicKey('');
     setPrivateKey('');
     setIsProfileSaved(false);
     setRememberKeys(false);
-    
-    // Clear localStorage
     localStorage.removeItem('clutchPublicKey');
     localStorage.removeItem('clutchPrivateKey');
-    
-    // Notify parent component
-    if (onProfileUpdate) {
-      onProfileUpdate({ publicKey: '', privateKey: '' });
-    }
+    if (onProfileUpdate) onProfileUpdate({ publicKey: '', privateKey: '' });
   };
 
   if (isProfileSaved) {
     return (
-      <div className="user-profile" style={{
-        padding: '1rem',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
-        marginBottom: '1.5rem',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-      }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem', color: '#333' }}>User Profile</h3>
-        <div style={{ marginBottom: '0.5rem' }}>
-          <span style={{ fontWeight: 'bold' }}>Public Key:</span>
-          <span style={{ 
-            marginLeft: '0.5rem', 
-            wordBreak: 'break-all',
-            color: '#555'
-          }}>
-            {publicKey.substring(0, 10)}...{publicKey.substring(publicKey.length - 10)}
-          </span>
+      <div className="card">
+        <h3 className="card-title">Wallet</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Public Key</div>
+            <code style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+              {publicKey.substring(0, 12)}…{publicKey.substring(publicKey.length - 10)}
+            </code>
+          </div>
+          <button type="button" onClick={handleClearProfile} className="btn-danger">
+            Disconnect
+          </button>
         </div>
-        <div style={{ marginBottom: '1rem' }}>
-          <span style={{ fontWeight: 'bold' }}>Private Key:</span>
-          <span style={{ 
-            marginLeft: '0.5rem',
-            color: '#555'
-          }}>
-            {privateKey ? '••••••••••••••••••••' : 'Not stored'}
-          </span>
-        </div>
-        <button 
-          onClick={handleClearProfile}
-          style={{
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '0.5rem 1rem',
-            cursor: 'pointer',
-            fontSize: '0.9rem'
-          }}
-        >
-          Clear Profile
-        </button>
       </div>
     );
   }
 
   return (
-    <div className="user-profile" style={{
-      padding: '1rem',
-      backgroundColor: '#f8f9fa',
-      borderRadius: '8px',
-      marginBottom: '1.5rem',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-    }}>
-      <h3 style={{ marginTop: 0, marginBottom: '0.75rem', color: '#333' }}>User Profile</h3>
-      <div style={{ marginBottom: '1rem' }}>
-        <button
-          type="button"
-          onClick={handleGenerateWallet}
-          style={{
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '0.5rem 1rem',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            fontWeight: '600'
-          }}
-        >
-          Generate New Wallet
-        </button>
-        <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: '#6c757d' }}>
-          Create a new wallet with one click. Keys are stored on this device.
-        </p>
-      </div>
-      <hr style={{ border: 'none', borderTop: '1px solid #dee2e6', margin: '1rem 0' }} />
-      <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#6c757d' }}>Or enter existing keys:</p>
+    <div className="card">
+      <h3 className="card-title">Connect Wallet</h3>
+      <button type="button" onClick={handleGenerateWallet} className="btn-primary" style={{ marginBottom: '1rem' }}>
+        Generate New Wallet
+      </button>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+        Create a new wallet. Keys are stored locally on this device.
+      </p>
+      <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '1rem 0' }} />
+      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Or enter existing keys:</p>
       <form onSubmit={handleSaveProfile}>
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>
-            Public Key:
-          </label>
-          <input
-            type="text"
-            value={publicKey}
-            onChange={(e) => setPublicKey(e.target.value)}
-            placeholder="Enter your public key"
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              borderRadius: '4px',
-              border: '1px solid #ced4da'
-            }}
-            required
-          />
-        </div>
-        
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>
-            Private Key (optional):
-          </label>
-          <input
-            type="password"
-            value={privateKey}
-            onChange={(e) => setPrivateKey(e.target.value)}
-            placeholder="Enter your private key"
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              borderRadius: '4px',
-              border: '1px solid #ced4da'
-            }}
-          />
-          <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#6c757d' }}>
-            ⚠️ Store private key at your own risk. Never share your private key.
-          </p>
-        </div>
-        
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={rememberKeys}
-              onChange={(e) => setRememberKeys(e.target.checked)}
-              style={{ marginRight: '0.5rem' }}
-            />
-            Remember my keys on this device
-          </label>
-        </div>
-        
-        <button 
-          type="submit"
-          style={{
-            backgroundColor: '#646cff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '0.5rem 1rem',
-            cursor: 'pointer',
-            fontSize: '0.9rem'
-          }}
-        >
-          Save Profile
-        </button>
+        <label className="label">Public Key</label>
+        <input
+          type="text"
+          value={publicKey}
+          onChange={(e) => setPublicKey(e.target.value)}
+          placeholder="0x..."
+          className="input-field"
+          style={{ marginBottom: '1rem' }}
+          required
+        />
+        <label className="label">Private Key (optional)</label>
+        <input
+          type="password"
+          value={privateKey}
+          onChange={(e) => setPrivateKey(e.target.value)}
+          placeholder="Enter private key"
+          className="input-field"
+          style={{ marginBottom: '0.5rem' }}
+        />
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+          Never share your private key. Store at your own risk.
+        </p>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+          <input type="checkbox" checked={rememberKeys} onChange={(e) => setRememberKeys(e.target.checked)} />
+          Remember keys on this device
+        </label>
+        <button type="submit" className="btn-primary">Save Profile</button>
       </form>
     </div>
   );
 };
 
-export default UserProfile; 
+export default UserProfile;

@@ -1,20 +1,23 @@
 import React from 'react';
 import RideForm from './components/RideForm';
+import './App.css';
 
 function App() {
   return (
-    <div style={{
-      maxWidth: 600,
-      margin: '2rem auto',
-      padding: 24,
-      backgroundColor: '#ffffff',
-      color: '#000000',
-      borderRadius: 8,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>Clutch Hub Demo App</h1>
-      <RideForm />
-      </div>
+    <div className="app">
+      <header className="app-header">
+        <div className="app-logo">
+          <img src="/clutch-logo.svg" alt="Clutch" className="app-logo-icon" width={32} height={32} />
+          <span className="app-logo-text">Clutch</span>
+        </div>
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          Demo
+        </span>
+      </header>
+      <main className="app-main">
+        <RideForm />
+      </main>
+    </div>
   );
 }
 

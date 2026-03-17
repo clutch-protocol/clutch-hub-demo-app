@@ -4,113 +4,83 @@ const TransactionHistory = ({ userPublicKey }) => {
   const [transactions, setTransactions] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Load transactions from localStorage when the component mounts or user changes
   useEffect(() => {
-    const loadTransactions = () => {
-      if (userPublicKey) {
-        // Get transactions from localStorage
-        const storedTransactions = localStorage.getItem(`clutch_tx_${userPublicKey}`);
-        if (storedTransactions) {
-          try {
-            setTransactions(JSON.parse(storedTransactions));
-          } catch (error) {
-            console.error('Failed to parse transaction history:', error);
-            setTransactions([]);
-          }
-        } else {
-          setTransactions([]);
-        }
-      } else {
+    if (!userPublicKey) {
+      setTransactions([]);
+      return;
+    }
+    const stored = localStorage.getItem(`clutch_tx_${userPublicKey}`);
+    if (stored) {
+      try {
+        setTransactions(JSON.parse(stored));
+      } catch {
         setTransactions([]);
       }
-    };
-    
-    loadTransactions();
-  }, [userPublicKey]); // Only dependency is userPublicKey
+    } else {
+      setTransactions([]);
+    }
+  }, [userPublicKey]);
 
-  // Memoize the addTransaction function to avoid recreation on each render
   const addTransaction = useCallback((transaction) => {
-    setTransactions(currentTransactions => {
-      const updatedTransactions = [transaction, ...currentTransactions];
-      
-      // Save to localStorage
+    setTransactions((prev) => {
+      const updated = [transaction, ...prev];
       if (userPublicKey) {
-        localStorage.setItem(
-          `clutch_tx_${userPublicKey}`, 
-          JSON.stringify(updatedTransactions.slice(0, 10)) // Store only last 10 transactions
-        );
+        localStorage.setItem(`clutch_tx_${userPublicKey}`, JSON.stringify(updated.slice(0, 10)));
       }
-      
-      return updatedTransactions;
+      return updated;
     });
   }, [userPublicKey]);
 
-  // No transactions or no user logged in
-  if (!userPublicKey || transactions.length === 0) {
-    return null;
-  }
+  if (!userPublicKey || transactions.length === 0) return null;
 
   return (
-    <div style={{
-      marginTop: '2rem',
-      backgroundColor: '#f8f9fa',
-      borderRadius: '8px',
-      padding: '1rem',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-    }}>
-      <div 
+    <div className="card">
+      <div
         onClick={() => setIsExpanded(!isExpanded)}
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           cursor: 'pointer',
-          userSelect: 'none'
+          userSelect: 'none',
         }}
       >
-        <h3 style={{ margin: 0, color: '#333' }}>Transaction History</h3>
-        <span>{isExpanded ? '▲' : '▼'}</span>
+        <h3 className="card-title" style={{ margin: 0 }}>Transaction History</h3>
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          {isExpanded ? '▲' : '▼'}
+        </span>
       </div>
-      
       {isExpanded && (
         <div style={{ marginTop: '1rem' }}>
           {transactions.map((tx, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               style={{
-                padding: '0.75rem',
-                marginBottom: index < transactions.length - 1 ? '0.5rem' : 0,
-                backgroundColor: '#fff',
-                borderRadius: '4px',
-                border: '1px solid #e9ecef'
+                padding: '1rem',
+                marginBottom: index < transactions.length - 1 ? '0.75rem' : 0,
+                background: 'var(--bg-base)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 'bold', color: '#333' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                   {tx.type || 'Ride Request'}
                 </span>
-                <span style={{ fontSize: '0.8rem', color: '#6c757d' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   {new Date(tx.timestamp).toLocaleString()}
                 </span>
               </div>
-              
-              <div style={{ fontSize: '0.9rem', color: '#495057' }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                <div><strong>Pickup:</strong> {tx.pickup && `(${tx.pickup.lat.toFixed(4)}, ${tx.pickup.lng.toFixed(4)})`}</div>
+                <div><strong>Dropoff:</strong> {tx.dropoff && `(${tx.dropoff.lat.toFixed(4)}, ${tx.dropoff.lng.toFixed(4)})`}</div>
+                <div><strong>Fare:</strong> {tx.fare} CLT</div>
                 <div>
-                  <strong>Pickup:</strong> {tx.pickup && `(${tx.pickup.lat.toFixed(4)}, ${tx.pickup.lng.toFixed(4)})`}
-                </div>
-                <div>
-                  <strong>Dropoff:</strong> {tx.dropoff && `(${tx.dropoff.lat.toFixed(4)}, ${tx.dropoff.lng.toFixed(4)})`}
-                </div>
-                <div>
-                  <strong>Fare:</strong> {tx.fare}
-                </div>
-                <div>
-                  <strong>Status:</strong> <span style={{
-                    color: 
-                      tx.status === 'success' ? '#28a745' :
-                      tx.status === 'failed' ? '#dc3545' : '#ffc107'
+                  <strong>Status:</strong>{' '}
+                  <span style={{
+                    color: tx.status === 'success' ? 'var(--success)' : tx.status === 'failed' ? 'var(--error)' : 'var(--warning)',
                   }}>
-                    {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                    {tx.status?.charAt(0).toUpperCase() + tx.status?.slice(1)}
                   </span>
                 </div>
               </div>
@@ -122,29 +92,17 @@ const TransactionHistory = ({ userPublicKey }) => {
   );
 };
 
-// Add static method to TransactionHistory component to allow other components to add transactions
 TransactionHistory.addTransaction = (userPublicKey, transaction) => {
-  // Get existing transactions
   let transactions = [];
-  const storedTransactions = localStorage.getItem(`clutch_tx_${userPublicKey}`);
-  if (storedTransactions) {
+  const stored = localStorage.getItem(`clutch_tx_${userPublicKey}`);
+  if (stored) {
     try {
-      transactions = JSON.parse(storedTransactions);
-    } catch (error) {
-      console.error('Failed to parse transaction history:', error);
-    }
+      transactions = JSON.parse(stored);
+    } catch {}
   }
-  
-  // Add new transaction
-  const updatedTransactions = [transaction, ...transactions];
-  
-  // Save to localStorage
-  localStorage.setItem(
-    `clutch_tx_${userPublicKey}`, 
-    JSON.stringify(updatedTransactions.slice(0, 10)) // Store only last 10 transactions
-  );
-  
-  return updatedTransactions;
+  const updated = [transaction, ...transactions];
+  localStorage.setItem(`clutch_tx_${userPublicKey}`, JSON.stringify(updated.slice(0, 10)));
+  return updated;
 };
 
-export default TransactionHistory; 
+export default TransactionHistory;

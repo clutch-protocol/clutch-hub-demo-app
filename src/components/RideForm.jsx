@@ -7,6 +7,7 @@ import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
 import UserProfile from './UserProfile';
+import BalanceDisplay from './BalanceDisplay';
 import TransactionHistory from './TransactionHistory';
 
 // Fix Leaflet's default icon paths
@@ -136,6 +137,8 @@ const RideForm = () => {
   return (
     <div>
       <UserProfile onProfileUpdate={handleProfileUpdate} />
+      
+      <BalanceDisplay publicKey={userProfile.publicKey} />
 
       {transactionStatus && (
         <div style={{

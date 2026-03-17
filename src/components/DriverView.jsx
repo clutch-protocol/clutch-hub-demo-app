@@ -18,7 +18,6 @@ const DEFAULT_ZOOM = 12;
 
 const DriverView = () => {
   const [userProfile, setUserProfile] = useState({ publicKey: '', privateKey: '' });
-  const [isOnline, setIsOnline] = useState(false);
   const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
   const [rideRequests, setRideRequests] = useState([]);
   const [isLoadingRides, setIsLoadingRides] = useState(false);
@@ -28,7 +27,6 @@ const DriverView = () => {
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
 
   const fetchRideRequests = useCallback(async () => {
-    if (!isOnline) return;
     setIsLoadingRides(true);
     setRidesError(null);
     try {
@@ -43,16 +41,11 @@ const DriverView = () => {
     } finally {
       setIsLoadingRides(false);
     }
-  }, [isOnline, userProfile.publicKey]);
+  }, [userProfile.publicKey]);
 
   useEffect(() => {
-    if (isOnline) {
-      fetchRideRequests();
-    } else {
-      setRideRequests([]);
-      setRidesError(null);
-    }
-  }, [isOnline, fetchRideRequests]);
+    fetchRideRequests();
+  }, [fetchRideRequests]);
 
   return (
     <div>
@@ -60,37 +53,14 @@ const DriverView = () => {
       <BalanceDisplay publicKey={userProfile.publicKey} refreshTrigger={refreshBalanceCounter} />
 
       <div className="card">
-        <h3 className="card-title">Driver status</h3>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>
-            {isOnline ? 'You are online and accepting rides' : 'You are offline'}
-          </span>
-          <button
-            type="button"
-            className={isOnline ? 'btn-danger' : 'btn-primary'}
-            onClick={() => setIsOnline(!isOnline)}
-          >
-            {isOnline ? 'Go offline' : 'Go online'}
-          </button>
-        </div>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-          {isOnline
-            ? 'Ride requests appear on the map and list below. Go online to see available rides.'
-            : 'Connect your wallet and go online to start accepting rides.'}
-        </p>
-      </div>
-
-      <div className="card">
         <h3 className="card-title">Available rides</h3>
-        {!isOnline ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Connect your wallet and go online to see available rides.
-          </div>
-        ) : (
-          <>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+          Ride requests awaiting a driver. Click a pickup marker to show dropoff and route.
+        </p>
+        <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                {rideRequests.length} ride request{rideRequests.length !== 1 ? 's' : ''} available. Click a pickup marker to show dropoff and route.
+                {rideRequests.length} ride request{rideRequests.length !== 1 ? 's' : ''} available
               </span>
               <button
                 type="button"
@@ -207,8 +177,7 @@ const DriverView = () => {
                 ))}
               </div>
             )}
-          </>
-        )}
+        </>
       </div>
 
       <TransactionHistory userPublicKey={userProfile.publicKey} />

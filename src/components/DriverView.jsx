@@ -104,7 +104,7 @@ const DriverView = () => {
     } finally {
       setAcceptingTxHash(null);
     }
-  }, [userProfile, fetchRideRequests]);
+  }, [userProfile, offerFares, fetchRideRequests]);
 
   return (
     <div>

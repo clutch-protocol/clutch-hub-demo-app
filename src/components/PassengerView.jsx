@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import React, { useState, useCallback, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -23,6 +23,102 @@ const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
   return null;
 };
 
+const RideRequestCard = ({ req, userProfile }) => {
+  const [offers, setOffers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchOffers = useCallback(async () => {
+    if (!userProfile.publicKey || !req.txHash) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const fetchedOffers = await sdk.listRideOffers(req.txHash);
+      setOffers(fetchedOffers);
+    } catch (err) {
+      console.error('Failed to fetch offers:', err);
+      setError(err.message || 'Failed to load offers');
+    } finally {
+      setLoading(false);
+    }
+  }, [req.txHash, userProfile.publicKey]);
+
+  useEffect(() => {
+    fetchOffers();
+    const interval = setInterval(fetchOffers, 10000);
+    return () => clearInterval(interval);
+  }, [fetchOffers]);
+
+  const pickup = [req.pickup.lat, req.pickup.lng];
+  const dropoff = [req.dropoff.lat, req.dropoff.lng];
+
+  return (
+    <div className="card" style={{ marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div>
+          <h3 className="card-title" style={{ margin: 0, display: 'inline-block' }}>Ride Request</h3>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+            {new Date(req.timestamp).toLocaleString()}
+          </span>
+        </div>
+        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+          {req.fare} CLT
+        </div>
+      </div>
+      
+      <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
+        <MapContainer center={pickup} zoom={13} style={{ height: '220px', width: '100%' }}>
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
+          <Marker position={pickup}><Popup>Pickup</Popup></Marker>
+          <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>
+          <Polyline positions={[pickup, dropoff]} color="#0ea5e9" weight={3} opacity={0.8} />
+        </MapContainer>
+      </div>
+
+      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', wordBreak: 'break-all' }}>
+        Tx: {req.txHash}
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h4 style={{ fontSize: '0.875rem', margin: 0, color: 'var(--text-secondary)' }}>Offers ({offers.length})</h4>
+          <button type="button" className="btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={fetchOffers} disabled={loading}>
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+
+        {error && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem' }}>{error}</div>}
+
+        {offers.length === 0 && !loading && !error && (
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem 0' }}>
+            No offers yet.
+          </div>
+        )}
+
+        {offers.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {offers.map((offer) => (
+              <div key={offer.txHash} style={{ padding: '0.75rem', background: 'var(--bg-base)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{offer.fare} CLT</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Driver: {offer.driverAddress.substring(0, 10)}…</div>
+                </div>
+                <button type="button" className="btn-primary" style={{ fontSize: '0.8rem' }} disabled>
+                  Accept Offer (coming soon)
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const PassengerView = () => {
   const [userProfile, setUserProfile] = useState({ publicKey: '', privateKey: '' });
   const [fare, setFare] = useState(1000);
@@ -31,8 +127,65 @@ const PassengerView = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState(null);
   const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
+  const [previousRequests, setPreviousRequests] = useState([]);
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchRequests = async () => {
+      if (!userProfile.publicKey) {
+        if (isMounted) setPreviousRequests([]);
+        return;
+      }
+      
+      try {
+        const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+        const allRequests = await sdk.listRideRequests();
+        if (isMounted) {
+          const myRequests = allRequests.filter(req => req.passengerAddress === userProfile.publicKey);
+          
+          // Attempt to get timestamps from localStorage if available
+          const stored = localStorage.getItem(`clutch_tx_${userProfile.publicKey}`);
+          let txMap = {};
+          if (stored) {
+            try {
+              const allTxs = JSON.parse(stored);
+              allTxs.forEach(tx => { if (tx.txHash) txMap[tx.txHash] = tx; });
+            } catch (e) {}
+          }
+
+          const formattedRequests = myRequests.map(r => {
+            const localTx = txMap[r.txHash];
+            return {
+              type: 'Ride Request',
+              timestamp: localTx && localTx.timestamp ? localTx.timestamp : Date.now(),
+              pickup: { lat: r.pickupLocation.latitude, lng: r.pickupLocation.longitude },
+              dropoff: { lat: r.dropoffLocation.latitude, lng: r.dropoffLocation.longitude },
+              fare: r.fare,
+              txHash: r.txHash,
+            };
+          });
+          
+          // Sort descending by timestamp
+          formattedRequests.sort((a, b) => b.timestamp - a.timestamp);
+          setPreviousRequests(formattedRequests);
+        }
+      } catch (err) {
+        console.error("Failed to fetch ride requests from node:", err);
+      }
+    };
+
+    fetchRequests();
+    // Poll for new requests every 10 seconds
+    const interval = setInterval(fetchRequests, 10000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [userProfile.publicKey, refreshBalanceCounter]);
   const handleReset = useCallback(() => {
     setPickup(null);
     setDropoff(null);
@@ -71,7 +224,7 @@ const PassengerView = () => {
         dropoff,
         fare: Number(fare),
         status: 'success',
-        txHash: signature.r?.substring(0, 10) || '',
+        txHash: signature.txHash || '',
       });
 
       setTransactionStatus({ type: 'success', message: 'Transaction submitted successfully! Network confirmation pending.' });
@@ -144,7 +297,16 @@ const PassengerView = () => {
         </form>
       </div>
 
-      <TransactionHistory userPublicKey={userProfile.publicKey} />
+      {userProfile.publicKey && previousRequests.length > 0 && (
+        <div>
+          <h3 className="card-title" style={{ marginBottom: '1rem', marginTop: '2rem' }}>Active Requests</h3>
+          {previousRequests.map((req, idx) => (
+            <RideRequestCard key={req.txHash || idx} req={req} userProfile={userProfile} />
+          ))}
+        </div>
+      )}
+
+      <TransactionHistory userPublicKey={userProfile.publicKey} refreshTrigger={refreshBalanceCounter} />
     </div>
   );
 };

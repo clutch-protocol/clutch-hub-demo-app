@@ -88,7 +88,7 @@ const DriverView = () => {
         rideRequestTxHash: req.txHash,
         fare: req.fare,
         status: 'success',
-        txHash: signature.r?.substring(0, 10) || '',
+        txHash: signature.txHash || '',
       });
     } catch (err) {
       console.error(err);

@@ -60,6 +60,8 @@ const NetworkView = () => {
 
   useEffect(() => {
     fetchRideRequests();
+    const interval = setInterval(fetchRideRequests, 3000);
+    return () => clearInterval(interval);
   }, [fetchRideRequests]);
 
   return (

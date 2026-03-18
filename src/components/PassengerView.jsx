@@ -105,7 +105,7 @@ const RideRequestCard = ({ req, userProfile }) => {
               <div key={offer.txHash} style={{ padding: '0.75rem', background: 'var(--bg-base)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{offer.fare} CLT</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Driver: {offer.driverAddress.substring(0, 10)}…</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>Driver: {offer.driverAddress}</div>
                 </div>
                 <button type="button" className="btn-primary" style={{ fontSize: '0.8rem' }} disabled>
                   Accept Offer (coming soon)
@@ -179,7 +179,7 @@ const PassengerView = () => {
 
     fetchRequests();
     // Poll for new requests every 10 seconds
-    const interval = setInterval(fetchRequests, 10000);
+    const interval = setInterval(fetchRequests, 3000);
     
     return () => {
       isMounted = false;

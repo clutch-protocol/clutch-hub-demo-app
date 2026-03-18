@@ -48,8 +48,8 @@ const BalanceDisplay = ({ publicKey, refreshTrigger = 0 }) => {
             {typeof balance === 'object' ? balance.toString() : balance}
             <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '0.5rem' }}>CLT</span>
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-            {publicKey.substring(0, 12)}…{publicKey.substring(publicKey.length - 10)}
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem', wordBreak: 'break-all' }}>
+            {publicKey}
           </div>
         </div>
       )}

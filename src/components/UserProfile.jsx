@@ -73,7 +73,7 @@ const UserProfile = ({ onProfileUpdate }) => {
           <div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Public Key</div>
             <code style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
-              {publicKey.substring(0, 12)}…{publicKey.substring(publicKey.length - 10)}
+              {publicKey}
             </code>
           </div>
           <button type="button" onClick={handleClearProfile} className="btn-danger">

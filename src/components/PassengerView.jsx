@@ -253,7 +253,7 @@ const PassengerView = () => {
 
   return (
     <div>
-      <UserProfile onProfileUpdate={handleProfileUpdate} />
+      <UserProfile role="passenger" onProfileUpdate={handleProfileUpdate} />
       <BalanceDisplay publicKey={userProfile.publicKey} refreshTrigger={refreshBalanceCounter} />
 
       {transactionStatus && (

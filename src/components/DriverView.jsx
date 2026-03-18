@@ -230,7 +230,7 @@ const DriverView = () => {
 
   return (
     <div>
-      <UserProfile onProfileUpdate={handleProfileUpdate} />
+      <UserProfile role="driver" onProfileUpdate={handleProfileUpdate} />
       <BalanceDisplay publicKey={userProfile.publicKey} refreshTrigger={refreshBalanceCounter} />
 
       <div className="card">

@@ -23,6 +23,9 @@ const DriverView = () => {
   const [isLoadingRides, setIsLoadingRides] = useState(false);
   const [ridesError, setRidesError] = useState(null);
   const [selectedTxHash, setSelectedTxHash] = useState(null);
+  const [acceptingTxHash, setAcceptingTxHash] = useState(null);
+  const [acceptStatus, setAcceptStatus] = useState(null);
+  const [offerFares, setOfferFares] = useState({});
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
 
@@ -47,6 +50,62 @@ const DriverView = () => {
     fetchRideRequests();
   }, [fetchRideRequests]);
 
+  const handleFareChange = useCallback((txHash, value) => {
+    setOfferFares((prev) => ({ ...prev, [txHash]: value }));
+  }, []);
+
+  const handleAcceptOffer = useCallback(async (req) => {
+    if (!userProfile.publicKey) {
+      setAcceptStatus({ type: 'warning', message: 'Connect your wallet first.' });
+      return;
+    }
+    setAcceptingTxHash(req.txHash);
+    setAcceptStatus(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const offerFare = offerFares[req.txHash] !== undefined ? Number(offerFares[req.txHash]) : req.fare;
+      const unsignedTx = await sdk.createUnsignedRideOffer({
+        rideRequestTxHash: req.txHash,
+        fare: offerFare,
+      });
+      let privateKey = userProfile.privateKey;
+      if (!privateKey) {
+        privateKey = window.prompt('Enter your private key to sign the ride offer:');
+        if (!privateKey) {
+          setAcceptStatus({ type: 'warning', message: 'Signing cancelled.' });
+          setAcceptingTxHash(null);
+          return;
+        }
+      }
+      const signature = await sdk.signTransaction(unsignedTx, privateKey);
+      await sdk.submitTransaction(signature.rawTransaction);
+      setAcceptStatus({ type: 'success', message: 'Offer submitted! Awaiting passenger acceptance.' });
+      setRefreshBalanceCounter((c) => c + 1);
+      fetchRideRequests();
+      TransactionHistory.addTransaction(userProfile.publicKey, {
+        type: 'Offer',
+        timestamp: Date.now(),
+        rideRequestTxHash: req.txHash,
+        fare: req.fare,
+        status: 'success',
+        txHash: signature.r?.substring(0, 10) || '',
+      });
+    } catch (err) {
+      console.error(err);
+      setAcceptStatus({ type: 'error', message: 'Failed: ' + (err.message || 'Unknown error') });
+      TransactionHistory.addTransaction(userProfile.publicKey, {
+        type: 'Offer',
+        timestamp: Date.now(),
+        rideRequestTxHash: req.txHash,
+        fare: req.fare,
+        status: 'failed',
+        error: err.message,
+      });
+    } finally {
+      setAcceptingTxHash(null);
+    }
+  }, [userProfile, fetchRideRequests]);
+
   return (
     <div>
       <UserProfile onProfileUpdate={handleProfileUpdate} />
@@ -57,6 +116,11 @@ const DriverView = () => {
         <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
           Ride requests awaiting a driver. Click a pickup marker to show dropoff and route.
         </p>
+        {acceptStatus && (
+          <div className={`status-banner ${acceptStatus.type}`} style={{ marginBottom: '1rem' }}>
+            {acceptStatus.message}
+          </div>
+        )}
         <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
@@ -155,7 +219,7 @@ const DriverView = () => {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
                           {req.fare} CLT
                         </div>
@@ -168,9 +232,28 @@ const DriverView = () => {
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                           Passenger: {req.passengerAddress.substring(0, 10)}…{req.passengerAddress.slice(-8)}
                         </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Your offer:</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={offerFares[req.txHash] !== undefined ? offerFares[req.txHash] : req.fare}
+                            onChange={(e) => handleFareChange(req.txHash, e.target.value)}
+                            className="input-field"
+                            style={{ width: 100, padding: '0.375rem 0.5rem', fontSize: '0.85rem' }}
+                            disabled={acceptingTxHash === req.txHash}
+                          />
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>CLT</span>
+                        </div>
                       </div>
-                      <button type="button" className="btn-secondary" disabled style={{ fontSize: '0.8rem' }}>
-                        Accept (coming soon)
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        style={{ fontSize: '0.8rem', flexShrink: 0 }}
+                        disabled={!!acceptingTxHash || !userProfile.publicKey}
+                        onClick={() => handleAcceptOffer(req)}
+                      >
+                        {acceptingTxHash === req.txHash ? 'Submitting…' : userProfile.publicKey ? 'Make Offer' : 'Connect wallet'}
                       </button>
                     </div>
                   </div>
@@ -180,7 +263,7 @@ const DriverView = () => {
         </>
       </div>
 
-      <TransactionHistory userPublicKey={userProfile.publicKey} />
+      <TransactionHistory userPublicKey={userProfile.publicKey} refreshTrigger={refreshBalanceCounter} />
     </div>
   );
 };

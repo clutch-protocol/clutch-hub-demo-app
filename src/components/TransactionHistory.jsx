@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-const TransactionHistory = ({ userPublicKey }) => {
+const TransactionHistory = ({ userPublicKey, refreshTrigger }) => {
   const [transactions, setTransactions] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -19,7 +19,7 @@ const TransactionHistory = ({ userPublicKey }) => {
     } else {
       setTransactions([]);
     }
-  }, [userPublicKey]);
+  }, [userPublicKey, refreshTrigger]);
 
   const addTransaction = useCallback((transaction) => {
     setTransactions((prev) => {
@@ -72,8 +72,9 @@ const TransactionHistory = ({ userPublicKey }) => {
                 </span>
               </div>
               <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                <div><strong>Pickup:</strong> {tx.pickup && `(${tx.pickup.lat.toFixed(4)}, ${tx.pickup.lng.toFixed(4)})`}</div>
-                <div><strong>Dropoff:</strong> {tx.dropoff && `(${tx.dropoff.lat.toFixed(4)}, ${tx.dropoff.lng.toFixed(4)})`}</div>
+                {tx.pickup && <div><strong>Pickup:</strong> ({tx.pickup.lat.toFixed(4)}, {tx.pickup.lng.toFixed(4)})</div>}
+                {tx.dropoff && <div><strong>Dropoff:</strong> ({tx.dropoff.lat.toFixed(4)}, {tx.dropoff.lng.toFixed(4)})</div>}
+                {tx.rideRequestTxHash && <div><strong>Request:</strong> {tx.rideRequestTxHash.substring(0, 10)}…</div>}
                 <div><strong>Fare:</strong> {tx.fare} CLT</div>
                 <div>
                   <strong>Status:</strong>{' '}

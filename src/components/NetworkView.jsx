@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import MapFitBounds from './MapFitBounds';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -191,6 +192,16 @@ const NetworkView = () => {
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap contributors"
+              />
+              <MapFitBounds
+                positions={
+                  selectedTxHash && selectedRequest
+                    ? [
+                        [selectedRequest.pickupLocation.latitude, selectedRequest.pickupLocation.longitude],
+                        [selectedRequest.dropoffLocation.latitude, selectedRequest.dropoffLocation.longitude],
+                      ]
+                    : rideRequests.map((r) => [r.pickupLocation.latitude, r.pickupLocation.longitude])
+                }
               />
               {rideRequests.map((req) => (
                 <Marker

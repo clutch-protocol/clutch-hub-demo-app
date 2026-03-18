@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import MapFitBounds from './MapFitBounds';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -67,6 +68,7 @@ const RideRequestCard = ({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="&copy; OpenStreetMap contributors"
           />
+          <MapFitBounds positions={[pickup, dropoff]} />
           <Marker position={pickup}><Popup>Pickup</Popup></Marker>
           <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>
           <Polyline positions={[pickup, dropoff]} color="#0ea5e9" weight={3} opacity={0.8} />

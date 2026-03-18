@@ -172,13 +172,18 @@ const NetworkView = () => {
                   }}
                 >
                   <Popup>
-                    <strong>Pickup</strong>
-                    <br />
-                    Fare: {req.fare} CLT
-                    <br />
-                    Dropoff: {req.dropoffLocation.latitude.toFixed(4)}, {req.dropoffLocation.longitude.toFixed(4)}
-                    <br />
-                    <small>{req.txHash.substring(0, 10)}…</small>
+                    <div style={{ maxWidth: 280 }}>
+                      <strong>Pickup</strong>
+                      <br />
+                      Fare: {req.fare} CLT
+                      <br />
+                      Dropoff: {req.dropoffLocation.latitude.toFixed(4)}, {req.dropoffLocation.longitude.toFixed(4)}
+                      <br />
+                      <strong>Passenger:</strong>
+                      <div style={{ wordBreak: 'break-all', fontSize: '0.75rem' }}>{req.passengerAddress}</div>
+                      <strong>Request Tx:</strong>
+                      <div style={{ wordBreak: 'break-all', fontSize: '0.75rem' }}>{req.txHash}</div>
+                    </div>
                   </Popup>
                 </Marker>
               ))}
@@ -198,11 +203,16 @@ const NetworkView = () => {
                       />
                       <Marker position={dropoff}>
                         <Popup>
-                          <strong>Dropoff</strong>
-                          <br />
-                          Fare: {req.fare} CLT
-                          <br />
-                          <small>{req.txHash.substring(0, 10)}…</small>
+                          <div style={{ maxWidth: 280 }}>
+                            <strong>Dropoff</strong>
+                            <br />
+                            Fare: {req.fare} CLT
+                            <br />
+                            <strong>Passenger:</strong>
+                            <div style={{ wordBreak: 'break-all', fontSize: '0.75rem' }}>{req.passengerAddress}</div>
+                            <strong>Request Tx:</strong>
+                            <div style={{ wordBreak: 'break-all', fontSize: '0.75rem' }}>{req.txHash}</div>
+                          </div>
                         </Popup>
                       </Marker>
                     </>

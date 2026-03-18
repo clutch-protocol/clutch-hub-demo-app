@@ -74,7 +74,8 @@ const TransactionHistory = ({ userPublicKey, refreshTrigger }) => {
               <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                 {tx.pickup && <div><strong>Pickup:</strong> ({tx.pickup.lat.toFixed(4)}, {tx.pickup.lng.toFixed(4)})</div>}
                 {tx.dropoff && <div><strong>Dropoff:</strong> ({tx.dropoff.lat.toFixed(4)}, {tx.dropoff.lng.toFixed(4)})</div>}
-                {tx.rideRequestTxHash && <div><strong>Request:</strong> {tx.rideRequestTxHash.substring(0, 10)}…</div>}
+                {tx.txHash && <div style={{ wordBreak: 'break-all' }}><strong>Tx:</strong> {tx.txHash}</div>}
+                {tx.rideRequestTxHash && <div style={{ wordBreak: 'break-all' }}><strong>Request Tx:</strong> {tx.rideRequestTxHash}</div>}
                 <div><strong>Fare:</strong> {tx.fare} CLT</div>
                 <div>
                   <strong>Status:</strong>{' '}

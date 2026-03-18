@@ -74,10 +74,10 @@ const RideRequestCard = ({
       </div>
 
       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', wordBreak: 'break-all' }}>
-        Passenger: {req.passengerAddress}
+        <strong>Passenger:</strong> {req.passengerAddress}
       </div>
       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', wordBreak: 'break-all' }}>
-        Tx: {req.txHash}
+        <strong>Request Tx:</strong> {req.txHash}
       </div>
 
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginBottom: '1rem' }}>
@@ -99,11 +99,10 @@ const RideRequestCard = ({
         {offers.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {offers.map((offer) => (
-              <div key={offer.txHash} style={{ padding: '0.75rem', background: 'var(--bg-base)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div>
-                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{offer.fare} CLT</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>Driver: {offer.driverAddress}</div>
-                </div>
+              <div key={offer.txHash} style={{ padding: '0.75rem', background: 'var(--bg-base)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{offer.fare} CLT</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}><strong>Driver:</strong> {offer.driverAddress}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}><strong>Offer Tx:</strong> {offer.txHash}</div>
               </div>
             ))}
           </div>

@@ -23,7 +23,7 @@ function App() {
         <RoleSelector role={role} onRoleChange={setRole} />
         {role === 'passenger' && <PassengerView />}
         {role === 'driver' && <DriverView />}
-        {role === 'viewer' && <NetworkView />}
+        {role === 'explorer' && <NetworkView />}
       </main>
     </div>
   );

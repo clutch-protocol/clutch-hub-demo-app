@@ -3,7 +3,7 @@ import React from 'react';
 const ROLES = [
   { id: 'passenger', label: 'Passenger', icon: '🚗', desc: 'Request rides' },
   { id: 'driver', label: 'Driver', icon: '🚕', desc: 'Accept & fulfill rides' },
-  { id: 'viewer', label: 'Viewer', icon: '📡', desc: 'View network state' },
+  { id: 'explorer', label: 'Explorer', icon: '🔍', desc: 'Browse network & activity' },
 ];
 
 const RoleSelector = ({ role, onRoleChange }) => (

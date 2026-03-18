@@ -21,6 +21,8 @@ const NetworkView = () => {
   const [ridesLoading, setRidesLoading] = useState(false);
   const [ridesError, setRidesError] = useState(null);
   const [selectedTxHash, setSelectedTxHash] = useState(null);
+  const [offers, setOffers] = useState([]);
+  const [offersLoading, setOffersLoading] = useState(false);
 
   useEffect(() => {
     const fetchHealth = async () => {
@@ -63,6 +65,33 @@ const NetworkView = () => {
     const interval = setInterval(fetchRideRequests, 3000);
     return () => clearInterval(interval);
   }, [fetchRideRequests]);
+
+  const fetchOffers = useCallback(async (txHash) => {
+    if (!txHash) return;
+    setOffersLoading(true);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, '0x0');
+      const list = await sdk.listRideOffers(txHash);
+      setOffers(list);
+    } catch (err) {
+      console.error('Failed to fetch offers:', err);
+      setOffers([]);
+    } finally {
+      setOffersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedTxHash) {
+      fetchOffers(selectedTxHash);
+      const interval = setInterval(() => fetchOffers(selectedTxHash), 5000);
+      return () => clearInterval(interval);
+    } else {
+      setOffers([]);
+    }
+  }, [selectedTxHash, fetchOffers]);
+
+  const selectedRequest = rideRequests.find((r) => r.txHash === selectedTxHash);
 
   return (
     <div>
@@ -130,9 +159,9 @@ const NetworkView = () => {
       </div>
 
       <div className="card">
-        <h3 className="card-title">Active ride requests (map view)</h3>
+        <h3 className="card-title">Active ride requests</h3>
         <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-          All ride requests currently awaiting a driver. Click a pickup marker to show dropoff and route. No wallet required.
+          Browse ride requests and offers. Click a pickup marker to show dropoff, route, and offers. No wallet required.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
           <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
@@ -227,6 +256,41 @@ const NetworkView = () => {
               No active ride requests on the network.
             </div>
           )
+        )}
+
+        {selectedRequest && (
+          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+            <h4 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem 0', color: 'var(--text-secondary)' }}>
+              Offers for this request ({offers.length})
+            </h4>
+            {offersLoading ? (
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Loading offers…</div>
+            ) : offers.length === 0 ? (
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No offers yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {offers.map((offer) => (
+                  <div
+                    key={offer.txHash}
+                    style={{
+                      padding: '0.75rem',
+                      background: 'var(--bg-base)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{offer.fare} CLT</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                      <strong>Driver:</strong> {offer.driverAddress}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                      <strong>Offer Tx:</strong> {offer.txHash}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

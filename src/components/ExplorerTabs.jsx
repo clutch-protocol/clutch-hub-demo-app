@@ -3,6 +3,7 @@ import React from 'react';
 const TABS = [
   { id: 'requests', label: 'Ride Requests' },
   { id: 'trips', label: 'Active Trips' },
+  { id: 'completed', label: 'Completed' },
   { id: 'about', label: 'About' },
 ];
 

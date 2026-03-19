@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
+import CompletedTripCard from './CompletedTripCard';
 import { Section, WalletBar, EmptyState } from './layout';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -137,6 +138,9 @@ const DriverView = () => {
   const [activeTrips, setActiveTrips] = useState([]);
   const [activeTripsLoading, setActiveTripsLoading] = useState(false);
   const [activeTripsError, setActiveTripsError] = useState(null);
+  const [completedTrips, setCompletedTrips] = useState([]);
+  const [completedTripsLoading, setCompletedTripsLoading] = useState(false);
+  const [completedTripsError, setCompletedTripsError] = useState(null);
   const [driverTab, setDriverTab] = useState('find');
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
@@ -162,6 +166,27 @@ const DriverView = () => {
     }
   }, [userProfile.publicKey]);
 
+  const fetchCompletedTrips = useCallback(async () => {
+    if (!userProfile.publicKey) {
+      setCompletedTrips([]);
+      setCompletedTripsLoading(false);
+      return;
+    }
+    setCompletedTripsLoading(true);
+    setCompletedTripsError(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const trips = await sdk.listCompletedTrips({ driverAddress: userProfile.publicKey });
+      setCompletedTrips(trips);
+    } catch (err) {
+      console.error('Failed to fetch completed trips:', err);
+      setCompletedTripsError(err.message || 'Failed to load completed trips');
+      setCompletedTrips([]);
+    } finally {
+      setCompletedTripsLoading(false);
+    }
+  }, [userProfile.publicKey]);
+
   // Include refreshBalanceCounter so balance-related refreshes also pull latest trips
   useEffect(() => {
     fetchActiveTrips();
@@ -169,12 +194,19 @@ const DriverView = () => {
     return () => clearInterval(interval);
   }, [fetchActiveTrips, refreshBalanceCounter]);
 
+  useEffect(() => {
+    fetchCompletedTrips();
+    const interval = setInterval(fetchCompletedTrips, ACTIVE_TRIPS_POLL_MS);
+    return () => clearInterval(interval);
+  }, [fetchCompletedTrips, refreshBalanceCounter]);
+
   // Opening "My Trips" refetches immediately (passenger may have just accepted)
   useEffect(() => {
     if (driverTab === 'trips' && userProfile.publicKey) {
       fetchActiveTrips();
+      fetchCompletedTrips();
     }
-  }, [driverTab, userProfile.publicKey, fetchActiveTrips]);
+  }, [driverTab, userProfile.publicKey, fetchActiveTrips, fetchCompletedTrips]);
 
   const fetchRideRequests = useCallback(async () => {
     setIsLoadingRides(true);
@@ -273,8 +305,8 @@ const DriverView = () => {
           onClick={() => setDriverTab('trips')}
         >
           My Trips
-          {userProfile.publicKey && activeTrips.length > 0 && (
-            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length}</span>
+          {userProfile.publicKey && (activeTrips.length + completedTrips.length) > 0 && (
+            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length + completedTrips.length}</span>
           )}
         </button>
       </div>
@@ -315,19 +347,38 @@ const DriverView = () => {
         <Section
           title="My trips"
           icon="🚗"
-          description={userProfile.publicKey ? 'Trips you are currently driving. Accepted by passengers, in progress.' : 'Connect your wallet to see your active trips.'}
+          description={userProfile.publicKey ? 'In-progress rides and trips where the passenger has paid the full fare.' : 'Connect your wallet to see your trips.'}
         >
           {!userProfile.publicKey ? (
             <EmptyState message="Connect your wallet above to view active trips." />
           ) : (
             <>
               {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
+              {completedTripsError && <div className="status-banner error">{completedTripsError}</div>}
 
-              {activeTrips.length === 0 && !activeTripsLoading && !activeTripsError && (
-                <EmptyState message="No active trips. When a passenger accepts your offer, it will appear here." />
+              {activeTrips.length > 0 && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <p className="card-title">Active trips</p>
+                  {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
+                </div>
               )}
 
-              {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
+              {completedTrips.length > 0 && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <p className="card-title">Completed trips</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>
+                    Passenger paid the full agreed fare.
+                  </p>
+                  {completedTrips.map((trip) => (
+                    <CompletedTripCard key={trip.txHash} trip={trip} />
+                  ))}
+                </div>
+              )}
+
+              {activeTrips.length === 0 && completedTrips.length === 0
+                && !activeTripsLoading && !completedTripsLoading && !activeTripsError && !completedTripsError && (
+                <EmptyState message="No trips yet. When a passenger accepts your offer, the ride appears under Active; after full payment it moves to Completed." />
+              )}
             </>
           )}
         </Section>

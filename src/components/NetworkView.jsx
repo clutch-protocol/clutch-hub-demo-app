@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
+import CompletedTripCard from './CompletedTripCard';
 import ExplorerTabs from './ExplorerTabs';
 import { Section, EmptyState } from './layout';
 import L from 'leaflet';
@@ -43,6 +44,9 @@ const NetworkView = () => {
   const [activeTrips, setActiveTrips] = useState([]);
   const [activeTripsLoading, setActiveTripsLoading] = useState(false);
   const [activeTripsError, setActiveTripsError] = useState(null);
+  const [completedTrips, setCompletedTrips] = useState([]);
+  const [completedTripsLoading, setCompletedTripsLoading] = useState(false);
+  const [completedTripsError, setCompletedTripsError] = useState(null);
 
   useEffect(() => {
     const fetchHealth = async () => {
@@ -108,6 +112,28 @@ const NetworkView = () => {
     return () => clearInterval(interval);
   }, [fetchActiveTrips]);
 
+  const fetchCompletedTrips = useCallback(async () => {
+    setCompletedTripsLoading(true);
+    setCompletedTripsError(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, '0x0');
+      const trips = await sdk.listCompletedTrips();
+      setCompletedTrips(trips);
+    } catch (err) {
+      console.error('Failed to fetch completed trips:', err);
+      setCompletedTripsError(err.message || 'Failed to load completed trips');
+      setCompletedTrips([]);
+    } finally {
+      setCompletedTripsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCompletedTrips();
+    const interval = setInterval(fetchCompletedTrips, ACTIVE_TRIPS_POLL_MS);
+    return () => clearInterval(interval);
+  }, [fetchCompletedTrips]);
+
   const fetchOffers = useCallback(async (txHash) => {
     if (!txHash) return;
     setOffersLoading(true);
@@ -171,6 +197,14 @@ const NetworkView = () => {
         >
           <div className="metric-value">{activeTrips.length}</div>
           <div className="metric-label">Active Trips</div>
+        </button>
+        <button
+          type="button"
+          className={`metric-card metric-card--clickable ${activeTab === 'completed' ? 'metric-card--active' : ''}`}
+          onClick={() => setActiveTab('completed')}
+        >
+          <div className="metric-value">{completedTrips.length}</div>
+          <div className="metric-label">Completed</div>
         </button>
         <div className="metric-card">
           <div className="metric-value">{apiOk ? 'Online' : '--'}</div>
@@ -279,6 +313,20 @@ const NetworkView = () => {
           )}
 
           {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
+        </>
+      )}
+
+      {activeTab === 'completed' && (
+        <>
+          {completedTripsError && <div className="status-banner error">{completedTripsError}</div>}
+
+          {completedTrips.length === 0 && !completedTripsLoading && !completedTripsError && (
+            <EmptyState message="No completed trips on the network yet. Trips appear here after the passenger pays the full fare." />
+          )}
+
+          {completedTrips.map((trip) => (
+            <CompletedTripCard key={trip.txHash} trip={trip} />
+          ))}
         </>
       )}
 

@@ -238,46 +238,88 @@ const DriverView = () => {
     }
   }, [userProfile, offerFares, fetchRideRequests]);
 
+  const [driverTab, setDriverTab] = useState('find');
+
   return (
     <div>
       <WalletBar role="driver" userProfile={userProfile} onProfileUpdate={handleProfileUpdate} refreshTrigger={refreshBalanceCounter} />
 
-      {userProfile.publicKey && activeTrips.length > 0 && (
-        <Section title="Active trips" icon="🚗" badge={activeTrips.length}>
-          {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
-          {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
+      <div className="explorer-tabs">
+        <button
+          type="button"
+          className={`explorer-tab ${driverTab === 'find' ? 'active' : ''}`}
+          onClick={() => setDriverTab('find')}
+        >
+          Find Rides
+          {rideRequests.length > 0 && (
+            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{rideRequests.length}</span>
+          )}
+        </button>
+        <button
+          type="button"
+          className={`explorer-tab ${driverTab === 'trips' ? 'active' : ''}`}
+          onClick={() => setDriverTab('trips')}
+        >
+          My Trips
+          {userProfile.publicKey && activeTrips.length > 0 && (
+            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length}</span>
+          )}
+        </button>
+      </div>
+
+      {driverTab === 'find' && (
+        <Section
+          title="Available rides"
+          icon="📍"
+          description="Ride requests from passengers. Make an offer with your fare to get matched."
+          action={
+            <button type="button" className="btn-ghost" onClick={fetchRideRequests} disabled={isLoadingRides} style={{ fontSize: '0.75rem' }}>
+              {isLoadingRides ? '...' : 'Refresh'}
+            </button>
+          }
+        >
+          {acceptStatus && <div className={`status-banner ${acceptStatus.type}`}>{acceptStatus.message}</div>}
+          {ridesError && <div className="status-banner error">{ridesError}</div>}
+
+          {rideRequests.length === 0 && !isLoadingRides && !ridesError && (
+            <EmptyState message="No ride requests yet. When passengers request rides, they will appear here." />
+          )}
+
+          {rideRequests.map((req) => (
+            <RideRequestCard
+              key={req.txHash}
+              req={req}
+              userProfile={userProfile}
+              offerFares={offerFares}
+              handleFareChange={handleFareChange}
+              handleAcceptOffer={handleAcceptOffer}
+              acceptingTxHash={acceptingTxHash}
+            />
+          ))}
         </Section>
       )}
 
-      <Section
-        title="Available rides"
-        icon="📍"
-        badge={rideRequests.length > 0 ? rideRequests.length : null}
-        action={
-          <button type="button" className="btn-ghost" onClick={fetchRideRequests} disabled={isLoadingRides} style={{ fontSize: '0.75rem' }}>
-            {isLoadingRides ? '...' : 'Refresh'}
-          </button>
-        }
-      >
-        {acceptStatus && <div className={`status-banner ${acceptStatus.type}`}>{acceptStatus.message}</div>}
-        {ridesError && <div className="status-banner error">{ridesError}</div>}
+      {driverTab === 'trips' && (
+        <Section
+          title="My trips"
+          icon="🚗"
+          description={userProfile.publicKey ? 'Trips you are currently driving. Accepted by passengers, in progress.' : 'Connect your wallet to see your active trips.'}
+        >
+          {!userProfile.publicKey ? (
+            <EmptyState message="Connect your wallet above to view active trips." />
+          ) : (
+            <>
+              {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
 
-        {rideRequests.length === 0 && !isLoadingRides && !ridesError && (
-          <EmptyState message="No ride requests yet. When passengers request rides, they will appear here." />
-        )}
+              {activeTrips.length === 0 && !activeTripsLoading && !activeTripsError && (
+                <EmptyState message="No active trips. When a passenger accepts your offer, it will appear here." />
+              )}
 
-        {rideRequests.map((req) => (
-          <RideRequestCard
-            key={req.txHash}
-            req={req}
-            userProfile={userProfile}
-            offerFares={offerFares}
-            handleFareChange={handleFareChange}
-            handleAcceptOffer={handleAcceptOffer}
-            acceptingTxHash={acceptingTxHash}
-          />
-        ))}
-      </Section>
+              {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
+            </>
+          )}
+        </Section>
+      )}
 
       {userProfile.publicKey && (
         <Section title="Transaction history" icon="📋" collapsible defaultExpanded={false}>

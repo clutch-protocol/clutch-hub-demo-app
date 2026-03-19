@@ -24,10 +24,12 @@ const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
   return null;
 };
 
-const RideRequestCard = ({ req, userProfile }) => {
+const RideRequestCard = ({ req, userProfile, onAcceptSuccess }) => {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [acceptingOfferTxHash, setAcceptingOfferTxHash] = useState(null);
+  const [acceptError, setAcceptError] = useState(null);
 
   const fetchOffers = useCallback(async () => {
     if (!userProfile.publicKey || !req.txHash) return;
@@ -50,6 +52,47 @@ const RideRequestCard = ({ req, userProfile }) => {
     const interval = setInterval(fetchOffers, 10000);
     return () => clearInterval(interval);
   }, [fetchOffers]);
+
+  const handleAcceptOffer = useCallback(async (offer) => {
+    if (!userProfile.publicKey || !offer.txHash) return;
+    setAcceptingOfferTxHash(offer.txHash);
+    setAcceptError(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const unsignedTx = await sdk.createUnsignedRideAcceptance({ rideOfferTxHash: offer.txHash });
+      let privateKey = userProfile.privateKey;
+      if (!privateKey) {
+        privateKey = window.prompt('Enter your private key to sign the acceptance:');
+        if (!privateKey) {
+          setAcceptError('Signing cancelled.');
+          setAcceptingOfferTxHash(null);
+          return;
+        }
+      }
+      const signature = await sdk.signTransaction(unsignedTx, privateKey);
+      await sdk.submitTransaction(signature.rawTransaction);
+      TransactionHistory.addTransaction(userProfile.publicKey, {
+        type: 'Ride Acceptance',
+        timestamp: Date.now(),
+        rideOfferTxHash: offer.txHash,
+        status: 'success',
+        txHash: signature.txHash || '',
+      });
+      onAcceptSuccess?.();
+    } catch (err) {
+      console.error('Accept offer failed:', err);
+      setAcceptError(err.message || 'Failed to accept offer');
+      TransactionHistory.addTransaction(userProfile.publicKey, {
+        type: 'Ride Acceptance',
+        timestamp: Date.now(),
+        rideOfferTxHash: offer.txHash,
+        status: 'failed',
+        error: err.message,
+      });
+    } finally {
+      setAcceptingOfferTxHash(null);
+    }
+  }, [userProfile, onAcceptSuccess]);
 
   const pickup = [req.pickup.lat, req.pickup.lng];
   const dropoff = [req.dropoff.lat, req.dropoff.lng];
@@ -99,6 +142,7 @@ const RideRequestCard = ({ req, userProfile }) => {
         </div>
 
         {error && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem' }}>{error}</div>}
+        {acceptError && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem' }}>{acceptError}</div>}
 
         {offers.length === 0 && !loading && !error && (
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem 0' }}>
@@ -113,8 +157,14 @@ const RideRequestCard = ({ req, userProfile }) => {
                 <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{offer.fare} CLT</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}><strong>Driver:</strong> {offer.driverAddress}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}><strong>Offer Tx:</strong> {offer.txHash}</div>
-                <button type="button" className="btn-primary" style={{ fontSize: '0.8rem', alignSelf: 'flex-start', marginTop: '0.25rem' }} disabled>
-                  Accept Offer (coming soon)
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ fontSize: '0.8rem', alignSelf: 'flex-start', marginTop: '0.25rem' }}
+                  onClick={() => handleAcceptOffer(offer)}
+                  disabled={!!acceptingOfferTxHash}
+                >
+                  {acceptingOfferTxHash === offer.txHash ? 'Accepting…' : 'Accept Offer'}
                 </button>
               </div>
             ))}
@@ -311,7 +361,12 @@ const PassengerView = () => {
         <div>
           <h3 className="card-title" style={{ marginBottom: '1rem', marginTop: '2rem' }}>Active Requests</h3>
           {previousRequests.map((req, idx) => (
-            <RideRequestCard key={req.txHash || idx} req={req} userProfile={userProfile} />
+            <RideRequestCard
+              key={req.txHash || idx}
+              req={req}
+              userProfile={userProfile}
+              onAcceptSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
+            />
           ))}
         </div>
       )}

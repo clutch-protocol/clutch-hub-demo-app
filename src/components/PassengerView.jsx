@@ -9,6 +9,7 @@ import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
+import { ACTIVE_TRIPS_POLL_MS } from '../pollIntervals';
 import TransactionHistory from './TransactionHistory';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -168,11 +169,16 @@ const PassengerView = () => {
   const [activeTrips, setActiveTrips] = useState([]);
   const [activeTripsLoading, setActiveTripsLoading] = useState(false);
   const [activeTripsError, setActiveTripsError] = useState(null);
+  const [passengerTab, setPassengerTab] = useState('new');
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
 
   const fetchActiveTrips = useCallback(async () => {
-    if (!userProfile.publicKey) { setActiveTrips([]); return; }
+    if (!userProfile.publicKey) {
+      setActiveTrips([]);
+      setActiveTripsLoading(false);
+      return;
+    }
     setActiveTripsLoading(true);
     setActiveTripsError(null);
     try {
@@ -188,11 +194,19 @@ const PassengerView = () => {
     }
   }, [userProfile.publicKey]);
 
+  // Poll in-progress trips; include refreshBalanceCounter so accept / pay triggers an immediate refetch
   useEffect(() => {
     fetchActiveTrips();
-    const interval = setInterval(fetchActiveTrips, 3000);
+    const interval = setInterval(fetchActiveTrips, ACTIVE_TRIPS_POLL_MS);
     return () => clearInterval(interval);
-  }, [fetchActiveTrips]);
+  }, [fetchActiveTrips, refreshBalanceCounter]);
+
+  // Opening "My Rides" should show the latest trip right away (don’t wait for the next tick)
+  useEffect(() => {
+    if (passengerTab === 'rides' && userProfile.publicKey) {
+      fetchActiveTrips();
+    }
+  }, [passengerTab, userProfile.publicKey, fetchActiveTrips]);
 
   useEffect(() => {
     let isMounted = true;
@@ -285,8 +299,6 @@ const PassengerView = () => {
       setIsLoading(false);
     }
   }, [pickup, dropoff, userProfile, fare]);
-
-  const [passengerTab, setPassengerTab] = useState('new');
 
   return (
     <div>
@@ -409,7 +421,10 @@ const PassengerView = () => {
                       key={req.txHash || idx}
                       req={req}
                       userProfile={userProfile}
-                      onAcceptSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
+                      onAcceptSuccess={() => {
+                        setRefreshBalanceCounter((prev) => prev + 1);
+                        setPassengerTab('rides');
+                      }}
                     />
                   ))}
                 </div>

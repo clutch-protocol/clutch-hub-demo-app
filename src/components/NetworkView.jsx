@@ -10,6 +10,7 @@ import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
+import { ACTIVE_TRIPS_POLL_MS } from '../pollIntervals';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
@@ -103,7 +104,7 @@ const NetworkView = () => {
 
   useEffect(() => {
     fetchActiveTrips();
-    const interval = setInterval(fetchActiveTrips, 3000);
+    const interval = setInterval(fetchActiveTrips, ACTIVE_TRIPS_POLL_MS);
     return () => clearInterval(interval);
   }, [fetchActiveTrips]);
 

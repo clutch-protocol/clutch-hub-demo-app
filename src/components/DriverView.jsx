@@ -9,6 +9,7 @@ import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
+import { ACTIVE_TRIPS_POLL_MS } from '../pollIntervals';
 import TransactionHistory from './TransactionHistory';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -136,11 +137,16 @@ const DriverView = () => {
   const [activeTrips, setActiveTrips] = useState([]);
   const [activeTripsLoading, setActiveTripsLoading] = useState(false);
   const [activeTripsError, setActiveTripsError] = useState(null);
+  const [driverTab, setDriverTab] = useState('find');
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
 
   const fetchActiveTrips = useCallback(async () => {
-    if (!userProfile.publicKey) { setActiveTrips([]); return; }
+    if (!userProfile.publicKey) {
+      setActiveTrips([]);
+      setActiveTripsLoading(false);
+      return;
+    }
     setActiveTripsLoading(true);
     setActiveTripsError(null);
     try {
@@ -156,11 +162,19 @@ const DriverView = () => {
     }
   }, [userProfile.publicKey]);
 
+  // Include refreshBalanceCounter so balance-related refreshes also pull latest trips
   useEffect(() => {
     fetchActiveTrips();
-    const interval = setInterval(fetchActiveTrips, 3000);
+    const interval = setInterval(fetchActiveTrips, ACTIVE_TRIPS_POLL_MS);
     return () => clearInterval(interval);
-  }, [fetchActiveTrips]);
+  }, [fetchActiveTrips, refreshBalanceCounter]);
+
+  // Opening "My Trips" refetches immediately (passenger may have just accepted)
+  useEffect(() => {
+    if (driverTab === 'trips' && userProfile.publicKey) {
+      fetchActiveTrips();
+    }
+  }, [driverTab, userProfile.publicKey, fetchActiveTrips]);
 
   const fetchRideRequests = useCallback(async () => {
     setIsLoadingRides(true);
@@ -237,8 +251,6 @@ const DriverView = () => {
       setAcceptingTxHash(null);
     }
   }, [userProfile, offerFares, fetchRideRequests]);
-
-  const [driverTab, setDriverTab] = useState('find');
 
   return (
     <div>

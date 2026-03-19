@@ -5,10 +5,10 @@ import DriverView from './components/DriverView';
 import NetworkView from './components/NetworkView';
 import './App.css';
 
-const ROLE_DESC = {
-  passenger: 'Request rides and accept driver offers',
-  driver: 'Browse requests and make offers',
-  explorer: 'View network activity without a wallet',
+const ROLE_TITLES = {
+  passenger: 'Passenger',
+  driver: 'Driver',
+  explorer: 'Explorer',
 };
 
 function App() {
@@ -17,20 +17,19 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="app-header-left">
-          <div className="app-logo">
-            <img src="/clutch-logo.svg" alt="Clutch" className="app-logo-icon" width={32} height={32} />
-            <span className="app-logo-text">Clutch</span>
-          </div>
-          <span className="app-tagline">Decentralized ride-sharing</span>
+        <div className="app-logo">
+          <img src="/clutch-logo.svg" alt="Clutch" className="app-logo-icon" width={28} height={28} />
+          <span className="app-logo-text">Clutch</span>
         </div>
         <RoleSelector role={role} onRoleChange={setRole} />
       </header>
       <main className="app-main">
-        <p className="app-role-desc">{ROLE_DESC[role]}</p>
-        {role === 'passenger' && <PassengerView />}
-        {role === 'driver' && <DriverView />}
-        {role === 'explorer' && <NetworkView />}
+        <h1 className="app-page-title fade-in" key={role}>{ROLE_TITLES[role]}</h1>
+        <div className="fade-in" key={`view-${role}`}>
+          {role === 'passenger' && <PassengerView />}
+          {role === 'driver' && <DriverView />}
+          {role === 'explorer' && <NetworkView />}
+        </div>
       </main>
     </div>
   );

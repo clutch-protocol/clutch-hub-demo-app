@@ -4,12 +4,12 @@ import BalanceDisplay from '../BalanceDisplay';
 
 const WalletBar = ({ role, userProfile, onProfileUpdate, refreshTrigger }) => (
   <div className="wallet-bar">
-    <UserProfile role={role} onProfileUpdate={onProfileUpdate} />
-    {userProfile?.publicKey && (
-      <div className="wallet-bar-balance">
+    <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+      <UserProfile role={role} onProfileUpdate={onProfileUpdate} />
+      {userProfile?.publicKey && (
         <BalanceDisplay publicKey={userProfile.publicKey} refreshTrigger={refreshTrigger} />
-      </div>
-    )}
+      )}
+    </div>
   </div>
 );
 

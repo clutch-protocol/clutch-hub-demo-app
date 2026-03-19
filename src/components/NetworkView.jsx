@@ -17,6 +17,17 @@ L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
 const DEFAULT_CENTER = [27.1883, 56.3772];
 const DEFAULT_ZOOM = 12;
 
+function truncAddr(addr) {
+  if (!addr || addr.length < 12) return addr || '';
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+const GitHubIcon = () => (
+  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+  </svg>
+);
+
 const NetworkView = () => {
   const [activeTab, setActiveTab] = useState('requests');
   const [health, setHealth] = useState(null);
@@ -123,54 +134,51 @@ const NetworkView = () => {
 
   const selectedRequest = rideRequests.find((r) => r.txHash === selectedTxHash);
 
+  const apiOk = health?.status === 'healthy';
+
   return (
-    <div className="network-view">
-      <Section
-        title="Network status"
-        description="Clutch Hub API health. No wallet required to explore."
-      >
-        <div className="card">
-          {loading && <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Checking…</div>}
-          {error && <div className="status-banner error">{error}</div>}
-          {health && !loading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: health.status === 'healthy' ? 'var(--success)' : 'var(--error)',
-                  }}
-                />
-                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Hub API: {health.status || 'unknown'}</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Service: {health.service || 'clutch-hub-api'}</div>
-              {health.timestamp && (
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Last check: {new Date(health.timestamp).toLocaleString()}</div>
-              )}
-            </div>
+    <div>
+      {/* Compact network status + metrics */}
+      <div className="form-row" style={{ marginBottom: '1.5rem', gap: '0.75rem', alignItems: 'center' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 500 }}>
+          {loading ? (
+            <span className="status-dot" />
+          ) : error ? (
+            <span className="status-dot status-dot--error" />
+          ) : (
+            <span className={`status-dot ${apiOk ? 'status-dot--live' : 'status-dot--error'}`} />
           )}
+          <span style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>
+            {loading ? 'Checking...' : error ? 'API Offline' : apiOk ? 'API Online' : 'API Unknown'}
+          </span>
+        </span>
+      </div>
+
+      <div className="metrics-bar">
+        <div className="metric-card">
+          <div className="metric-value">{rideRequests.length}</div>
+          <div className="metric-label">Requests</div>
         </div>
-      </Section>
+        <div className="metric-card">
+          <div className="metric-value">{activeTrips.length}</div>
+          <div className="metric-label">Active Trips</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-value">{apiOk ? 'Online' : '--'}</div>
+          <div className="metric-label">Hub API</div>
+        </div>
+      </div>
 
       <ExplorerTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       {activeTab === 'requests' && (
-        <Section
-          title="Active ride requests"
-          description="Browse requests on the map. Click a pickup marker to see dropoff, route, and offers."
-          badge={rideRequests.length > 0 ? `${rideRequests.length}` : null}
-          action={
-            <button type="button" className="btn-secondary" style={{ fontSize: '0.8rem' }} onClick={fetchRideRequests} disabled={ridesLoading}>
-              {ridesLoading ? 'Loading…' : 'Refresh'}
-            </button>
-          }
-        >
-          {ridesError && <div className="status-banner error" style={{ marginBottom: '1rem' }}>{ridesError}</div>}
+        <>
+          {ridesError && <div className="status-banner error">{ridesError}</div>}
+
           {rideRequests.length === 0 && !ridesLoading && !ridesError && (
-            <EmptyState message="No active ride requests on the network." icon="📍" />
+            <EmptyState message="No active ride requests on the network." />
           )}
+
           {rideRequests.length > 0 && (
             <>
               <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
@@ -195,14 +203,10 @@ const NetworkView = () => {
                       }}
                     >
                       <Popup>
-                        <div style={{ maxWidth: 280 }}>
-                          <strong>Pickup</strong><br />
-                          Fare: {req.fare} CLT<br />
+                        <div style={{ maxWidth: 240, fontSize: '0.8rem', lineHeight: 1.6 }}>
+                          <strong>Pickup</strong> &mdash; {req.fare} CLT<br />
                           Dropoff: {req.dropoffLocation.latitude.toFixed(4)}, {req.dropoffLocation.longitude.toFixed(4)}<br />
-                          <strong>Passenger:</strong>
-                          <div style={{ wordBreak: 'break-all', fontSize: '0.75rem' }}>{req.passengerAddress}</div>
-                          <strong>Request Tx:</strong>
-                          <div style={{ wordBreak: 'break-all', fontSize: '0.75rem' }}>{req.txHash}</div>
+                          Passenger: {truncAddr(req.passengerAddress)}
                         </div>
                       </Popup>
                     </Marker>
@@ -214,17 +218,14 @@ const NetworkView = () => {
                           [selectedRequest.pickupLocation.latitude, selectedRequest.pickupLocation.longitude],
                           [selectedRequest.dropoffLocation.latitude, selectedRequest.dropoffLocation.longitude],
                         ]}
-                        color="#0ea5e9"
+                        color="var(--accent)"
                         weight={3}
                         opacity={0.8}
                       />
                       <Marker position={[selectedRequest.dropoffLocation.latitude, selectedRequest.dropoffLocation.longitude]}>
                         <Popup>
-                          <div style={{ maxWidth: 280 }}>
-                            <strong>Dropoff</strong><br />
-                            Fare: {selectedRequest.fare} CLT<br />
-                            <strong>Passenger:</strong>
-                            <div style={{ wordBreak: 'break-all', fontSize: '0.75rem' }}>{selectedRequest.passengerAddress}</div>
+                          <div style={{ maxWidth: 240, fontSize: '0.8rem' }}>
+                            <strong>Dropoff</strong> &mdash; {selectedRequest.fare} CLT
                           </div>
                         </Popup>
                       </Marker>
@@ -232,97 +233,64 @@ const NetworkView = () => {
                   )}
                 </MapContainer>
               </div>
+
               {selectedRequest && (
-                <div className="card" style={{ marginTop: '1rem' }}>
-                  <h3 style={{ fontSize: '0.875rem', margin: '0 0 0.75rem 0', color: 'var(--text-secondary)' }}>
-                    Offers for this request ({offers.length})
-                  </h3>
+                <div className="card">
+                  <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      Offers ({offers.length})
+                    </span>
+                    <span className="fare-badge">{selectedRequest.fare} CLT</span>
+                  </div>
                   {offersLoading ? (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Loading offers…</div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Loading...</p>
                   ) : offers.length === 0 ? (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No offers yet.</div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No offers yet.</p>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {offers.map((offer) => (
-                        <div key={offer.txHash} style={{ padding: '0.75rem', background: 'var(--bg-base)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{offer.fare} CLT</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>Driver: {offer.driverAddress}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>Offer Tx: {offer.txHash}</div>
-                        </div>
-                      ))}
-                    </div>
+                    offers.map((offer) => (
+                      <div key={offer.txHash} className="offer-row">
+                        <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{offer.fare} CLT</span>
+                        <span className="truncate-address" title={offer.driverAddress}>{truncAddr(offer.driverAddress)}</span>
+                      </div>
+                    ))
                   )}
                 </div>
               )}
             </>
           )}
-        </Section>
+        </>
       )}
 
       {activeTab === 'trips' && (
-        <Section
-          title="All active trips"
-          description="Trips in progress across the network. Ride accepted, awaiting completion."
-          badge={activeTrips.length > 0 ? `${activeTrips.length}` : null}
-          action={
-            <button type="button" className="btn-secondary" style={{ fontSize: '0.8rem' }} onClick={fetchActiveTrips} disabled={activeTripsLoading}>
-              {activeTripsLoading ? 'Loading…' : 'Refresh'}
-            </button>
-          }
-        >
-          {activeTripsError && <div className="status-banner error" style={{ marginBottom: '1rem' }}>{activeTripsError}</div>}
+        <>
+          {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
+
           {activeTrips.length === 0 && !activeTripsLoading && !activeTripsError && (
-            <EmptyState message="No active trips on the network." icon="🚗" />
+            <EmptyState message="No active trips on the network." />
           )}
-          {activeTrips.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
-            </div>
-          )}
-        </Section>
+
+          {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
+        </>
       )}
 
       {activeTab === 'about' && (
-        <Section title="About Clutch" description="Decentralized ride-sharing on a custom blockchain.">
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            <div className="card" style={{ marginBottom: 0 }}>
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Clutch Node</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                Blockchain core with Aura consensus. Validates and broadcasts transactions.
-              </div>
-              <a href="https://github.com/clutchprotocol/clutch-node" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>
-                github.com/clutchprotocol/clutch-node
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {[
+            { name: 'Clutch Node', desc: 'Blockchain core with Aura consensus.', url: 'https://github.com/clutchprotocol/clutch-node' },
+            { name: 'Clutch Hub API', desc: 'Bridge between apps and the node. GraphQL and REST.', url: 'https://github.com/clutchprotocol/clutch-hub-api' },
+            { name: 'Clutch Hub SDK (JS)', desc: 'Client-side transaction signing and encoding.', url: 'https://github.com/clutchprotocol/clutch-hub-sdk-js' },
+            { name: 'Demo App', desc: 'This demo application -- passenger, driver, and explorer views.', url: 'https://github.com/clutchprotocol/clutch-hub-demo-app' },
+          ].map((project) => (
+            <div key={project.name} className="card" style={{ marginBottom: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{project.name}</div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0' }}>{project.desc}</p>
+              <a href={project.url} target="_blank" rel="noopener noreferrer" className="github-link">
+                <GitHubIcon />
+                {project.url.replace('https://github.com/', '')}
               </a>
             </div>
-            <div className="card" style={{ marginBottom: 0 }}>
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Clutch Hub API</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                Bridge between apps and the node. GraphQL and REST endpoints.
-              </div>
-              <a href="https://github.com/clutchprotocol/clutch-hub-api" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>
-                github.com/clutchprotocol/clutch-hub-api
-              </a>
-            </div>
-            <div className="card" style={{ marginBottom: 0 }}>
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Clutch Hub SDK (JS)</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                Client-side transaction signing and encoding for ride requests, offers, and acceptances.
-              </div>
-              <a href="https://github.com/clutchprotocol/clutch-hub-sdk-js" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>
-                github.com/clutchprotocol/clutch-hub-sdk-js
-              </a>
-            </div>
-            <div className="card" style={{ marginBottom: 0 }}>
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Clutch Hub Demo App</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                This demo application. Passenger, driver, and explorer views.
-              </div>
-              <a href="https://github.com/clutchprotocol/clutch-hub-demo-app" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>
-                github.com/clutchprotocol/clutch-hub-demo-app
-              </a>
-            </div>
-          </div>
-        </Section>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -1,9 +1,9 @@
 import React from 'react';
 
 const ROLES = [
-  { id: 'passenger', label: 'Passenger', icon: '🚗', desc: 'Request rides' },
-  { id: 'driver', label: 'Driver', icon: '🚕', desc: 'Accept & fulfill rides' },
-  { id: 'explorer', label: 'Explorer', icon: '🔍', desc: 'Browse network & activity' },
+  { id: 'passenger', label: 'Passenger', icon: '🚗' },
+  { id: 'driver', label: 'Driver', icon: '🚕' },
+  { id: 'explorer', label: 'Explorer', icon: '🔍' },
 ];
 
 const RoleSelector = ({ role, onRoleChange }) => (
@@ -17,11 +17,10 @@ const RoleSelector = ({ role, onRoleChange }) => (
           onClick={() => onRoleChange(r.id)}
         >
           <span className="role-tab-icon">{r.icon}</span>
-          <span className="role-tab-label">{r.label}</span>
+          <span>{r.label}</span>
         </button>
       ))}
     </div>
-    <p className="role-desc">{ROLES.find((r) => r.id === role)?.desc}</p>
   </div>
 );
 

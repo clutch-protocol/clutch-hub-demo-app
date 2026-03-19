@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-const TransactionHistory = ({ userPublicKey, refreshTrigger }) => {
+const TransactionHistory = ({ userPublicKey, refreshTrigger, contentOnly = false }) => {
   const [transactions, setTransactions] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -31,26 +31,17 @@ const TransactionHistory = ({ userPublicKey, refreshTrigger }) => {
     });
   }, [userPublicKey]);
 
-  if (!userPublicKey || transactions.length === 0) return null;
+  if (!userPublicKey) return null;
 
-  return (
-    <div className="card">
-      <div
-        onClick={() => setIsExpanded(!isExpanded)}
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          cursor: 'pointer',
-          userSelect: 'none',
-        }}
-      >
-        <h3 className="card-title" style={{ margin: 0 }}>Transaction History</h3>
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          {isExpanded ? '▲' : '▼'}
-        </span>
+  if (transactions.length === 0) {
+    return (
+      <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center' }}>
+        No transactions yet. Your ride requests and acceptances will appear here.
       </div>
-      {isExpanded && (
+    );
+  }
+
+  const content = (
         <div style={{ marginTop: '1rem' }}>
           {transactions.map((tx, index) => (
             <div
@@ -89,7 +80,28 @@ const TransactionHistory = ({ userPublicKey, refreshTrigger }) => {
             </div>
           ))}
         </div>
-      )}
+  );
+
+  if (contentOnly) {
+    return <div>{content}</div>;
+  }
+
+  return (
+    <div className="card">
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+      >
+        <h3 className="card-title" style={{ margin: 0 }}>Transaction History</h3>
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{isExpanded ? '▲' : '▼'}</span>
+      </div>
+      {isExpanded && content}
     </div>
   );
 };

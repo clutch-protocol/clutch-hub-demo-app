@@ -287,21 +287,39 @@ const NetworkView = () => {
           <div style={{ display: 'grid', gap: '1rem' }}>
             <div className="card" style={{ marginBottom: 0 }}>
               <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Clutch Node</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
                 Blockchain core with Aura consensus. Validates and broadcasts transactions.
               </div>
+              <a href="https://github.com/clutchprotocol/clutch-node" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>
+                github.com/clutchprotocol/clutch-node
+              </a>
             </div>
             <div className="card" style={{ marginBottom: 0 }}>
               <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Clutch Hub API</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
                 Bridge between apps and the node. GraphQL and REST endpoints.
               </div>
+              <a href="https://github.com/clutchprotocol/clutch-hub-api" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>
+                github.com/clutchprotocol/clutch-hub-api
+              </a>
             </div>
             <div className="card" style={{ marginBottom: 0 }}>
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Clutch SDK</div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Clutch Hub SDK (JS)</div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
                 Client-side transaction signing and encoding for ride requests, offers, and acceptances.
               </div>
+              <a href="https://github.com/clutchprotocol/clutch-hub-sdk-js" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>
+                github.com/clutchprotocol/clutch-hub-sdk-js
+              </a>
+            </div>
+            <div className="card" style={{ marginBottom: 0 }}>
+              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Clutch Hub Demo App</div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                This demo application. Passenger, driver, and explorer views.
+              </div>
+              <a href="https://github.com/clutchprotocol/clutch-hub-demo-app" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>
+                github.com/clutchprotocol/clutch-hub-demo-app
+              </a>
             </div>
           </div>
         </Section>

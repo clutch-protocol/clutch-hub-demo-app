@@ -496,6 +496,24 @@
   text-align: center;
 }
 
+.metric-card--clickable {
+  cursor: pointer;
+  transition: all var(--transition);
+  font: inherit;
+  width: 100%;
+  margin: 0;
+}
+
+.metric-card--clickable:hover {
+  background: var(--bg-surface);
+  border-color: var(--accent);
+}
+
+.metric-card--clickable.metric-card--active {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
 .metric-value {
   font-size: 1.5rem;
   font-weight: 700;

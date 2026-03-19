@@ -155,14 +155,22 @@ const NetworkView = () => {
       </div>
 
       <div className="metrics-bar">
-        <div className="metric-card">
+        <button
+          type="button"
+          className={`metric-card metric-card--clickable ${activeTab === 'requests' ? 'metric-card--active' : ''}`}
+          onClick={() => setActiveTab('requests')}
+        >
           <div className="metric-value">{rideRequests.length}</div>
           <div className="metric-label">Requests</div>
-        </div>
-        <div className="metric-card">
+        </button>
+        <button
+          type="button"
+          className={`metric-card metric-card--clickable ${activeTab === 'trips' ? 'metric-card--active' : ''}`}
+          onClick={() => setActiveTab('trips')}
+        >
           <div className="metric-value">{activeTrips.length}</div>
           <div className="metric-label">Active Trips</div>
-        </div>
+        </button>
         <div className="metric-card">
           <div className="metric-value">{apiOk ? 'Online' : '--'}</div>
           <div className="metric-label">Hub API</div>

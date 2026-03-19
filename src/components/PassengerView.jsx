@@ -388,7 +388,16 @@ const PassengerView = () => {
               {activeTrips.length > 0 && (
                 <div style={{ marginBottom: '1.5rem' }}>
                   <p className="card-title">Active trips</p>
-                  {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
+                  {activeTrips.map((trip) => (
+                    <ActiveTripCard
+                      key={trip.txHash}
+                      trip={trip}
+                      passengerPayment={{
+                        userProfile,
+                        onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1),
+                      }}
+                    />
+                  ))}
                 </div>
               )}
 

@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
+import { ClutchHubSdk } from 'clutch-hub-sdk-js';
+import { API_URL } from '../config';
+import TransactionHistory from './TransactionHistory';
 
 function truncAddr(addr) {
   if (!addr || addr.length < 12) return addr || '';
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+function normAddr(a) {
+  if (!a) return '';
+  const s = String(a).trim().toLowerCase();
+  return s.startsWith('0x') ? s : `0x${s}`;
 }
 
 function CopyableAddress({ address }) {
@@ -27,19 +36,121 @@ function CopyableAddress({ address }) {
   );
 }
 
-const ActiveTripCard = ({ trip }) => {
+const ActiveTripCard = ({ trip, passengerPayment }) => {
+  const farePaid = trip.farePaid ?? trip.fare_paid ?? 0;
+  const totalFare = trip.fare;
+  const remaining = Math.max(0, totalFare - farePaid);
+
+  const [payAmount, setPayAmount] = useState('');
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState(null);
+
+  const showPayUi =
+    passengerPayment?.userProfile?.publicKey &&
+    normAddr(passengerPayment.userProfile.publicKey) === normAddr(trip.passengerAddress) &&
+    remaining > 0;
+
+  const handlePay = useCallback(async () => {
+    if (!passengerPayment?.userProfile?.publicKey) return;
+    const amount = Number(payAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setPayError('Enter a positive amount.');
+      return;
+    }
+    if (amount > remaining) {
+      setPayError(`Amount cannot exceed remaining ${remaining} CLT.`);
+      return;
+    }
+    setPaying(true);
+    setPayError(null);
+    try {
+      const { publicKey, privateKey } = passengerPayment.userProfile;
+      const sdk = new ClutchHubSdk(API_URL, publicKey);
+      const unsignedTx = await sdk.createUnsignedRidePay({
+        rideAcceptanceTxHash: trip.txHash,
+        fare: Math.floor(amount),
+      });
+      let pk = privateKey;
+      if (!pk) {
+        pk = window.prompt('Enter your private key to sign the payment:');
+        if (!pk) {
+          setPayError('Signing cancelled.');
+          setPaying(false);
+          return;
+        }
+      }
+      const signature = await sdk.signTransaction(unsignedTx, pk);
+      await sdk.submitTransaction(signature.rawTransaction);
+      TransactionHistory.addTransaction(publicKey, {
+        type: 'Ride Pay',
+        timestamp: Date.now(),
+        fare: Math.floor(amount),
+        status: 'success',
+        txHash: signature.txHash || '',
+      });
+      setPayAmount('');
+      passengerPayment.onSuccess?.();
+    } catch (err) {
+      console.error(err);
+      setPayError(err.message || 'Payment failed');
+      TransactionHistory.addTransaction(passengerPayment.userProfile.publicKey, {
+        type: 'Ride Pay',
+        timestamp: Date.now(),
+        fare: Math.floor(Number(payAmount) || 0),
+        status: 'failed',
+        error: err.message,
+      });
+    } finally {
+      setPaying(false);
+    }
+  }, [passengerPayment, payAmount, remaining, trip.txHash]);
+
+  const setQuickPay = (fraction) => {
+    const v = Math.max(1, Math.floor(remaining * fraction));
+    setPayAmount(String(Math.min(v, remaining)));
+  };
+
   const pickup = [trip.pickupLocation.latitude, trip.pickupLocation.longitude];
   const dropoff = [trip.dropoffLocation.latitude, trip.dropoffLocation.longitude];
 
   return (
     <div className="card active-trip-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <span className="trip-status">
           <span className="status-dot status-dot--live" />
           In Progress
         </span>
-        <span className="fare-badge">{trip.fare} CLT</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+          <span className="fare-badge">{totalFare} CLT total</span>
+          {farePaid > 0 && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Paid {farePaid} CLT
+              {remaining > 0 ? ` · ${remaining} CLT left` : ''}
+            </span>
+          )}
+        </div>
       </div>
+
+      {remaining > 0 && (
+        <div
+          style={{
+            height: 6,
+            borderRadius: 4,
+            background: 'var(--bg-surface)',
+            marginBottom: '0.875rem',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              height: '100%',
+              width: `${Math.min(100, (farePaid / totalFare) * 100)}%`,
+              background: 'var(--accent)',
+              transition: 'width 0.3s ease',
+            }}
+          />
+        </div>
+      )}
 
       <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
         <MapContainer center={pickup} zoom={13} style={{ height: '180px', width: '100%' }}>
@@ -64,6 +175,52 @@ const ActiveTripCard = ({ trip }) => {
           <div title={trip.rideOfferTxHash}>Offer: <CopyableAddress address={trip.rideOfferTxHash} /></div>
         </div>
       </div>
+
+      {showPayUi && (
+        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+          <p className="card-title" style={{ marginBottom: '0.5rem' }}>Pay driver (partial OK)</p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>
+            Pay in portions as the ride progresses. Up to <strong>{remaining} CLT</strong> remaining.
+          </p>
+          <div className="form-row" style={{ marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+            <input
+              type="number"
+              min={1}
+              max={remaining}
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+              className="input-field"
+              style={{ width: 120 }}
+              placeholder="Amount"
+            />
+            <button type="button" className="btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setQuickPay(0.25)}>
+              25%
+            </button>
+            <button type="button" className="btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setQuickPay(0.5)}>
+              50%
+            </button>
+            <button type="button" className="btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setPayAmount(String(remaining))}>
+              Remaining
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              style={{ fontSize: '0.8rem' }}
+              disabled={paying || !payAmount}
+              onClick={handlePay}
+            >
+              {paying ? 'Paying…' : 'Pay'}
+            </button>
+          </div>
+          {payError && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem' }}>{payError}</div>}
+        </div>
+      )}
+
+      {!showPayUi && remaining > 0 && (
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.75rem 0 0 0' }}>
+          {farePaid > 0 ? `Passenger has paid ${farePaid} / ${totalFare} CLT.` : 'Awaiting passenger payment.'}
+        </p>
+      )}
     </div>
   );
 };

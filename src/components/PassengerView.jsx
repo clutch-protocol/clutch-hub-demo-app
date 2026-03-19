@@ -158,7 +158,7 @@ const RideRequestCard = ({ req, userProfile, onAcceptSuccess }) => {
 
 const PassengerView = () => {
   const [userProfile, setUserProfile] = useState({ publicKey: '', privateKey: '' });
-  const [fare, setFare] = useState(1000);
+  const [fare, setFare] = useState('');
   const [pickup, setPickup] = useState(null);
   const [dropoff, setDropoff] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -307,12 +307,13 @@ const PassengerView = () => {
                   className="input-field"
                   style={{ width: 120 }}
                   min={0}
+                  placeholder="Enter amount"
                   required
                 />
               </div>
               <div style={{ flex: 1, display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
                 <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>Reset</button>
-                <button type="submit" disabled={!(pickup && dropoff && userProfile.publicKey) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                <button type="submit" disabled={!(pickup && dropoff && userProfile.publicKey && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
                   {isLoading ? 'Processing...' : 'Request Ride'}
                 </button>
               </div>

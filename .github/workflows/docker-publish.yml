@@ -13,6 +13,7 @@ on:
       - 'Dockerfile'
       - 'index.html'
       - 'vite.config.js'
+      - 'pollIntervals.js'
       - '.github/workflows/docker-publish.yml'
   pull_request:
     branches: [ main ]
@@ -24,6 +25,7 @@ on:
       - 'Dockerfile'
       - 'index.html'
       - 'vite.config.js'
+      - 'pollIntervals.js'
   workflow_dispatch:
 
 env:

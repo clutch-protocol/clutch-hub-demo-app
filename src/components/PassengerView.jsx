@@ -232,12 +232,11 @@ const PassengerView = () => {
     return () => clearInterval(interval);
   }, [fetchCompletedTrips, refreshBalanceCounter]);
 
-  // Opening "My Rides" should show the latest trip right away (don’t wait for the next tick)
+  // Opening a tab should refresh that tab’s data immediately
   useEffect(() => {
-    if (passengerTab === 'rides' && userProfile.publicKey) {
-      fetchActiveTrips();
-      fetchCompletedTrips();
-    }
+    if (!userProfile.publicKey) return;
+    if (passengerTab === 'rides') fetchActiveTrips();
+    if (passengerTab === 'completed') fetchCompletedTrips();
   }, [passengerTab, userProfile.publicKey, fetchActiveTrips, fetchCompletedTrips]);
 
   useEffect(() => {
@@ -350,8 +349,18 @@ const PassengerView = () => {
           onClick={() => setPassengerTab('rides')}
         >
           My Rides
-          {userProfile.publicKey && (activeTrips.length + completedTrips.length + previousRequests.length) > 0 && (
-            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length + completedTrips.length + previousRequests.length}</span>
+          {userProfile.publicKey && (activeTrips.length + previousRequests.length) > 0 && (
+            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length + previousRequests.length}</span>
+          )}
+        </button>
+        <button
+          type="button"
+          className={`explorer-tab ${passengerTab === 'completed' ? 'active' : ''}`}
+          onClick={() => setPassengerTab('completed')}
+        >
+          Completed
+          {userProfile.publicKey && completedTrips.length > 0 && (
+            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{completedTrips.length}</span>
           )}
         </button>
       </div>
@@ -421,14 +430,13 @@ const PassengerView = () => {
         <Section
           title="My rides"
           icon="🚗"
-          description={userProfile.publicKey ? 'Active trips, completed rides, and requests awaiting offers.' : 'Connect your wallet to see your rides.'}
+          description={userProfile.publicKey ? 'Active trips and requests waiting for driver offers.' : 'Connect your wallet to see your rides.'}
         >
           {!userProfile.publicKey ? (
             <EmptyState message="Connect your wallet above to view active trips and pending requests." />
           ) : (
             <>
               {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
-              {completedTripsError && <div className="status-banner error">{completedTripsError}</div>}
 
               {activeTrips.length > 0 && (
                 <div style={{ marginBottom: '1.5rem' }}>
@@ -442,18 +450,6 @@ const PassengerView = () => {
                         onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1),
                       }}
                     />
-                  ))}
-                </div>
-              )}
-
-              {completedTrips.length > 0 && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <p className="card-title">Completed trips</p>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>
-                    Full fare paid — thank you for riding with Clutch.
-                  </p>
-                  {completedTrips.map((trip) => (
-                    <CompletedTripCard key={trip.txHash} trip={trip} />
                   ))}
                 </div>
               )}
@@ -475,10 +471,33 @@ const PassengerView = () => {
                 </div>
               )}
 
-              {activeTrips.length === 0 && completedTrips.length === 0 && previousRequests.length === 0
-                && !activeTripsLoading && !completedTripsLoading && !activeTripsError && !completedTripsError && (
-                <EmptyState message="No active trips, completed rides, or pending requests yet. Create a new request in the New Request tab." />
+              {activeTrips.length === 0 && previousRequests.length === 0 && !activeTripsLoading && !activeTripsError && (
+                <EmptyState message="No active trips or pending requests yet. Create a new request in the New Request tab, or open Completed for past rides." />
               )}
+            </>
+          )}
+        </Section>
+      )}
+
+      {passengerTab === 'completed' && (
+        <Section
+          title="Completed trips"
+          icon="✅"
+          description={userProfile.publicKey ? 'Rides where you paid the full fare.' : 'Connect your wallet to see your ride history.'}
+        >
+          {!userProfile.publicKey ? (
+            <EmptyState message="Connect your wallet above to view completed trips." />
+          ) : (
+            <>
+              {completedTripsError && <div className="status-banner error">{completedTripsError}</div>}
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
+                Full fare paid — thank you for riding with Clutch.
+              </p>
+              {completedTrips.length > 0 ? (
+                completedTrips.map((trip) => <CompletedTripCard key={trip.txHash} trip={trip} />)
+              ) : !completedTripsLoading && !completedTripsError ? (
+                <EmptyState message="No completed trips yet. When you finish paying a ride, it will appear here." />
+              ) : null}
             </>
           )}
         </Section>

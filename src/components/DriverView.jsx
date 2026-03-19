@@ -200,12 +200,10 @@ const DriverView = () => {
     return () => clearInterval(interval);
   }, [fetchCompletedTrips, refreshBalanceCounter]);
 
-  // Opening "My Trips" refetches immediately (passenger may have just accepted)
   useEffect(() => {
-    if (driverTab === 'trips' && userProfile.publicKey) {
-      fetchActiveTrips();
-      fetchCompletedTrips();
-    }
+    if (!userProfile.publicKey) return;
+    if (driverTab === 'trips') fetchActiveTrips();
+    if (driverTab === 'completed') fetchCompletedTrips();
   }, [driverTab, userProfile.publicKey, fetchActiveTrips, fetchCompletedTrips]);
 
   const fetchRideRequests = useCallback(async () => {
@@ -305,8 +303,18 @@ const DriverView = () => {
           onClick={() => setDriverTab('trips')}
         >
           My Trips
-          {userProfile.publicKey && (activeTrips.length + completedTrips.length) > 0 && (
-            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length + completedTrips.length}</span>
+          {userProfile.publicKey && activeTrips.length > 0 && (
+            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length}</span>
+          )}
+        </button>
+        <button
+          type="button"
+          className={`explorer-tab ${driverTab === 'completed' ? 'active' : ''}`}
+          onClick={() => setDriverTab('completed')}
+        >
+          Completed
+          {userProfile.publicKey && completedTrips.length > 0 && (
+            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{completedTrips.length}</span>
           )}
         </button>
       </div>
@@ -347,38 +355,43 @@ const DriverView = () => {
         <Section
           title="My trips"
           icon="🚗"
-          description={userProfile.publicKey ? 'In-progress rides and trips where the passenger has paid the full fare.' : 'Connect your wallet to see your trips.'}
+          description={userProfile.publicKey ? 'Rides in progress after a passenger accepts your offer.' : 'Connect your wallet to see your active trips.'}
         >
           {!userProfile.publicKey ? (
             <EmptyState message="Connect your wallet above to view active trips." />
           ) : (
             <>
               {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
+
+              {activeTrips.length > 0 ? (
+                activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)
+              ) : !activeTripsLoading && !activeTripsError ? (
+                <EmptyState message="No active trips. When a passenger accepts your offer, it appears here. Finished rides are under the Completed tab." />
+              ) : null}
+            </>
+          )}
+        </Section>
+      )}
+
+      {driverTab === 'completed' && (
+        <Section
+          title="Completed trips"
+          icon="✅"
+          description={userProfile.publicKey ? 'Rides where the passenger paid the full fare.' : 'Connect your wallet to see your completed rides.'}
+        >
+          {!userProfile.publicKey ? (
+            <EmptyState message="Connect your wallet above to view completed trips." />
+          ) : (
+            <>
               {completedTripsError && <div className="status-banner error">{completedTripsError}</div>}
-
-              {activeTrips.length > 0 && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <p className="card-title">Active trips</p>
-                  {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
-                </div>
-              )}
-
-              {completedTrips.length > 0 && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <p className="card-title">Completed trips</p>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>
-                    Passenger paid the full agreed fare.
-                  </p>
-                  {completedTrips.map((trip) => (
-                    <CompletedTripCard key={trip.txHash} trip={trip} />
-                  ))}
-                </div>
-              )}
-
-              {activeTrips.length === 0 && completedTrips.length === 0
-                && !activeTripsLoading && !completedTripsLoading && !activeTripsError && !completedTripsError && (
-                <EmptyState message="No trips yet. When a passenger accepts your offer, the ride appears under Active; after full payment it moves to Completed." />
-              )}
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
+                Passenger paid the full agreed fare.
+              </p>
+              {completedTrips.length > 0 ? (
+                completedTrips.map((trip) => <CompletedTripCard key={trip.txHash} trip={trip} />)
+              ) : !completedTripsLoading && !completedTripsError ? (
+                <EmptyState message="No completed trips yet. After the passenger pays in full, the ride shows up here." />
+              ) : null}
             </>
           )}
         </Section>

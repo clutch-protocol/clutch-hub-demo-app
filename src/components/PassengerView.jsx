@@ -286,98 +286,130 @@ const PassengerView = () => {
     }
   }, [pickup, dropoff, userProfile, fare]);
 
+  const [passengerTab, setPassengerTab] = useState('new');
+
   return (
     <div>
       <WalletBar role="passenger" userProfile={userProfile} onProfileUpdate={handleProfileUpdate} refreshTrigger={refreshBalanceCounter} />
 
-      {transactionStatus && (
-        <div className={`status-banner ${transactionStatus.type}`}>{transactionStatus.message}</div>
+      <div className="explorer-tabs">
+        <button
+          type="button"
+          className={`explorer-tab ${passengerTab === 'new' ? 'active' : ''}`}
+          onClick={() => setPassengerTab('new')}
+        >
+          New Request
+        </button>
+        <button
+          type="button"
+          className={`explorer-tab ${passengerTab === 'rides' ? 'active' : ''}`}
+          onClick={() => setPassengerTab('rides')}
+        >
+          My Rides
+          {userProfile.publicKey && (activeTrips.length + previousRequests.length) > 0 && (
+            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length + previousRequests.length}</span>
+          )}
+        </button>
+      </div>
+
+      {passengerTab === 'new' && (
+        <>
+          {transactionStatus && (
+            <div className={`status-banner ${transactionStatus.type}`}>{transactionStatus.message}</div>
+          )}
+
+          <Section title="Request a ride" icon="📍" description="Click the map to set pickup and dropoff, then submit.">
+            <div className="card">
+              <form onSubmit={handleSubmit}>
+                <div className="form-row" style={{ marginBottom: '1rem' }}>
+                  <div style={{ flex: '0 0 auto' }}>
+                    <label className="label">Fare (CLT)</label>
+                    <input
+                      type="number"
+                      value={fare}
+                      onChange={(e) => setFare(e.target.value)}
+                      className="input-field"
+                      style={{ width: 120 }}
+                      min={0}
+                      placeholder="Enter amount"
+                      required
+                    />
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                    <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>Reset</button>
+                    <button type="submit" disabled={!(pickup && dropoff && userProfile.publicKey && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                      {isLoading ? 'Processing...' : 'Request Ride'}
+                    </button>
+                  </div>
+                </div>
+
+                {pickup && dropoff && (
+                  <div className="form-row" style={{ marginBottom: '0.75rem', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(34,197,94,0.08)', color: '#15803d', borderRadius: 'var(--radius-full)' }}>
+                      Pickup: {pickup.lat.toFixed(4)}, {pickup.lng.toFixed(4)}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(239,68,68,0.08)', color: '#dc2626', borderRadius: 'var(--radius-full)' }}>
+                      Dropoff: {dropoff.lat.toFixed(4)}, {dropoff.lng.toFixed(4)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="map-wrapper">
+                  <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '320px', width: '100%' }}>
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+                    {pickup && dropoff && <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />}
+                    <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={setPickup} setDropoff={setDropoff} />
+                    {pickup && <Marker position={pickup}><Popup>Pickup</Popup></Marker>}
+                    {dropoff && <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>}
+                    {pickup && dropoff && <Polyline positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} color="var(--accent)" weight={3} opacity={0.8} />}
+                  </MapContainer>
+                </div>
+
+                {!pickup && <p className="map-hint" style={{ marginTop: '0.5rem' }}>Click the map to set pickup location</p>}
+                {pickup && !dropoff && <p className="map-hint" style={{ marginTop: '0.5rem' }}>Now click to set dropoff location</p>}
+              </form>
+            </div>
+          </Section>
+        </>
       )}
 
-      <Section title="Request a ride" icon="📍" description="Click the map to set pickup and dropoff, then submit.">
-        <div className="card">
-          <form onSubmit={handleSubmit}>
-            <div className="form-row" style={{ marginBottom: '1rem' }}>
-              <div style={{ flex: '0 0 auto' }}>
-                <label className="label">Fare (CLT)</label>
-                <input
-                  type="number"
-                  value={fare}
-                  onChange={(e) => setFare(e.target.value)}
-                  className="input-field"
-                  style={{ width: 120 }}
-                  min={0}
-                  placeholder="Enter amount"
-                  required
-                />
-              </div>
-              <div style={{ flex: 1, display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>Reset</button>
-                <button type="submit" disabled={!(pickup && dropoff && userProfile.publicKey && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
-                  {isLoading ? 'Processing...' : 'Request Ride'}
-                </button>
-              </div>
-            </div>
-
-            {pickup && dropoff && (
-              <div className="form-row" style={{ marginBottom: '0.75rem', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(34,197,94,0.08)', color: '#15803d', borderRadius: 'var(--radius-full)' }}>
-                  Pickup: {pickup.lat.toFixed(4)}, {pickup.lng.toFixed(4)}
-                </span>
-                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(239,68,68,0.08)', color: '#dc2626', borderRadius: 'var(--radius-full)' }}>
-                  Dropoff: {dropoff.lat.toFixed(4)}, {dropoff.lng.toFixed(4)}
-                </span>
-              </div>
-            )}
-
-            <div className="map-wrapper">
-              <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '320px', width: '100%' }}>
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
-                {pickup && dropoff && <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />}
-                <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={setPickup} setDropoff={setDropoff} />
-                {pickup && <Marker position={pickup}><Popup>Pickup</Popup></Marker>}
-                {dropoff && <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>}
-                {pickup && dropoff && <Polyline positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} color="var(--accent)" weight={3} opacity={0.8} />}
-              </MapContainer>
-            </div>
-
-            {!pickup && <p className="map-hint" style={{ marginTop: '0.5rem' }}>Click the map to set pickup location</p>}
-            {pickup && !dropoff && <p className="map-hint" style={{ marginTop: '0.5rem' }}>Now click to set dropoff location</p>}
-          </form>
-        </div>
-      </Section>
-
-      {userProfile.publicKey && (
+      {passengerTab === 'rides' && (
         <Section
-          title="My activity"
+          title="My rides"
           icon="🚗"
-          badge={activeTrips.length + previousRequests.length > 0 ? activeTrips.length + previousRequests.length : null}
+          description={userProfile.publicKey ? 'Active trips and requests awaiting driver offers.' : 'Connect your wallet to see your rides.'}
         >
-          {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
+          {!userProfile.publicKey ? (
+            <EmptyState message="Connect your wallet above to view active trips and pending requests." />
+          ) : (
+            <>
+              {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
 
-          {activeTrips.length > 0 && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <p className="card-title">Active trips</p>
-              {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
-            </div>
-          )}
+              {activeTrips.length > 0 && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <p className="card-title">Active trips</p>
+                  {activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)}
+                </div>
+              )}
 
-          {previousRequests.length > 0 && (
-            <div>
-              <p className="card-title">Requests awaiting offers</p>
-              {previousRequests.map((req, idx) => (
-                <RideRequestCard
-                  key={req.txHash || idx}
-                  req={req}
-                  userProfile={userProfile}
-                  onAcceptSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
-                />
-              ))}
-            </div>
-          )}
+              {previousRequests.length > 0 && (
+                <div>
+                  <p className="card-title">Requests awaiting offers</p>
+                  {previousRequests.map((req, idx) => (
+                    <RideRequestCard
+                      key={req.txHash || idx}
+                      req={req}
+                      userProfile={userProfile}
+                      onAcceptSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
+                    />
+                  ))}
+                </div>
+              )}
 
-          {activeTrips.length === 0 && previousRequests.length === 0 && !activeTripsLoading && !activeTripsError && (
-            <EmptyState message="No active trips or pending requests yet." />
+              {activeTrips.length === 0 && previousRequests.length === 0 && !activeTripsLoading && !activeTripsError && (
+                <EmptyState message="No active trips or pending requests yet. Create a new request in the New Request tab." />
+              )}
+            </>
           )}
         </Section>
       )}

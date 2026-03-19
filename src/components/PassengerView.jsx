@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
+import ActiveTripCard from './ActiveTripCard';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -184,8 +185,37 @@ const PassengerView = () => {
   const [transactionStatus, setTransactionStatus] = useState(null);
   const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
   const [previousRequests, setPreviousRequests] = useState([]);
+  const [activeTrips, setActiveTrips] = useState([]);
+  const [activeTripsLoading, setActiveTripsLoading] = useState(false);
+  const [activeTripsError, setActiveTripsError] = useState(null);
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
+
+  const fetchActiveTrips = useCallback(async () => {
+    if (!userProfile.publicKey) {
+      setActiveTrips([]);
+      return;
+    }
+    setActiveTripsLoading(true);
+    setActiveTripsError(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const trips = await sdk.listActiveTrips({ passengerAddress: userProfile.publicKey });
+      setActiveTrips(trips);
+    } catch (err) {
+      console.error('Failed to fetch active trips:', err);
+      setActiveTripsError(err.message || 'Failed to load active trips');
+      setActiveTrips([]);
+    } finally {
+      setActiveTripsLoading(false);
+    }
+  }, [userProfile.publicKey]);
+
+  useEffect(() => {
+    fetchActiveTrips();
+    const interval = setInterval(fetchActiveTrips, 3000);
+    return () => clearInterval(interval);
+  }, [fetchActiveTrips]);
 
   useEffect(() => {
     let isMounted = true;
@@ -311,6 +341,38 @@ const PassengerView = () => {
       {transactionStatus && (
         <div className={`status-banner ${transactionStatus.type}`}>
           {transactionStatus.message}
+        </div>
+      )}
+
+      {userProfile.publicKey && (
+        <div className="card">
+          <h3 className="card-title">Active trips</h3>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+            Trips you have accepted that are in progress.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              {activeTrips.length} active trip{activeTrips.length !== 1 ? 's' : ''}
+            </span>
+            <button type="button" className="btn-secondary" onClick={fetchActiveTrips} disabled={activeTripsLoading}>
+              {activeTripsLoading ? 'Loading…' : 'Refresh'}
+            </button>
+          </div>
+          {activeTripsError && (
+            <div className="status-banner error" style={{ marginBottom: '1rem' }}>{activeTripsError}</div>
+          )}
+          {activeTrips.length === 0 && !activeTripsLoading && !activeTripsError && (
+            <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              No active trips. Accepted offers will appear here.
+            </div>
+          )}
+          {activeTrips.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+              {activeTrips.map((trip) => (
+                <ActiveTripCard key={trip.txHash} trip={trip} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

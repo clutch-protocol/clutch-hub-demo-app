@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
+import ActiveTripCard from './ActiveTripCard';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -24,6 +25,31 @@ const NetworkView = () => {
   const [selectedTxHash, setSelectedTxHash] = useState(null);
   const [offers, setOffers] = useState([]);
   const [offersLoading, setOffersLoading] = useState(false);
+  const [activeTrips, setActiveTrips] = useState([]);
+  const [activeTripsLoading, setActiveTripsLoading] = useState(false);
+  const [activeTripsError, setActiveTripsError] = useState(null);
+
+  const fetchActiveTrips = useCallback(async () => {
+    setActiveTripsLoading(true);
+    setActiveTripsError(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, '0x0');
+      const trips = await sdk.listActiveTrips();
+      setActiveTrips(trips);
+    } catch (err) {
+      console.error('Failed to fetch active trips:', err);
+      setActiveTripsError(err.message || 'Failed to load active trips');
+      setActiveTrips([]);
+    } finally {
+      setActiveTripsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActiveTrips();
+    const interval = setInterval(fetchActiveTrips, 3000);
+    return () => clearInterval(interval);
+  }, [fetchActiveTrips]);
 
   useEffect(() => {
     const fetchHealth = async () => {
@@ -301,6 +327,36 @@ const NetworkView = () => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h3 className="card-title">All active trips</h3>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+          All trips in progress across the network. Ride accepted, awaiting completion.
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            {activeTrips.length} active trip{activeTrips.length !== 1 ? 's' : ''}
+          </span>
+          <button type="button" className="btn-secondary" onClick={fetchActiveTrips} disabled={activeTripsLoading}>
+            {activeTripsLoading ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
+        {activeTripsError && (
+          <div className="status-banner error" style={{ marginBottom: '1rem' }}>{activeTripsError}</div>
+        )}
+        {activeTrips.length === 0 && !activeTripsLoading && !activeTripsError && (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            No active trips on the network.
+          </div>
+        )}
+        {activeTrips.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+            {activeTrips.map((trip) => (
+              <ActiveTripCard key={trip.txHash} trip={trip} />
+            ))}
           </div>
         )}
       </div>

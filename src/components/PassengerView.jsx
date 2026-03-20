@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
@@ -182,6 +182,7 @@ const PassengerView = () => {
   const [pickup, setPickup] = useState(null);
   const [dropoff, setDropoff] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const submittingRef = useRef(false);
   const [transactionStatus, setTransactionStatus] = useState(null);
   const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
   const [previousRequests, setPreviousRequests] = useState([]);
@@ -302,8 +303,10 @@ const PassengerView = () => {
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!pickup || !dropoff || !userProfile.publicKey) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       setTransactionStatus({ type: 'info', message: 'Creating transaction...' });
       const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
       const unsignedTx = await sdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
@@ -313,6 +316,7 @@ const PassengerView = () => {
         privateKey = window.prompt('Enter your private key to sign the transaction:');
         if (!privateKey) {
           setTransactionStatus({ type: 'warning', message: 'Signing cancelled.' });
+          submittingRef.current = false;
           setIsLoading(false);
           return;
         }
@@ -343,6 +347,7 @@ const PassengerView = () => {
       });
       setTransactionStatus({ type: 'error', message: 'Failed: ' + (err.message || 'Unknown error') });
     } finally {
+      submittingRef.current = false;
       setIsLoading(false);
     }
   }, [pickup, dropoff, userProfile, fare]);
@@ -405,9 +410,9 @@ const PassengerView = () => {
                     />
                   </div>
                   <div style={{ flex: 1, display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                    <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>Reset</button>
+                    <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }} disabled={isLoading}>Reset</button>
                     <button type="submit" disabled={!(pickup && dropoff && userProfile.publicKey && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
-                      {isLoading ? 'Processing...' : 'Request Ride'}
+                      {isLoading ? 'Submitting…' : 'Request Ride'}
                     </button>
                   </div>
                 </div>

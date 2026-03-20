@@ -50,7 +50,7 @@ This application demonstrates several key blockchain principles:
 
 The demo uses **`clutch-hub-sdk-js`** from the **npm registry** (`^1.13.0`). Run `npm update clutch-hub-sdk-js` (or `npm run update:sdk`) to pull a newer published version.
 
-Live ride data uses **GraphQL subscriptions** over WebSocket (`/graphql/ws` on the Hub API). Use a Hub API build that exposes that route and an SDK version that includes subscription helpers.
+**Live lists:** `src/sdkRealtime.js` calls `subscribeRideRequests` / `subscribeRideOffers` / etc. when the installed SDK defines them (GraphQL over **WebSocket** to `/graphql/ws`). If those methods are missing (older npm package), the same UI falls back to **HTTP polling** so the app still runs.
 
 **Local SDK development:** To point at a sibling repo instead of npm, set `"clutch-hub-sdk-js": "file:../clutch-hub-sdk-js"` in `package.json` and optionally add a Vite `resolve.alias` to `../clutch-hub-sdk-js/src/index.ts` plus a direct `graphql-ws` dependency if you bundle from source.
 

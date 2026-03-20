@@ -10,6 +10,12 @@ import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
+import {
+  subscribeActiveTripsCompat,
+  subscribeCompletedTripsCompat,
+  subscribeRideOffersCompat,
+  subscribeRideRequestsCompat,
+} from '../sdkRealtime';
 import TransactionHistory from './TransactionHistory';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -53,7 +59,7 @@ const RideRequestCard = ({
     setLoadingOffers(true);
     setOffersError(null);
     const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey || '0x0');
-    const dispose = sdk.subscribeRideOffers(req.txHash, {
+    const dispose = subscribeRideOffersCompat(sdk, req.txHash, {
       onData: (list) => {
         setOffers(list);
         setLoadingOffers(false);
@@ -166,7 +172,8 @@ const DriverView = () => {
     setActiveTripsLoading(true);
     setActiveTripsError(null);
     const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-    const dispose = sdk.subscribeActiveTrips(
+    const dispose = subscribeActiveTripsCompat(
+      sdk,
       { driverAddress: userProfile.publicKey },
       {
         onData: (trips) => {
@@ -193,7 +200,8 @@ const DriverView = () => {
     setCompletedTripsLoading(true);
     setCompletedTripsError(null);
     const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-    const dispose = sdk.subscribeCompletedTrips(
+    const dispose = subscribeCompletedTripsCompat(
+      sdk,
       { driverAddress: userProfile.publicKey },
       {
         onData: (trips) => {
@@ -231,7 +239,7 @@ const DriverView = () => {
     setIsLoadingRides(true);
     setRidesError(null);
     const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey || '0x0');
-    const dispose = sdk.subscribeRideRequests(null, {
+    const dispose = subscribeRideRequestsCompat(sdk, null, {
       onData: (requests) => {
         setRideRequests(requests);
         setIsLoadingRides(false);

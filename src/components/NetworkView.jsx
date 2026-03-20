@@ -11,6 +11,12 @@ import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
+import {
+  subscribeActiveTripsCompat,
+  subscribeCompletedTripsCompat,
+  subscribeRideOffersCompat,
+  subscribeRideRequestsCompat,
+} from '../sdkRealtime';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
@@ -71,7 +77,7 @@ const NetworkView = () => {
     setRidesLoading(true);
     setRidesError(null);
     const sdk = new ClutchHubSdk(API_URL, '0x0');
-    const dispose = sdk.subscribeRideRequests(null, {
+    const dispose = subscribeRideRequestsCompat(sdk, null, {
       onData: (requests) => {
         setRideRequests(requests);
         setRidesLoading(false);
@@ -90,7 +96,7 @@ const NetworkView = () => {
     setActiveTripsLoading(true);
     setActiveTripsError(null);
     const sdk = new ClutchHubSdk(API_URL, '0x0');
-    const dispose = sdk.subscribeActiveTrips(undefined, {
+    const dispose = subscribeActiveTripsCompat(sdk, undefined, {
       onData: (trips) => {
         setActiveTrips(trips);
         setActiveTripsLoading(false);
@@ -109,7 +115,7 @@ const NetworkView = () => {
     setCompletedTripsLoading(true);
     setCompletedTripsError(null);
     const sdk = new ClutchHubSdk(API_URL, '0x0');
-    const dispose = sdk.subscribeCompletedTrips(undefined, {
+    const dispose = subscribeCompletedTripsCompat(sdk, undefined, {
       onData: (trips) => {
         setCompletedTrips(trips);
         setCompletedTripsLoading(false);
@@ -132,7 +138,7 @@ const NetworkView = () => {
     }
     setOffersLoading(true);
     const sdk = new ClutchHubSdk(API_URL, '0x0');
-    const dispose = sdk.subscribeRideOffers(selectedTxHash, {
+    const dispose = subscribeRideOffersCompat(sdk, selectedTxHash, {
       onData: (list) => {
         setOffers(list);
         setOffersLoading(false);

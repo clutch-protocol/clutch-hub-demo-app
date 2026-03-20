@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
@@ -11,7 +11,6 @@ import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
-import { ACTIVE_TRIPS_POLL_MS } from '../pollIntervals';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
@@ -68,96 +67,84 @@ const NetworkView = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchRideRequests = useCallback(async () => {
+  useEffect(() => {
     setRidesLoading(true);
     setRidesError(null);
-    try {
-      const sdk = new ClutchHubSdk(API_URL, '0x0');
-      const requests = await sdk.listRideRequests();
-      setRideRequests(requests);
-    } catch (err) {
-      console.error('Failed to fetch ride requests:', err);
-      setRidesError(err.message || 'Failed to load ride requests');
-      setRideRequests([]);
-    } finally {
-      setRidesLoading(false);
-    }
+    const sdk = new ClutchHubSdk(API_URL, '0x0');
+    const dispose = sdk.subscribeRideRequests(null, {
+      onData: (requests) => {
+        setRideRequests(requests);
+        setRidesLoading(false);
+      },
+      onError: (err) => {
+        console.error('Ride requests subscription error:', err);
+        setRidesError(err.message || 'Failed to load ride requests');
+        setRideRequests([]);
+        setRidesLoading(false);
+      },
+    });
+    return () => dispose();
   }, []);
 
   useEffect(() => {
-    fetchRideRequests();
-    const interval = setInterval(fetchRideRequests, 3000);
-    return () => clearInterval(interval);
-  }, [fetchRideRequests]);
-
-  const fetchActiveTrips = useCallback(async () => {
     setActiveTripsLoading(true);
     setActiveTripsError(null);
-    try {
-      const sdk = new ClutchHubSdk(API_URL, '0x0');
-      const trips = await sdk.listActiveTrips();
-      setActiveTrips(trips);
-    } catch (err) {
-      console.error('Failed to fetch active trips:', err);
-      setActiveTripsError(err.message || 'Failed to load active trips');
-      setActiveTrips([]);
-    } finally {
-      setActiveTripsLoading(false);
-    }
+    const sdk = new ClutchHubSdk(API_URL, '0x0');
+    const dispose = sdk.subscribeActiveTrips(undefined, {
+      onData: (trips) => {
+        setActiveTrips(trips);
+        setActiveTripsLoading(false);
+      },
+      onError: (err) => {
+        console.error('Active trips subscription error:', err);
+        setActiveTripsError(err.message || 'Failed to load active trips');
+        setActiveTrips([]);
+        setActiveTripsLoading(false);
+      },
+    });
+    return () => dispose();
   }, []);
 
   useEffect(() => {
-    fetchActiveTrips();
-    const interval = setInterval(fetchActiveTrips, ACTIVE_TRIPS_POLL_MS);
-    return () => clearInterval(interval);
-  }, [fetchActiveTrips]);
-
-  const fetchCompletedTrips = useCallback(async () => {
     setCompletedTripsLoading(true);
     setCompletedTripsError(null);
-    try {
-      const sdk = new ClutchHubSdk(API_URL, '0x0');
-      const trips = await sdk.listCompletedTrips();
-      setCompletedTrips(trips);
-    } catch (err) {
-      console.error('Failed to fetch completed trips:', err);
-      setCompletedTripsError(err.message || 'Failed to load completed trips');
-      setCompletedTrips([]);
-    } finally {
-      setCompletedTripsLoading(false);
-    }
+    const sdk = new ClutchHubSdk(API_URL, '0x0');
+    const dispose = sdk.subscribeCompletedTrips(undefined, {
+      onData: (trips) => {
+        setCompletedTrips(trips);
+        setCompletedTripsLoading(false);
+      },
+      onError: (err) => {
+        console.error('Completed trips subscription error:', err);
+        setCompletedTripsError(err.message || 'Failed to load completed trips');
+        setCompletedTrips([]);
+        setCompletedTripsLoading(false);
+      },
+    });
+    return () => dispose();
   }, []);
 
   useEffect(() => {
-    fetchCompletedTrips();
-    const interval = setInterval(fetchCompletedTrips, ACTIVE_TRIPS_POLL_MS);
-    return () => clearInterval(interval);
-  }, [fetchCompletedTrips]);
-
-  const fetchOffers = useCallback(async (txHash) => {
-    if (!txHash) return;
-    setOffersLoading(true);
-    try {
-      const sdk = new ClutchHubSdk(API_URL, '0x0');
-      const list = await sdk.listRideOffers(txHash);
-      setOffers(list);
-    } catch (err) {
-      console.error('Failed to fetch offers:', err);
+    if (!selectedTxHash) {
       setOffers([]);
-    } finally {
       setOffersLoading(false);
+      return undefined;
     }
-  }, []);
-
-  useEffect(() => {
-    if (selectedTxHash) {
-      fetchOffers(selectedTxHash);
-      const interval = setInterval(() => fetchOffers(selectedTxHash), 5000);
-      return () => clearInterval(interval);
-    } else {
-      setOffers([]);
-    }
-  }, [selectedTxHash, fetchOffers]);
+    setOffersLoading(true);
+    const sdk = new ClutchHubSdk(API_URL, '0x0');
+    const dispose = sdk.subscribeRideOffers(selectedTxHash, {
+      onData: (list) => {
+        setOffers(list);
+        setOffersLoading(false);
+      },
+      onError: (err) => {
+        console.error('Offers subscription error:', err);
+        setOffers([]);
+        setOffersLoading(false);
+      },
+    });
+    return () => dispose();
+  }, [selectedTxHash]);
 
   const selectedRequest = rideRequests.find((r) => r.txHash === selectedTxHash);
 

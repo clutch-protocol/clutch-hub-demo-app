@@ -48,9 +48,18 @@ This application demonstrates several key blockchain principles:
 
 ## Getting Started
 
+The demo depends on **`clutch-hub-sdk-js`** via `file:../clutch-hub-sdk-js` and **`vite.config.js` aliases** that package to `../clutch-hub-sdk-js/src/index.ts`. Vite always bundles the **local SDK source**, so you are not stuck with an old copy inside `node_modules` (e.g. Docker’s named `node_modules` volume or an npm tarball without `subscribe*`).
+
+If you only clone the demo (no sibling SDK folder), remove the `resolve.alias` block in `vite.config.js` and use a published version in `package.json` (e.g. `"clutch-hub-sdk-js": "^x.y.z"`).
+
+**Docker dev:** If the app still loads an old SDK, recreate the demo volume so installs refresh:  
+`docker compose ... down -v` (or remove only the `clutch-hub-demo-app-node_modules` volume), then `up --build` again.
+
+Live ride data uses **GraphQL subscriptions** over WebSocket (`/graphql/ws` on the Hub API). Ensure the Hub API you point `VITE_API_URL` at exposes that route.
+
 1. Clone the repository
 2. Install dependencies with `npm install`
-3. Start the development server with `npm run dev`
+3. Start the development server with `npm run dev` (Vite uses the sibling SDK **TypeScript** via `vite.config.js`; you do not need `npm run sdk:build` for the demo unless you consume `dist/` elsewhere)
 4. Visit `http://localhost:5173` in your browser
 
 ### Docker

@@ -10,7 +10,6 @@ import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
-import { ACTIVE_TRIPS_POLL_MS } from '../pollIntervals';
 import TransactionHistory from './TransactionHistory';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -55,10 +54,23 @@ const RideRequestCard = ({ req, userProfile, onAcceptSuccess }) => {
   }, [req.txHash, userProfile.publicKey]);
 
   useEffect(() => {
-    fetchOffers();
-    const interval = setInterval(fetchOffers, 10000);
-    return () => clearInterval(interval);
-  }, [fetchOffers]);
+    if (!userProfile.publicKey || !req.txHash) return undefined;
+    setLoading(true);
+    setError(null);
+    const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+    const dispose = sdk.subscribeRideOffers(req.txHash, {
+      onData: (list) => {
+        setOffers(list);
+        setLoading(false);
+      },
+      onError: (err) => {
+        console.error('Offers subscription error:', err);
+        setError(err.message || 'Failed to load offers');
+        setLoading(false);
+      },
+    });
+    return () => dispose();
+  }, [req.txHash, userProfile.publicKey]);
 
   const handleAcceptOffer = useCallback(async (offer) => {
     if (!userProfile.publicKey || !offer.txHash) return;
@@ -177,105 +189,101 @@ const PassengerView = () => {
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
 
-  const fetchActiveTrips = useCallback(async () => {
+  useEffect(() => {
     if (!userProfile.publicKey) {
       setActiveTrips([]);
       setActiveTripsLoading(false);
-      return;
+      return undefined;
     }
     setActiveTripsLoading(true);
     setActiveTripsError(null);
-    try {
-      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-      const trips = await sdk.listActiveTrips({ passengerAddress: userProfile.publicKey });
-      setActiveTrips(trips);
-    } catch (err) {
-      console.error('Failed to fetch active trips:', err);
-      setActiveTripsError(err.message || 'Failed to load active trips');
-      setActiveTrips([]);
-    } finally {
-      setActiveTripsLoading(false);
-    }
+    const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+    const dispose = sdk.subscribeActiveTrips(
+      { passengerAddress: userProfile.publicKey },
+      {
+        onData: (trips) => {
+          setActiveTrips(trips);
+          setActiveTripsLoading(false);
+        },
+        onError: (err) => {
+          console.error('Active trips subscription error:', err);
+          setActiveTripsError(err.message || 'Failed to load active trips');
+          setActiveTrips([]);
+          setActiveTripsLoading(false);
+        },
+      }
+    );
+    return () => dispose();
   }, [userProfile.publicKey]);
 
-  const fetchCompletedTrips = useCallback(async () => {
+  useEffect(() => {
     if (!userProfile.publicKey) {
       setCompletedTrips([]);
       setCompletedTripsLoading(false);
-      return;
+      return undefined;
     }
     setCompletedTripsLoading(true);
     setCompletedTripsError(null);
-    try {
-      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-      const trips = await sdk.listCompletedTrips({ passengerAddress: userProfile.publicKey });
-      setCompletedTrips(trips);
-    } catch (err) {
-      console.error('Failed to fetch completed trips:', err);
-      setCompletedTripsError(err.message || 'Failed to load completed trips');
-      setCompletedTrips([]);
-    } finally {
-      setCompletedTripsLoading(false);
-    }
+    const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+    const dispose = sdk.subscribeCompletedTrips(
+      { passengerAddress: userProfile.publicKey },
+      {
+        onData: (trips) => {
+          setCompletedTrips(trips);
+          setCompletedTripsLoading(false);
+        },
+        onError: (err) => {
+          console.error('Completed trips subscription error:', err);
+          setCompletedTripsError(err.message || 'Failed to load completed trips');
+          setCompletedTrips([]);
+          setCompletedTripsLoading(false);
+        },
+      }
+    );
+    return () => dispose();
   }, [userProfile.publicKey]);
 
-  // Poll in-progress trips; include refreshBalanceCounter so accept / pay triggers an immediate refetch
   useEffect(() => {
-    fetchActiveTrips();
-    const interval = setInterval(fetchActiveTrips, ACTIVE_TRIPS_POLL_MS);
-    return () => clearInterval(interval);
-  }, [fetchActiveTrips, refreshBalanceCounter]);
-
-  useEffect(() => {
-    fetchCompletedTrips();
-    const interval = setInterval(fetchCompletedTrips, ACTIVE_TRIPS_POLL_MS);
-    return () => clearInterval(interval);
-  }, [fetchCompletedTrips, refreshBalanceCounter]);
-
-  // Opening a tab should refresh that tab’s data immediately
-  useEffect(() => {
-    if (!userProfile.publicKey) return;
-    if (passengerTab === 'rides') fetchActiveTrips();
-    if (passengerTab === 'completed') fetchCompletedTrips();
-  }, [passengerTab, userProfile.publicKey, fetchActiveTrips, fetchCompletedTrips]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchRequests = async () => {
-      if (!userProfile.publicKey) { if (isMounted) setPreviousRequests([]); return; }
-      try {
-        const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-        const allRequests = await sdk.listRideRequests();
-        if (isMounted) {
-          const myRequests = allRequests.filter((req) => req.passengerAddress === userProfile.publicKey);
-          const stored = localStorage.getItem(`clutch_tx_${userProfile.publicKey}`);
-          let txMap = {};
-          if (stored) {
-            try { JSON.parse(stored).forEach((tx) => { if (tx.txHash) txMap[tx.txHash] = tx; }); } catch (e) {}
+    if (!userProfile.publicKey) {
+      setPreviousRequests([]);
+      return undefined;
+    }
+    const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+    const dispose = sdk.subscribeRideRequests(null, {
+      onData: (allRequests) => {
+        const myRequests = allRequests.filter((r) => r.passengerAddress === userProfile.publicKey);
+        const stored = localStorage.getItem(`clutch_tx_${userProfile.publicKey}`);
+        let txMap = {};
+        if (stored) {
+          try {
+            JSON.parse(stored).forEach((tx) => {
+              if (tx.txHash) txMap[tx.txHash] = tx;
+            });
+          } catch {
+            /* ignore */
           }
-          const formatted = myRequests.map((r) => {
-            const localTx = txMap[r.txHash];
-            return {
-              type: 'Ride Request',
-              timestamp: localTx?.timestamp ?? Date.now(),
-              pickup: { lat: r.pickupLocation.latitude, lng: r.pickupLocation.longitude },
-              dropoff: { lat: r.dropoffLocation.latitude, lng: r.dropoffLocation.longitude },
-              fare: r.fare,
-              txHash: r.txHash,
-              passengerAddress: r.passengerAddress,
-            };
-          });
-          formatted.sort((a, b) => b.timestamp - a.timestamp);
-          setPreviousRequests(formatted);
         }
-      } catch (err) {
-        console.error('Failed to fetch ride requests:', err);
-      }
-    };
-    fetchRequests();
-    const interval = setInterval(fetchRequests, 3000);
-    return () => { isMounted = false; clearInterval(interval); };
-  }, [userProfile.publicKey, refreshBalanceCounter]);
+        const formatted = myRequests.map((r) => {
+          const localTx = txMap[r.txHash];
+          return {
+            type: 'Ride Request',
+            timestamp: localTx?.timestamp ?? Date.now(),
+            pickup: { lat: r.pickupLocation.latitude, lng: r.pickupLocation.longitude },
+            dropoff: { lat: r.dropoffLocation.latitude, lng: r.dropoffLocation.longitude },
+            fare: r.fare,
+            txHash: r.txHash,
+            passengerAddress: r.passengerAddress,
+          };
+        });
+        formatted.sort((a, b) => b.timestamp - a.timestamp);
+        setPreviousRequests(formatted);
+      },
+      onError: (err) => {
+        console.error('Ride requests subscription error:', err);
+      },
+    });
+    return () => dispose();
+  }, [userProfile.publicKey]);
 
   const handleReset = useCallback(() => {
     setPickup(null);

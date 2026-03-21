@@ -427,61 +427,15 @@ const PassengerView = () => {
         <Section
           title="My rides"
           icon="🚗"
-          description={userProfile.publicKey ? 'Click the map to set pickup and dropoff, submit your request, then manage offers and trips below.' : 'Connect your wallet to request rides.'}
+          description={userProfile.publicKey ? 'Tap the map to set pickup → dropoff, enter fare, and request. Your ride appears on the map and in the cards below.' : 'Connect your wallet to request rides.'}
         >
           {!userProfile.publicKey ? (
             <EmptyState message="Connect your wallet above to request a ride." />
           ) : (
-            <div className="card">
-              {transactionStatus && (
-                <div className={`status-banner ${transactionStatus.type}`} style={{ marginBottom: '1rem' }}>{transactionStatus.message}</div>
-              )}
-
-              {hasConcurrent && (
-                <div className="status-banner info" style={{ marginBottom: '1rem' }}>
-                  You have an active request or trip. Complete or cancel it before requesting a new ride.
-                </div>
-              )}
-
-              {activeTripsError && <div className="status-banner error" style={{ marginBottom: '1rem' }}>{activeTripsError}</div>}
-
-              <form onSubmit={handleSubmit}>
-                <div className="form-row" style={{ marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  <div style={{ flex: '0 0 auto' }}>
-                    <label className="label">Fare (CLT)</label>
-                    <input
-                      type="number"
-                      value={fare}
-                      onChange={(e) => setFare(e.target.value)}
-                      className="input-field"
-                      style={{ width: 100 }}
-                      min={0}
-                      placeholder="Amount"
-                      required
-                      disabled={hasConcurrent}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flex: 1, minWidth: 0 }}>
-                    <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }} disabled={isLoading || hasConcurrent}>Reset</button>
-                    <button type="submit" disabled={hasConcurrent || !(pickup && dropoff && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
-                      {isLoading ? 'Submitting…' : 'Request Ride'}
-                    </button>
-                  </div>
-                </div>
-
-                {pickup && dropoff && (
-                  <div className="form-row" style={{ marginBottom: '0.75rem', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(34,197,94,0.08)', color: '#15803d', borderRadius: 'var(--radius-full)' }}>
-                      Pickup: {pickup.lat.toFixed(4)}, {pickup.lng.toFixed(4)}
-                    </span>
-                    <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(239,68,68,0.08)', color: '#dc2626', borderRadius: 'var(--radius-full)' }}>
-                      Dropoff: {dropoff.lat.toFixed(4)}, {dropoff.lng.toFixed(4)}
-                    </span>
-                  </div>
-                )}
-
-                <div className="map-wrapper" style={{ marginBottom: '1.5rem' }}>
-                  <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '320px', width: '100%' }}>
+            <>
+              <div className="map-hero" style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                <div className="map-wrapper" style={{ height: '380px', borderRadius: 'var(--radius-md)' }}>
+                  <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '100%', width: '100%' }}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
 
                     {previousRequests.map((r) => (
@@ -508,10 +462,54 @@ const PassengerView = () => {
                   </MapContainer>
                 </div>
 
-                {!pickup && <p className="map-hint" style={{ marginTop: '-1rem', marginBottom: '1rem' }}>Click the map to set pickup, then dropoff.</p>}
-                {pickup && !dropoff && <p className="map-hint" style={{ marginTop: '-1rem', marginBottom: '1rem' }}>Now click to set dropoff location.</p>}
-              </form>
+                <div className="floating-panel">
+                  {transactionStatus && (
+                    <div className={`status-banner ${transactionStatus.type}`} style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>{transactionStatus.message}</div>
+                  )}
+                  {hasConcurrent && (
+                    <div className="status-banner info" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
+                      Active request or trip. Complete or cancel it first.
+                    </div>
+                  )}
+                  {activeTripsError && <div className="status-banner error" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>{activeTripsError}</div>}
 
+                  <form onSubmit={handleSubmit}>
+                    <div className="form-row" style={{ flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-end' }}>
+                      <div style={{ flex: '0 0 auto' }}>
+                        <label className="label">Fare (CLT)</label>
+                        <input
+                          type="number"
+                          value={fare}
+                          onChange={(e) => setFare(e.target.value)}
+                          className="input-field"
+                          style={{ width: 90 }}
+                          min={0}
+                          placeholder="0"
+                          required
+                          disabled={hasConcurrent}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                        <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }} disabled={isLoading || hasConcurrent}>Reset</button>
+                        <button type="submit" disabled={hasConcurrent || !(pickup && dropoff && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                          {isLoading ? 'Submitting…' : 'Request Ride'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {pickup && dropoff && (
+                      <div className="form-row" style={{ marginTop: '0.5rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span className="location-chip pickup">Pickup: {pickup.lat.toFixed(3)}, {pickup.lng.toFixed(3)}</span>
+                        <span className="location-chip dropoff">Dropoff: {dropoff.lat.toFixed(3)}, {dropoff.lng.toFixed(3)}</span>
+                      </div>
+                    )}
+                    {!pickup && <p className="map-hint" style={{ margin: '0.5rem 0 0', fontSize: '0.8rem' }}>Tap map to set pickup → dropoff</p>}
+                    {pickup && !dropoff && <p className="map-hint" style={{ margin: '0.5rem 0 0', fontSize: '0.8rem' }}>Tap map for dropoff</p>}
+                  </form>
+                </div>
+              </div>
+
+              <div className="card">
               {activeTrips.length > 0 && (
                 <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
                   {activeTrips.map((trip) => (
@@ -540,9 +538,10 @@ const PassengerView = () => {
               )}
 
               {activeTrips.length === 0 && previousRequests.length === 0 && !activeTripsLoading && !activeTripsError && (
-                <EmptyState message="Click the map to set pickup and dropoff, enter fare, then Request Ride. Your request will appear above and below." />
+                <EmptyState message="Set your route on the map above, enter the fare, and tap Request Ride. Your request will appear here and on the map." />
               )}
-            </div>
+              </div>
+            </>
           )}
         </Section>
       )}

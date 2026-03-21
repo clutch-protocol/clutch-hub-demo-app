@@ -1,5 +1,5 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Build stage - use Debian slim (glibc) to avoid Rollup optional-deps issues on Alpine (musl)
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -13,6 +13,8 @@ RUN npm config set fetch-retries 5 && \
 COPY . .
 ARG VITE_API_URL=http://localhost:3000
 ENV VITE_API_URL=$VITE_API_URL
+# Increase Node memory for Vite/Rollup build (helps multi-platform builds)
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # Serve stage

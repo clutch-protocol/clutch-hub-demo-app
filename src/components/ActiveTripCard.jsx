@@ -1,6 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import MapFitBounds from './MapFitBounds';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
 import TransactionHistory from './TransactionHistory';
@@ -161,8 +159,10 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
     }
   }, [cancelAction, remaining, trip.txHash]);
 
-  const pickup = [trip.pickupLocation.latitude, trip.pickupLocation.longitude];
-  const dropoff = [trip.dropoffLocation.latitude, trip.dropoffLocation.longitude];
+  const puLat = trip.pickupLocation.latitude;
+  const puLng = trip.pickupLocation.longitude;
+  const doLat = trip.dropoffLocation.latitude;
+  const doLng = trip.dropoffLocation.longitude;
 
   return (
     <div className="card active-trip-card">
@@ -203,18 +203,9 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
         </div>
       )}
 
-      <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
-        <MapContainer center={pickup} zoom={13} style={{ height: '180px', width: '100%' }}>
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
-          />
-          <MapFitBounds positions={[pickup, dropoff]} />
-          <Marker position={pickup}><Popup>Pickup</Popup></Marker>
-          <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>
-          <Polyline positions={[pickup, dropoff]} color="var(--accent)" weight={3} opacity={0.8} />
-        </MapContainer>
-      </div>
+      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0 0 0.875rem 0', lineHeight: 1.5 }}>
+        Route: pickup {puLat.toFixed(4)}, {puLng.toFixed(4)} → dropoff {doLat.toFixed(4)}, {doLng.toFixed(4)}
+      </p>
 
       <div className="trip-details-grid">
         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>

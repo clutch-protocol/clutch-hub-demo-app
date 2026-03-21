@@ -194,6 +194,8 @@ const PassengerView = () => {
   const [completedTripsError, setCompletedTripsError] = useState(null);
   const [passengerTab, setPassengerTab] = useState('new');
 
+  const hasConcurrent = activeTrips.length > 0 || previousRequests.length > 0;
+
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
 
   useEffect(() => {
@@ -392,7 +394,21 @@ const PassengerView = () => {
             <div className={`status-banner ${transactionStatus.type}`}>{transactionStatus.message}</div>
           )}
 
-          <Section title="Request a ride" icon="📍" description="Click the map to set pickup and dropoff, then submit.">
+          {hasConcurrent && userProfile.publicKey && (
+            <div className="status-banner info" style={{ marginBottom: '1rem' }}>
+              You have an active request or trip. Complete or cancel it before requesting a new ride.
+              <button
+                type="button"
+                className="btn-ghost"
+                style={{ marginLeft: '0.5rem', fontSize: '0.8rem' }}
+                onClick={() => setPassengerTab('rides')}
+              >
+                View my ride
+              </button>
+            </div>
+          )}
+
+          <Section title="Request a ride" icon="📍" description="Click the map to set pickup and dropoff, then submit. One trip at a time.">
             <div className="card">
               <form onSubmit={handleSubmit}>
                 <div className="form-row" style={{ marginBottom: '1rem' }}>
@@ -407,11 +423,12 @@ const PassengerView = () => {
                       min={0}
                       placeholder="Enter amount"
                       required
+                      disabled={hasConcurrent}
                     />
                   </div>
                   <div style={{ flex: 1, display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                    <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }} disabled={isLoading}>Reset</button>
-                    <button type="submit" disabled={!(pickup && dropoff && userProfile.publicKey && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                    <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }} disabled={isLoading || hasConcurrent}>Reset</button>
+                    <button type="submit" disabled={hasConcurrent || !(pickup && dropoff && userProfile.publicKey && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
                       {isLoading ? 'Submitting…' : 'Request Ride'}
                     </button>
                   </div>
@@ -432,7 +449,7 @@ const PassengerView = () => {
                   <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '320px', width: '100%' }}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
                     {pickup && dropoff && <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />}
-                    <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={setPickup} setDropoff={setDropoff} />
+                    <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={hasConcurrent ? () => {} : setPickup} setDropoff={hasConcurrent ? () => {} : setDropoff} />
                     {pickup && <Marker position={pickup}><Popup>Pickup</Popup></Marker>}
                     {dropoff && <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>}
                     {pickup && dropoff && <Polyline positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} color="var(--accent)" weight={3} opacity={0.8} />}

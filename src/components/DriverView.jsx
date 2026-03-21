@@ -33,6 +33,7 @@ const RideRequestCard = ({
   handleFareChange,
   handleAcceptOffer,
   acceptingTxHash,
+  disabled,
 }) => {
   const [offers, setOffers] = useState([]);
   const [loadingOffers, setLoadingOffers] = useState(false);
@@ -126,17 +127,17 @@ const RideRequestCard = ({
             onChange={(e) => handleFareChange(req.txHash, e.target.value)}
             className="input-field"
             style={{ width: 100, padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
-            disabled={acceptingTxHash === req.txHash}
+            disabled={disabled || acceptingTxHash === req.txHash}
           />
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>CLT</span>
           <button
             type="button"
             className="btn-primary"
             style={{ marginLeft: 'auto', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
-            disabled={!!acceptingTxHash || !userProfile.publicKey}
+            disabled={disabled || !!acceptingTxHash || !userProfile.publicKey}
             onClick={() => handleAcceptOffer(req)}
           >
-            {acceptingTxHash === req.txHash ? 'Submitting...' : userProfile.publicKey ? 'Make Offer' : 'Connect wallet'}
+            {acceptingTxHash === req.txHash ? 'Submitting...' : disabled ? 'Finish trip first' : userProfile.publicKey ? 'Make Offer' : 'Connect wallet'}
           </button>
         </div>
       </div>
@@ -160,6 +161,8 @@ const DriverView = () => {
   const [completedTripsLoading, setCompletedTripsLoading] = useState(false);
   const [completedTripsError, setCompletedTripsError] = useState(null);
   const [driverTab, setDriverTab] = useState('find');
+
+  const hasActiveTrip = activeTrips.length > 0;
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
 
@@ -345,10 +348,24 @@ const DriverView = () => {
       </div>
 
       {driverTab === 'find' && (
+        <>
+          {hasActiveTrip && userProfile.publicKey && (
+            <div className="status-banner info" style={{ marginBottom: '1rem' }}>
+              You have an active trip. Complete it before accepting new ride requests.
+              <button
+                type="button"
+                className="btn-ghost"
+                style={{ marginLeft: '0.5rem', fontSize: '0.8rem' }}
+                onClick={() => setDriverTab('trips')}
+              >
+                View my trip
+              </button>
+            </div>
+          )}
         <Section
           title="Available rides"
           icon="📍"
-          description="Ride requests from passengers. Make an offer with your fare to get matched."
+          description="Ride requests from passengers. One trip at a time—complete your current trip before making new offers."
           action={
             <button type="button" className="btn-ghost" onClick={fetchRideRequests} disabled={isLoadingRides} style={{ fontSize: '0.75rem' }}>
               {isLoadingRides ? '...' : 'Refresh'}
@@ -371,9 +388,11 @@ const DriverView = () => {
               handleFareChange={handleFareChange}
               handleAcceptOffer={handleAcceptOffer}
               acceptingTxHash={acceptingTxHash}
+              disabled={hasActiveTrip}
             />
           ))}
         </Section>
+        </>
       )}
 
       {driverTab === 'trips' && (

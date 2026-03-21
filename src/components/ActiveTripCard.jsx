@@ -36,7 +36,7 @@ function CopyableAddress({ address }) {
   );
 }
 
-const ActiveTripCard = ({ trip, passengerPayment }) => {
+const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
   const farePaid = trip.farePaid ?? trip.fare_paid ?? 0;
   const totalFare = trip.fare;
   const remaining = Math.max(0, totalFare - farePaid);
@@ -44,11 +44,19 @@ const ActiveTripCard = ({ trip, passengerPayment }) => {
   const [payAmount, setPayAmount] = useState('');
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
 
   const showPayUi =
     passengerPayment?.userProfile?.publicKey &&
     normAddr(passengerPayment.userProfile.publicKey) === normAddr(trip.passengerAddress) &&
     remaining > 0;
+
+  const canCancel =
+    cancelAction?.userProfile?.publicKey &&
+    remaining > 0 &&
+    (normAddr(cancelAction.userProfile.publicKey) === normAddr(trip.passengerAddress) ||
+      normAddr(cancelAction.userProfile.publicKey) === normAddr(trip.driverAddress));
 
   const handlePay = useCallback(async () => {
     if (!passengerPayment?.userProfile?.publicKey) return;
@@ -109,6 +117,49 @@ const ActiveTripCard = ({ trip, passengerPayment }) => {
     const v = Math.max(1, Math.floor(remaining * fraction));
     setPayAmount(String(Math.min(v, remaining)));
   };
+
+  const handleCancel = useCallback(async () => {
+    if (!cancelAction?.userProfile?.publicKey || remaining <= 0) return;
+    if (!window.confirm('Cancel this ride? Unpaid fare will be refunded to the passenger.')) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const { publicKey, privateKey } = cancelAction.userProfile;
+      const sdk = new ClutchHubSdk(API_URL, publicKey);
+      const unsignedTx = await sdk.createUnsignedRideCancel({
+        rideAcceptanceTxHash: trip.txHash,
+      });
+      let pk = privateKey;
+      if (!pk) {
+        pk = window.prompt('Enter your private key to sign the cancellation:');
+        if (!pk) {
+          setCancelError('Signing cancelled.');
+          setCancelling(false);
+          return;
+        }
+      }
+      const signature = await sdk.signTransaction(unsignedTx, pk);
+      await sdk.submitTransaction(signature.rawTransaction);
+      TransactionHistory.addTransaction(publicKey, {
+        type: 'Ride Cancel',
+        timestamp: Date.now(),
+        status: 'success',
+        txHash: signature.txHash || '',
+      });
+      cancelAction.onSuccess?.();
+    } catch (err) {
+      console.error(err);
+      setCancelError(err.message || 'Cancel failed');
+      TransactionHistory.addTransaction(cancelAction.userProfile.publicKey, {
+        type: 'Ride Cancel',
+        timestamp: Date.now(),
+        status: 'failed',
+        error: err.message,
+      });
+    } finally {
+      setCancelling(false);
+    }
+  }, [cancelAction, remaining, trip.txHash]);
 
   const pickup = [trip.pickupLocation.latitude, trip.pickupLocation.longitude];
   const dropoff = [trip.dropoffLocation.latitude, trip.dropoffLocation.longitude];
@@ -220,6 +271,21 @@ const ActiveTripCard = ({ trip, passengerPayment }) => {
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.75rem 0 0 0' }}>
           {farePaid > 0 ? `Passenger has paid ${farePaid} / ${totalFare} CLT.` : 'Awaiting passenger payment.'}
         </p>
+      )}
+
+      {canCancel && (
+        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+          <button
+            type="button"
+            className="btn-secondary"
+            style={{ fontSize: '0.8rem', color: 'var(--error)' }}
+            disabled={cancelling}
+            onClick={handleCancel}
+          >
+            {cancelling ? 'Cancelling…' : 'Cancel ride'}
+          </button>
+          {cancelError && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem', marginTop: '0.5rem' }}>{cancelError}</div>}
+        </div>
       )}
     </div>
   );

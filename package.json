@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "cd ../clutch-hub-sdk-js && npm run build",
     "dev": "vite",
     "build": "vite build",
     "build:prod": "npm run install:prod && vite build",
@@ -16,7 +17,7 @@
   "dependencies": {
     "@noble/hashes": "^1.8.0",
     "@noble/secp256k1": "^2.2.3",
-    "clutch-hub-sdk-js": "^1.13.0",
+    "clutch-hub-sdk-js": "file:../clutch-hub-sdk-js",
     "leaflet": "^1.9.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

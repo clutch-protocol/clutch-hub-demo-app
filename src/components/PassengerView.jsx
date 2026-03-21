@@ -36,12 +36,14 @@ const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
   return null;
 };
 
-const RideRequestCard = ({ req, userProfile, onAcceptSuccess }) => {
+const RideRequestCard = ({ req, userProfile, onAcceptSuccess, onCancelSuccess }) => {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [acceptingOfferTxHash, setAcceptingOfferTxHash] = useState(null);
   const [acceptError, setAcceptError] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
 
   const fetchOffers = useCallback(async () => {
     if (!userProfile.publicKey || !req.txHash) return;
@@ -119,6 +121,47 @@ const RideRequestCard = ({ req, userProfile, onAcceptSuccess }) => {
     }
   }, [userProfile, onAcceptSuccess]);
 
+  const handleCancelRequest = useCallback(async () => {
+    if (!userProfile.publicKey || !req.txHash) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const unsignedTx = await sdk.createUnsignedRideRequestCancel({ rideRequestTxHash: req.txHash });
+      let privateKey = userProfile.privateKey;
+      if (!privateKey) {
+        privateKey = window.prompt('Enter your private key to sign the cancellation:');
+        if (!privateKey) {
+          setCancelError('Signing cancelled.');
+          setCancelling(false);
+          return;
+        }
+      }
+      const signature = await sdk.signTransaction(unsignedTx, privateKey);
+      await sdk.submitTransaction(signature.rawTransaction);
+      TransactionHistory.addTransaction(userProfile.publicKey, {
+        type: 'Ride Request Cancel',
+        timestamp: Date.now(),
+        rideRequestTxHash: req.txHash,
+        status: 'success',
+        txHash: signature.txHash || '',
+      });
+      onCancelSuccess?.();
+    } catch (err) {
+      console.error('Cancel request failed:', err);
+      setCancelError(err.message || 'Failed to cancel request');
+      TransactionHistory.addTransaction(userProfile.publicKey, {
+        type: 'Ride Request Cancel',
+        timestamp: Date.now(),
+        rideRequestTxHash: req.txHash,
+        status: 'failed',
+        error: err.message,
+      });
+    } finally {
+      setCancelling(false);
+    }
+  }, [userProfile, req.txHash, onCancelSuccess]);
+
   const pickup = [req.pickup.lat, req.pickup.lng];
   const dropoff = [req.dropoff.lat, req.dropoff.lng];
 
@@ -140,14 +183,26 @@ const RideRequestCard = ({ req, userProfile, onAcceptSuccess }) => {
       </div>
 
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem' }}>
-        <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.625rem' }}>
+        <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.625rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Offers ({offers.length})</span>
-          <button type="button" className="btn-ghost" onClick={fetchOffers} disabled={loading} style={{ fontSize: '0.75rem' }}>
-            {loading ? '...' : 'Refresh'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button type="button" className="btn-ghost" onClick={fetchOffers} disabled={loading} style={{ fontSize: '0.75rem' }}>
+              {loading ? '...' : 'Refresh'}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{ fontSize: '0.75rem' }}
+              onClick={handleCancelRequest}
+              disabled={cancelling}
+            >
+              {cancelling ? 'Cancelling...' : 'Cancel request'}
+            </button>
+          </div>
         </div>
 
         {error && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem', marginBottom: '0.5rem' }}>{error}</div>}
+        {cancelError && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem', marginBottom: '0.5rem' }}>{cancelError}</div>}
         {acceptError && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem', marginBottom: '0.5rem' }}>{acceptError}</div>}
 
         {offers.length === 0 && !loading && !error && (
@@ -487,6 +542,10 @@ const PassengerView = () => {
                         userProfile,
                         onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1),
                       }}
+                      cancelAction={{
+                        userProfile,
+                        onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1),
+                      }}
                     />
                   ))}
                 </div>
@@ -504,6 +563,7 @@ const PassengerView = () => {
                         setRefreshBalanceCounter((prev) => prev + 1);
                         setPassengerTab('rides');
                       }}
+                      onCancelSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
                     />
                   ))}
                 </div>

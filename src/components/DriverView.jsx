@@ -408,7 +408,16 @@ const DriverView = () => {
               {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
 
               {activeTrips.length > 0 ? (
-                activeTrips.map((trip) => <ActiveTripCard key={trip.txHash} trip={trip} />)
+                activeTrips.map((trip) => (
+                  <ActiveTripCard
+                    key={trip.txHash}
+                    trip={trip}
+                    cancelAction={{
+                      userProfile,
+                      onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1),
+                    }}
+                  />
+                ))
               ) : !activeTripsLoading && !activeTripsError ? (
                 <EmptyState message="No active trips. When a passenger accepts your offer, it appears here. Finished rides are under the Completed tab." />
               ) : null}

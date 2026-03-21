@@ -162,27 +162,14 @@ const RideRequestCard = ({ req, userProfile, onAcceptSuccess, onCancelSuccess })
     }
   }, [userProfile, req.txHash, onCancelSuccess]);
 
-  const pickup = [req.pickup.lat, req.pickup.lng];
-  const dropoff = [req.dropoff.lat, req.dropoff.lng];
-
   return (
-    <div className="card">
-      <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+    <div className="card" style={{ marginBottom: '1rem' }}>
+      <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.75rem' }}>
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(req.timestamp).toLocaleString()}</span>
         <span className="fare-badge">{req.fare} CLT</span>
       </div>
 
-      <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
-        <MapContainer center={pickup} zoom={13} style={{ height: '180px', width: '100%' }}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
-          <MapFitBounds positions={[pickup, dropoff]} />
-          <Marker position={pickup}><Popup>Pickup</Popup></Marker>
-          <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>
-          <Polyline positions={[pickup, dropoff]} color="var(--accent)" weight={3} opacity={0.8} />
-        </MapContainer>
-      </div>
-
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem' }}>
+      <div>
         <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.625rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Offers ({offers.length})</span>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -247,7 +234,7 @@ const PassengerView = () => {
   const [completedTrips, setCompletedTrips] = useState([]);
   const [completedTripsLoading, setCompletedTripsLoading] = useState(false);
   const [completedTripsError, setCompletedTripsError] = useState(null);
-  const [passengerTab, setPassengerTab] = useState('new');
+  const [passengerTab, setPassengerTab] = useState('rides');
 
   const hasConcurrent = activeTrips.length > 0 || previousRequests.length > 0;
 
@@ -416,13 +403,6 @@ const PassengerView = () => {
       <div className="explorer-tabs">
         <button
           type="button"
-          className={`explorer-tab ${passengerTab === 'new' ? 'active' : ''}`}
-          onClick={() => setPassengerTab('new')}
-        >
-          New Request
-        </button>
-        <button
-          type="button"
           className={`explorer-tab ${passengerTab === 'rides' ? 'active' : ''}`}
           onClick={() => setPassengerTab('rides')}
         >
@@ -443,30 +423,30 @@ const PassengerView = () => {
         </button>
       </div>
 
-      {passengerTab === 'new' && (
-        <>
-          {transactionStatus && (
-            <div className={`status-banner ${transactionStatus.type}`}>{transactionStatus.message}</div>
-          )}
-
-          {hasConcurrent && userProfile.publicKey && (
-            <div className="status-banner info" style={{ marginBottom: '1rem' }}>
-              You have an active request or trip. Complete or cancel it before requesting a new ride.
-              <button
-                type="button"
-                className="btn-ghost"
-                style={{ marginLeft: '0.5rem', fontSize: '0.8rem' }}
-                onClick={() => setPassengerTab('rides')}
-              >
-                View my ride
-              </button>
-            </div>
-          )}
-
-          <Section title="Request a ride" icon="📍" description="Click the map to set pickup and dropoff, then submit. One trip at a time.">
+      {passengerTab === 'rides' && (
+        <Section
+          title="My rides"
+          icon="🚗"
+          description={userProfile.publicKey ? 'Click the map to set pickup and dropoff, submit your request, then manage offers and trips below.' : 'Connect your wallet to request rides.'}
+        >
+          {!userProfile.publicKey ? (
+            <EmptyState message="Connect your wallet above to request a ride." />
+          ) : (
             <div className="card">
+              {transactionStatus && (
+                <div className={`status-banner ${transactionStatus.type}`} style={{ marginBottom: '1rem' }}>{transactionStatus.message}</div>
+              )}
+
+              {hasConcurrent && (
+                <div className="status-banner info" style={{ marginBottom: '1rem' }}>
+                  You have an active request or trip. Complete or cancel it before requesting a new ride.
+                </div>
+              )}
+
+              {activeTripsError && <div className="status-banner error" style={{ marginBottom: '1rem' }}>{activeTripsError}</div>}
+
               <form onSubmit={handleSubmit}>
-                <div className="form-row" style={{ marginBottom: '1rem' }}>
+                <div className="form-row" style={{ marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div style={{ flex: '0 0 auto' }}>
                     <label className="label">Fare (CLT)</label>
                     <input
@@ -474,23 +454,23 @@ const PassengerView = () => {
                       value={fare}
                       onChange={(e) => setFare(e.target.value)}
                       className="input-field"
-                      style={{ width: 120 }}
+                      style={{ width: 100 }}
                       min={0}
-                      placeholder="Enter amount"
+                      placeholder="Amount"
                       required
                       disabled={hasConcurrent}
                     />
                   </div>
-                  <div style={{ flex: 1, display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flex: 1, minWidth: 0 }}>
                     <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }} disabled={isLoading || hasConcurrent}>Reset</button>
-                    <button type="submit" disabled={hasConcurrent || !(pickup && dropoff && userProfile.publicKey && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                    <button type="submit" disabled={hasConcurrent || !(pickup && dropoff && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
                       {isLoading ? 'Submitting…' : 'Request Ride'}
                     </button>
                   </div>
                 </div>
 
                 {pickup && dropoff && (
-                  <div className="form-row" style={{ marginBottom: '0.75rem', gap: '0.5rem' }}>
+                  <div className="form-row" style={{ marginBottom: '0.75rem', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(34,197,94,0.08)', color: '#15803d', borderRadius: 'var(--radius-full)' }}>
                       Pickup: {pickup.lat.toFixed(4)}, {pickup.lng.toFixed(4)}
                     </span>
@@ -500,69 +480,59 @@ const PassengerView = () => {
                   </div>
                 )}
 
-                <div className="map-wrapper">
+                <div className="map-wrapper" style={{ marginBottom: '1.5rem' }}>
                   <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '320px', width: '100%' }}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+
+                    {previousRequests.map((r) => (
+                      <React.Fragment key={r.txHash}>
+                        <Marker position={[r.pickup.lat, r.pickup.lng]}><Popup>Awaiting offers</Popup></Marker>
+                        <Marker position={[r.dropoff.lat, r.dropoff.lng]}><Popup>Awaiting offers</Popup></Marker>
+                        <Polyline positions={[[r.pickup.lat, r.pickup.lng], [r.dropoff.lat, r.dropoff.lng]]} color="#94a3b8" weight={3} opacity={0.75} />
+                      </React.Fragment>
+                    ))}
+
+                    {activeTrips.map((t) => (
+                      <React.Fragment key={t.txHash}>
+                        <Marker position={[t.pickupLocation.latitude, t.pickupLocation.longitude]}><Popup>Active trip</Popup></Marker>
+                        <Marker position={[t.dropoffLocation.latitude, t.dropoffLocation.longitude]}><Popup>Active trip</Popup></Marker>
+                        <Polyline positions={[[t.pickupLocation.latitude, t.pickupLocation.longitude], [t.dropoffLocation.latitude, t.dropoffLocation.longitude]]} color="var(--accent)" weight={4} opacity={0.9} />
+                      </React.Fragment>
+                    ))}
+
                     {pickup && dropoff && <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />}
                     <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={hasConcurrent ? () => {} : setPickup} setDropoff={hasConcurrent ? () => {} : setDropoff} />
                     {pickup && <Marker position={pickup}><Popup>Pickup</Popup></Marker>}
                     {dropoff && <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>}
-                    {pickup && dropoff && <Polyline positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} color="var(--accent)" weight={3} opacity={0.8} />}
+                    {pickup && dropoff && <Polyline positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} color="var(--accent)" weight={3} opacity={0.8}></Polyline>}
                   </MapContainer>
                 </div>
 
-                {!pickup && <p className="map-hint" style={{ marginTop: '0.5rem' }}>Click the map to set pickup location</p>}
-                {pickup && !dropoff && <p className="map-hint" style={{ marginTop: '0.5rem' }}>Now click to set dropoff location</p>}
+                {!pickup && <p className="map-hint" style={{ marginTop: '-1rem', marginBottom: '1rem' }}>Click the map to set pickup, then dropoff.</p>}
+                {pickup && !dropoff && <p className="map-hint" style={{ marginTop: '-1rem', marginBottom: '1rem' }}>Now click to set dropoff location.</p>}
               </form>
-            </div>
-          </Section>
-        </>
-      )}
-
-      {passengerTab === 'rides' && (
-        <Section
-          title="My rides"
-          icon="🚗"
-          description={userProfile.publicKey ? 'Active trips and requests waiting for driver offers.' : 'Connect your wallet to see your rides.'}
-        >
-          {!userProfile.publicKey ? (
-            <EmptyState message="Connect your wallet above to view active trips and pending requests." />
-          ) : (
-            <>
-              {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
 
               {activeTrips.length > 0 && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <p className="card-title">Active trips</p>
+                <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
                   {activeTrips.map((trip) => (
                     <ActiveTripCard
                       key={trip.txHash}
                       trip={trip}
-                      passengerPayment={{
-                        userProfile,
-                        onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1),
-                      }}
-                      cancelAction={{
-                        userProfile,
-                        onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1),
-                      }}
+                      passengerPayment={{ userProfile, onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1) }}
+                      cancelAction={{ userProfile, onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1) }}
                     />
                   ))}
                 </div>
               )}
 
               {previousRequests.length > 0 && (
-                <div>
-                  <p className="card-title">Requests awaiting offers</p>
+                <div style={{ marginTop: activeTrips.length > 0 ? '1rem' : '1.5rem', paddingTop: activeTrips.length > 0 ? '1rem' : 0, borderTop: activeTrips.length > 0 ? '1px solid var(--border)' : 'none' }}>
                   {previousRequests.map((req, idx) => (
                     <RideRequestCard
                       key={req.txHash || idx}
                       req={req}
                       userProfile={userProfile}
-                      onAcceptSuccess={() => {
-                        setRefreshBalanceCounter((prev) => prev + 1);
-                        setPassengerTab('rides');
-                      }}
+                      onAcceptSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
                       onCancelSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
                     />
                   ))}
@@ -570,9 +540,9 @@ const PassengerView = () => {
               )}
 
               {activeTrips.length === 0 && previousRequests.length === 0 && !activeTripsLoading && !activeTripsError && (
-                <EmptyState message="No active trips or pending requests yet. Create a new request in the New Request tab, or open Completed for past rides." />
+                <EmptyState message="Click the map to set pickup and dropoff, enter fare, then Request Ride. Your request will appear above and below." />
               )}
-            </>
+            </div>
           )}
         </Section>
       )}

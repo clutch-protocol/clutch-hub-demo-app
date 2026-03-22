@@ -312,7 +312,13 @@ const DriverView = () => {
 
   return (
     <div>
-      <WalletBar role="driver" userProfile={userProfile} onProfileUpdate={handleProfileUpdate} refreshTrigger={refreshBalanceCounter} />
+      <WalletBar
+        role="driver"
+        userProfile={userProfile}
+        onProfileUpdate={handleProfileUpdate}
+        refreshTrigger={refreshBalanceCounter}
+        onFaucetSuccess={() => setRefreshBalanceCounter((c) => c + 1)}
+      />
 
       <div className="explorer-tabs">
         <button

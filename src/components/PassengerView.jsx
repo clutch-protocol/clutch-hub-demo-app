@@ -398,7 +398,13 @@ const PassengerView = () => {
 
   return (
     <div>
-      <WalletBar role="passenger" userProfile={userProfile} onProfileUpdate={handleProfileUpdate} refreshTrigger={refreshBalanceCounter} />
+      <WalletBar
+        role="passenger"
+        userProfile={userProfile}
+        onProfileUpdate={handleProfileUpdate}
+        refreshTrigger={refreshBalanceCounter}
+        onFaucetSuccess={() => setRefreshBalanceCounter((c) => c + 1)}
+      />
 
       <div className="explorer-tabs">
         <button

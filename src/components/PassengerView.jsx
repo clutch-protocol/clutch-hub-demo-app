@@ -406,7 +406,7 @@ const PassengerView = () => {
           className={`explorer-tab ${passengerTab === 'rides' ? 'active' : ''}`}
           onClick={() => setPassengerTab('rides')}
         >
-          My Rides
+          My Ride
           {userProfile.publicKey && (activeTrips.length + previousRequests.length) > 0 && (
             <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length + previousRequests.length}</span>
           )}
@@ -425,7 +425,7 @@ const PassengerView = () => {
 
       {passengerTab === 'rides' && (
         <Section
-          title="My rides"
+          title="My ride"
           icon="🚗"
           description={userProfile.publicKey ? 'Tap the map to set pickup → dropoff, enter fare, and request. Your ride appears on the map and in the cards below.' : 'Connect your wallet to request rides.'}
         >

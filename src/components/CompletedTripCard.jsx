@@ -27,25 +27,36 @@ function CopyableAddress({ address }) {
   );
 }
 
-/** Read-only card for trips where the full fare has been paid. */
+/** Read-only card for recent ride history (completed or cancelled). */
 const CompletedTripCard = ({ trip }) => {
-  const farePaid = trip.farePaid ?? trip.fare_paid ?? trip.fare;
+  const farePaid = trip.farePaid ?? trip.fare_paid ?? 0;
   const totalFare = trip.fare;
+  const rawStatus = (trip.tripStatus ?? trip.trip_status ?? 'completed').toLowerCase();
+  const isCancelled = rawStatus === 'cancelled';
 
   const pickup = [trip.pickupLocation.latitude, trip.pickupLocation.longitude];
   const dropoff = [trip.dropoffLocation.latitude, trip.dropoffLocation.longitude];
+
+  const statusLabel = isCancelled ? 'Cancelled' : 'Completed';
+  const statusClass = isCancelled ? 'status-dot--warn' : 'status-dot--done';
+  const lineColor = isCancelled ? 'var(--warning, #f59e0b)' : 'var(--success)';
+  const progressPct =
+    totalFare > 0 ? Math.min(100, Math.round((farePaid / totalFare) * 100)) : isCancelled ? 0 : 100;
 
   return (
     <div className="card active-trip-card completed-trip-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <span className="trip-status">
-          <span className="status-dot status-dot--done" />
-          Completed
+          <span className={`status-dot ${statusClass}`} />
+          {statusLabel}
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-          <span className="fare-badge">{totalFare} CLT paid</span>
+          <span className="fare-badge">
+            {isCancelled ? `${totalFare} CLT offer` : `${totalFare} CLT paid`}
+          </span>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             {farePaid} CLT settled
+            {isCancelled && ' · trip cancelled'}
           </span>
         </div>
       </div>
@@ -62,8 +73,8 @@ const CompletedTripCard = ({ trip }) => {
         <div
           style={{
             height: '100%',
-            width: '100%',
-            background: 'var(--success)',
+            width: `${progressPct}%`,
+            background: lineColor,
             transition: 'width 0.3s ease',
           }}
         />
@@ -78,7 +89,7 @@ const CompletedTripCard = ({ trip }) => {
           <MapFitBounds positions={[pickup, dropoff]} />
           <Marker position={pickup}><Popup>Pickup</Popup></Marker>
           <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>
-          <Polyline positions={[pickup, dropoff]} color="var(--success)" weight={3} opacity={0.75} />
+          <Polyline positions={[pickup, dropoff]} color={lineColor} weight={3} opacity={0.75} />
         </MapContainer>
       </div>
 

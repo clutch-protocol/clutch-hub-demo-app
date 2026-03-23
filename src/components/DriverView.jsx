@@ -12,7 +12,7 @@ import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
 import {
   subscribeActiveTripsCompat,
-  subscribeCompletedTripsCompat,
+  subscribeRecentTripsCompat,
   subscribeRideOffersCompat,
   subscribeRideRequestsCompat,
 } from '../sdkRealtime';
@@ -157,9 +157,9 @@ const DriverView = () => {
   const [activeTrips, setActiveTrips] = useState([]);
   const [activeTripsLoading, setActiveTripsLoading] = useState(false);
   const [activeTripsError, setActiveTripsError] = useState(null);
-  const [completedTrips, setCompletedTrips] = useState([]);
-  const [completedTripsLoading, setCompletedTripsLoading] = useState(false);
-  const [completedTripsError, setCompletedTripsError] = useState(null);
+  const [recentTrips, setRecentTrips] = useState([]);
+  const [recentTripsLoading, setRecentTripsLoading] = useState(false);
+  const [recentTripsError, setRecentTripsError] = useState(null);
   const [driverTab, setDriverTab] = useState('find');
 
   const hasActiveTrip = activeTrips.length > 0;
@@ -196,26 +196,26 @@ const DriverView = () => {
 
   useEffect(() => {
     if (!userProfile.publicKey) {
-      setCompletedTrips([]);
-      setCompletedTripsLoading(false);
+      setRecentTrips([]);
+      setRecentTripsLoading(false);
       return undefined;
     }
-    setCompletedTripsLoading(true);
-    setCompletedTripsError(null);
+    setRecentTripsLoading(true);
+    setRecentTripsError(null);
     const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-    const dispose = subscribeCompletedTripsCompat(
+    const dispose = subscribeRecentTripsCompat(
       sdk,
       { driverAddress: userProfile.publicKey },
       {
         onData: (trips) => {
-          setCompletedTrips(trips);
-          setCompletedTripsLoading(false);
+          setRecentTrips(trips);
+          setRecentTripsLoading(false);
         },
         onError: (err) => {
-          console.error('Completed trips subscription error:', err);
-          setCompletedTripsError(err.message || 'Failed to load completed trips');
-          setCompletedTrips([]);
-          setCompletedTripsLoading(false);
+          console.error('Recent trips subscription error:', err);
+          setRecentTripsError(err.message || 'Failed to load recent trips');
+          setRecentTrips([]);
+          setRecentTripsLoading(false);
         },
       }
     );
@@ -343,12 +343,12 @@ const DriverView = () => {
         </button>
         <button
           type="button"
-          className={`explorer-tab ${driverTab === 'completed' ? 'active' : ''}`}
-          onClick={() => setDriverTab('completed')}
+          className={`explorer-tab ${driverTab === 'recent' ? 'active' : ''}`}
+          onClick={() => setDriverTab('recent')}
         >
-          Completed
-          {userProfile.publicKey && completedTrips.length > 0 && (
-            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{completedTrips.length}</span>
+          Recent rides
+          {userProfile.publicKey && recentTrips.length > 0 && (
+            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{recentTrips.length}</span>
           )}
         </button>
       </div>
@@ -425,31 +425,31 @@ const DriverView = () => {
                   />
                 ))
               ) : !activeTripsLoading && !activeTripsError ? (
-                <EmptyState message="No active trips. When a passenger accepts your offer, it appears here. Finished rides are under the Completed tab." />
+                <EmptyState message="No active trips. When a passenger accepts your offer, it appears here. Finished rides are under Recent rides." />
               ) : null}
             </>
           )}
         </Section>
       )}
 
-      {driverTab === 'completed' && (
+      {driverTab === 'recent' && (
         <Section
-          title="Completed trips"
+          title="Recent rides"
           icon="✅"
-          description={userProfile.publicKey ? 'Rides where the passenger paid the full fare.' : 'Connect your wallet to see your completed rides.'}
+          description={userProfile.publicKey ? 'Finished rides: fully paid or cancelled (not in progress).' : 'Connect your wallet to see your ride history.'}
         >
           {!userProfile.publicKey ? (
-            <EmptyState message="Connect your wallet above to view completed trips." />
+            <EmptyState message="Connect your wallet above to view recent rides." />
           ) : (
             <>
-              {completedTripsError && <div className="status-banner error">{completedTripsError}</div>}
+              {recentTripsError && <div className="status-banner error">{recentTripsError}</div>}
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
-                Passenger paid the full agreed fare.
+                Includes completed trips and cancelled rides. Active trips stay under My Trips.
               </p>
-              {completedTrips.length > 0 ? (
-                completedTrips.map((trip) => <CompletedTripCard key={trip.txHash} trip={trip} />)
-              ) : !completedTripsLoading && !completedTripsError ? (
-                <EmptyState message="No completed trips yet. After the passenger pays in full, the ride shows up here." />
+              {recentTrips.length > 0 ? (
+                recentTrips.map((trip) => <CompletedTripCard key={trip.txHash} trip={trip} />)
+              ) : !recentTripsLoading && !recentTripsError ? (
+                <EmptyState message="No recent rides yet. When you finish paying or cancel a trip, it will appear here." />
               ) : null}
             </>
           )}

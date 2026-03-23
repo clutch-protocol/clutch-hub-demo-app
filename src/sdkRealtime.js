@@ -92,3 +92,21 @@ export function subscribeCompletedTripsCompat(sdk, options, handlers) {
     handlers
   );
 }
+
+/** Recent rides: completed + cancelled (falls back to completed-only if SDK lacks `listRecentTrips`). */
+export function subscribeRecentTripsCompat(sdk, options, handlers) {
+  if (typeof sdk.subscribeRecentTrips === 'function') {
+    return sdk.subscribeRecentTrips(options, handlers);
+  }
+  if (typeof sdk.listRecentTrips === 'function') {
+    return pollLoop(
+      async () => {
+        const list = await sdk.listRecentTrips(options);
+        handlers.onData(list);
+      },
+      ACTIVE_TRIPS_POLL_MS,
+      handlers
+    );
+  }
+  return subscribeCompletedTripsCompat(sdk, options, handlers);
+}

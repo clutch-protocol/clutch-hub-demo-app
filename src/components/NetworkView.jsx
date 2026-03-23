@@ -13,7 +13,7 @@ import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
 import {
   subscribeActiveTripsCompat,
-  subscribeCompletedTripsCompat,
+  subscribeRecentTripsCompat,
   subscribeRideOffersCompat,
   subscribeRideRequestsCompat,
 } from '../sdkRealtime';
@@ -49,9 +49,9 @@ const NetworkView = () => {
   const [activeTrips, setActiveTrips] = useState([]);
   const [activeTripsLoading, setActiveTripsLoading] = useState(false);
   const [activeTripsError, setActiveTripsError] = useState(null);
-  const [completedTrips, setCompletedTrips] = useState([]);
-  const [completedTripsLoading, setCompletedTripsLoading] = useState(false);
-  const [completedTripsError, setCompletedTripsError] = useState(null);
+  const [recentTrips, setRecentTrips] = useState([]);
+  const [recentTripsLoading, setRecentTripsLoading] = useState(false);
+  const [recentTripsError, setRecentTripsError] = useState(null);
 
   useEffect(() => {
     const fetchHealth = async () => {
@@ -112,19 +112,19 @@ const NetworkView = () => {
   }, []);
 
   useEffect(() => {
-    setCompletedTripsLoading(true);
-    setCompletedTripsError(null);
+    setRecentTripsLoading(true);
+    setRecentTripsError(null);
     const sdk = new ClutchHubSdk(API_URL, '0x0');
-    const dispose = subscribeCompletedTripsCompat(sdk, undefined, {
+    const dispose = subscribeRecentTripsCompat(sdk, undefined, {
       onData: (trips) => {
-        setCompletedTrips(trips);
-        setCompletedTripsLoading(false);
+        setRecentTrips(trips);
+        setRecentTripsLoading(false);
       },
       onError: (err) => {
-        console.error('Completed trips subscription error:', err);
-        setCompletedTripsError(err.message || 'Failed to load completed trips');
-        setCompletedTrips([]);
-        setCompletedTripsLoading(false);
+        console.error('Recent trips subscription error:', err);
+        setRecentTripsError(err.message || 'Failed to load recent trips');
+        setRecentTrips([]);
+        setRecentTripsLoading(false);
       },
     });
     return () => dispose();
@@ -193,11 +193,11 @@ const NetworkView = () => {
         </button>
         <button
           type="button"
-          className={`metric-card metric-card--clickable ${activeTab === 'completed' ? 'metric-card--active' : ''}`}
-          onClick={() => setActiveTab('completed')}
+          className={`metric-card metric-card--clickable ${activeTab === 'recent' ? 'metric-card--active' : ''}`}
+          onClick={() => setActiveTab('recent')}
         >
-          <div className="metric-value">{completedTrips.length}</div>
-          <div className="metric-label">Completed</div>
+          <div className="metric-value">{recentTrips.length}</div>
+          <div className="metric-label">Recent rides</div>
         </button>
         <div className="metric-card">
           <div className="metric-value">{apiOk ? 'Online' : '--'}</div>
@@ -309,15 +309,15 @@ const NetworkView = () => {
         </>
       )}
 
-      {activeTab === 'completed' && (
+      {activeTab === 'recent' && (
         <>
-          {completedTripsError && <div className="status-banner error">{completedTripsError}</div>}
+          {recentTripsError && <div className="status-banner error">{recentTripsError}</div>}
 
-          {completedTrips.length === 0 && !completedTripsLoading && !completedTripsError && (
-            <EmptyState message="No completed trips on the network yet. Trips appear here after the passenger pays the full fare." />
+          {recentTrips.length === 0 && !recentTripsLoading && !recentTripsError && (
+            <EmptyState message="No recent rides on the network yet. Trips appear here when fully paid or cancelled." />
           )}
 
-          {completedTrips.map((trip) => (
+          {recentTrips.map((trip) => (
             <CompletedTripCard key={trip.txHash} trip={trip} />
           ))}
         </>

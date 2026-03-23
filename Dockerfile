@@ -5,6 +5,10 @@ FROM node:20-slim AS builder
 WORKDIR /build
 COPY clutch-hub-sdk-js ./clutch-hub-sdk-js
 
+# Build SDK first (prepare script needs tsc from devDependencies)
+WORKDIR /build/clutch-hub-sdk-js
+RUN npm ci && npm run build
+
 WORKDIR /build/clutch-hub-demo-app
 COPY clutch-hub-demo-app/package*.json ./
 RUN npm config set fetch-retries 5 && \

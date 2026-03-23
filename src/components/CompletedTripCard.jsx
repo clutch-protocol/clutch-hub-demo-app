@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
+import { MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
 
 function truncAddr(addr) {
   if (!addr || addr.length < 12) return addr || '';
@@ -62,19 +63,21 @@ const CompletedTripCard = ({ trip }) => {
       </div>
 
       <div
+        className="trip-progress-bar"
         style={{
           height: 6,
           borderRadius: 4,
-          background: 'var(--bg-surface)',
+          background: 'var(--surface-container-low)',
           marginBottom: '0.875rem',
           overflow: 'hidden',
         }}
       >
         <div
+          className="trip-progress-fill"
           style={{
             height: '100%',
             width: `${progressPct}%`,
-            background: lineColor,
+            background: isCancelled ? lineColor : 'linear-gradient(90deg, var(--primary-dim), var(--primary), var(--tertiary))',
             transition: 'width 0.3s ease',
           }}
         />
@@ -82,10 +85,7 @@ const CompletedTripCard = ({ trip }) => {
 
       <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
         <MapContainer center={pickup} zoom={13} style={{ height: '160px', width: '100%' }}>
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
-          />
+          <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
           <MapFitBounds positions={[pickup, dropoff]} />
           <Marker position={pickup}><Popup>Pickup</Popup></Marker>
           <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>

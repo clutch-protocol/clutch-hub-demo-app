@@ -10,7 +10,8 @@ import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL } from '../config';
+import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
+import Icon from './Icon';
 import {
   subscribeActiveTripsCompat,
   subscribeRecentTripsCompat,
@@ -28,12 +29,6 @@ function truncAddr(addr) {
   if (!addr || addr.length < 12) return addr || '';
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
-
-const GitHubIcon = () => (
-  <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-  </svg>
-);
 
 const NetworkView = () => {
   const [activeTab, setActiveTab] = useState('requests');
@@ -157,8 +152,18 @@ const NetworkView = () => {
   const apiOk = health?.status === 'healthy';
 
   return (
-    <div>
-      <div className="explorer-network-header" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
+    <div className="network-view">
+      <div className="explorer-network-header">
+        <h2 className="network-title">Network</h2>
+        <div className="explorer-network-header-right">
+          <span className={`api-status-pill hub-online-pill ${loading ? 'hub-online-pill--loading' : apiOk ? 'hub-online-pill--live' : 'hub-online-pill--error'}`}>
+            {loading ? <span className="status-dot" /> : apiOk ? <span className="status-dot status-dot--live" /> : <span className="status-dot status-dot--error" />}
+            {loading ? 'Checking...' : error ? 'API Offline' : apiOk ? 'Hub Online' : 'API Unknown'}
+          </span>
+          <Icon name="sensors" size={22} className="network-sensors-icon" />
+        </div>
+      </div>
+      <div className="explorer-tabs-scroll">
         <ExplorerTabs
           tabs={[
             { id: 'requests', label: 'Ride Requests', icon: '📍', count: rideRequests.length },
@@ -170,20 +175,6 @@ const NetworkView = () => {
           onTabChange={setActiveTab}
           variant="pill"
         />
-        <span className="api-status-pill" style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          fontSize: '0.78rem',
-          fontWeight: 600,
-          padding: '0.35rem 0.75rem',
-          borderRadius: 'var(--radius-full)',
-          background: loading ? 'var(--bg-surface)' : apiOk ? 'rgba(5, 150, 105, 0.12)' : 'rgba(220, 38, 38, 0.1)',
-          color: loading ? 'var(--text-muted)' : apiOk ? 'var(--success)' : 'var(--error)',
-        }}>
-          {loading ? <span className="status-dot" /> : apiOk ? <span className="status-dot status-dot--live" /> : <span className="status-dot status-dot--error" />}
-          {loading ? 'Checking...' : error ? 'API Offline' : apiOk ? 'Hub Online' : 'API Unknown'}
-        </span>
       </div>
 
       {activeTab === 'requests' && (
@@ -196,9 +187,10 @@ const NetworkView = () => {
 
           {rideRequests.length > 0 && (
             <>
-              <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
-                <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} style={{ height: '320px', width: '100%' }}>
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+              <div className="map-wrapper network-map-wrapper">
+                <div className="map-gradient-overlay" />
+                <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} style={{ height: '400px', width: '100%' }}>
+                  <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
                   <MapFitBounds
                     positions={
                       selectedTxHash && selectedRequest
@@ -250,22 +242,32 @@ const NetworkView = () => {
               </div>
 
               {selectedRequest && (
-                <div className="card">
+                <div className="glass-panel network-selected-overlay">
                   <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--on-surface-variant)' }}>
                       Offers ({offers.length})
                     </span>
                     <span className="fare-badge">{selectedRequest.fare} CLT</span>
                   </div>
                   {offersLoading ? (
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Loading...</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--on-surface-variant)', margin: 0 }}>Loading...</p>
                   ) : offers.length === 0 ? (
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No offers yet.</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--on-surface-variant)', margin: 0 }}>No offers yet.</p>
                   ) : (
                     offers.map((offer) => (
-                      <div key={offer.txHash} className="offer-row">
-                        <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{offer.fare} CLT</span>
-                        <span className="truncate-address" title={offer.driverAddress}>{truncAddr(offer.driverAddress)}</span>
+                      <div key={offer.txHash} className="offer-row offer-row--driver">
+                        <div className="offer-row-driver" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div className="offer-avatar" style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-container), var(--primary-dim))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Icon name="directions_car" size={20} fill={1} className="text-on-primary-fixed" />
+                          </div>
+                          <div>
+                            <p style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--on-surface)', margin: 0 }}>{truncAddr(offer.driverAddress)}</p>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--on-surface-variant)', margin: '0.15rem 0 0 0' }}>Driver</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--on-surface)', margin: 0 }}>{offer.fare} CLT</p>
+                        </div>
                       </div>
                     ))
                   )}
@@ -303,22 +305,30 @@ const NetworkView = () => {
       )}
 
       {activeTab === 'about' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {[
-            { name: 'Clutch Node', desc: 'Blockchain core with Aura consensus.', url: 'https://github.com/clutchprotocol/clutch-node' },
-            { name: 'Clutch Hub API', desc: 'Bridge between apps and the node. GraphQL and REST.', url: 'https://github.com/clutchprotocol/clutch-hub-api' },
-            { name: 'Clutch Hub SDK (JS)', desc: 'Client-side transaction signing and encoding.', url: 'https://github.com/clutchprotocol/clutch-hub-sdk-js' },
-            { name: 'Demo App', desc: 'This demo application -- passenger, driver, and explorer views.', url: 'https://github.com/clutchprotocol/clutch-hub-demo-app' },
-          ].map((project) => (
-            <div key={project.name} className="card" style={{ marginBottom: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{project.name}</div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0' }}>{project.desc}</p>
-              <a href={project.url} target="_blank" rel="noopener noreferrer" className="github-link">
-                <GitHubIcon />
-                {project.url.replace('https://github.com/', '')}
-              </a>
-            </div>
-          ))}
+        <div className="about-tab">
+          <h1 className="about-hero">
+            Kinetic <span className="about-hero-accent">Infrastructure.</span>
+          </h1>
+          <div className="about-bento">
+            {[
+              { name: 'Clutch Node', desc: 'Blockchain core with Aura consensus.', url: 'https://github.com/clutchprotocol/clutch-node', icon: 'hub' },
+              { name: 'Clutch Hub API', desc: 'Bridge between apps and the node. GraphQL and REST.', url: 'https://github.com/clutchprotocol/clutch-hub-api', icon: 'api' },
+              { name: 'Clutch Hub SDK', desc: 'Client-side transaction signing and encoding.', url: 'https://github.com/clutchprotocol/clutch-hub-sdk-js', icon: 'code' },
+              { name: 'Demo App', desc: 'Passenger, driver, and explorer views.', url: 'https://github.com/clutchprotocol/clutch-hub-demo-app', icon: 'apps' },
+            ].map((project, idx) => (
+              <div key={project.name} className={`about-bento-card ${idx === 1 || idx === 3 ? 'about-bento-card--offset' : ''}`}>
+                <div className="about-bento-icon">
+                  <Icon name={project.icon} size={28} />
+                </div>
+                <h3 className="about-bento-title">{project.name}</h3>
+                <p className="about-bento-desc">{project.desc}</p>
+                <a href={project.url} target="_blank" rel="noopener noreferrer" className="about-bento-link">
+                  {project.url.replace('https://github.com/', '')}
+                  <Icon name="arrow_forward" size={18} />
+                </a>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -1,44 +1,105 @@
-/* Clutch Demo – Design System */
+/* Clutch Demo – Kinetic Precision Design System (from Stitch) */
 :root {
-  --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+  /* Typography */
+  --font-headline: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-label: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sans: var(--font-body);
 
-  /* Warm neutral palette */
-  --bg-base: #faf9f7;
-  --bg-surface: #f5f4f1;
-  --bg-card: #ffffff;
-  --bg-elevated: #ebe9e5;
+  /* Kinetic Precision – Dark theme */
+  --surface: #060e20;
+  --surface-dim: #060e20;
+  --background: #060e20;
+  --surface-container-lowest: #000000;
+  --surface-container-low: #091328;
+  --surface-container: #0f1930;
+  --surface-container-high: #141f38;
+  --surface-container-highest: #192540;
+  --surface-bright: #1f2b49;
+  --surface-variant: #192540;
 
-  --border: #e8e6e2;
-  --border-subtle: #f0eeea;
+  /* Legacy aliases for components */
+  --bg-base: #060e20;
+  --bg-surface: #091328;
+  --bg-card: #0f1930;
+  --bg-elevated: #141f38;
+  --bg-highest: #192540;
 
-  --text-primary: #1a1915;
-  --text-secondary: #5c5a54;
-  --text-muted: #9a9790;
+  --outline: #6d758c;
+  --outline-variant: #40485d;
+  --border: rgba(109, 117, 140, 0.2);
+  --border-subtle: rgba(64, 72, 93, 0.5);
+
+  /* Primary – The Pulse */
+  --primary: #8cacff;
+  --primary-dim: #256df0;
+  --primary-container: #276ef1;
+  --primary-fixed: #769dff;
+  --primary-fixed-dim: #5f8fff;
+  --surface-tint: #8cacff;
+
+  --on-primary: #002a6d;
+  --on-primary-fixed: #000000;
+  --on-primary-container: #ffffff;
+
+  /* Text */
+  --on-surface: #dee5ff;
+  --on-background: #dee5ff;
+  --on-surface-variant: #a3aac4;
+  --text-primary: #dee5ff;
+  --text-secondary: #a3aac4;
+  --text-muted: #6d758c;
   --text-inverse: #ffffff;
 
-  /* Teal accent – trustworthy, fresh, ride-share */
-  --accent: #0d9488;
-  --accent-hover: #0f766e;
-  --accent-muted: rgba(13, 148, 136, 0.12);
-  --accent-strong: #0f766e;
+  /* Secondary */
+  --secondary: #d8e3fb;
+  --secondary-dim: #cad5ed;
+  --secondary-container: #3c475a;
+  --secondary-fixed: #d8e3fb;
+  --secondary-fixed-dim: #cad5ed;
+  --on-secondary: #475266;
+  --on-secondary-container: #c5d1e8;
 
+  /* Tertiary */
+  --tertiary: #ffb7f9;
+  --tertiary-dim: #ef93ec;
+  --tertiary-container: #fea0fb;
+  --tertiary-fixed: #fea0fb;
+  --tertiary-fixed-dim: #ef93ec;
+  --on-tertiary: #722275;
+  --on-tertiary-container: #67176b;
+
+  /* Error & Success */
+  --error: #ff716c;
+  --error-dim: #d7383b;
+  --error-container: #9f0519;
+  --on-error: #490006;
+  --on-error-container: #ffa8a3;
   --warning: #d97706;
-  --error: #dc2626;
   --success: #059669;
 
+  /* Accent aliases */
+  --accent: #276ef1;
+  --accent-hover: #4d8aff;
+  --accent-muted: rgba(39, 110, 241, 0.15);
+  --accent-strong: #8cacff;
+
+  /* Roundness */
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius: 12px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
   --radius-xl: 24px;
-  --radius-full: 999px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
 
-  --shadow-xs: 0 1px 2px rgba(26, 25, 21, 0.04);
-  --shadow-sm: 0 2px 4px rgba(26, 25, 21, 0.06);
-  --shadow: 0 4px 12px rgba(26, 25, 21, 0.08);
-  --shadow-md: 0 8px 24px rgba(26, 25, 21, 0.1);
-  --shadow-lg: 0 16px 48px rgba(26, 25, 21, 0.12);
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.45);
 
   --transition: 0.2s ease;
   --transition-slow: 0.3s ease;
@@ -55,10 +116,10 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   font-weight: 400;
-  color: var(--text-primary);
-  background: var(--bg-base);
+  color: var(--on-surface);
+  background: var(--background);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
@@ -69,10 +130,10 @@ body {
 }
 
 button {
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   cursor: pointer;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   font-weight: 500;
   transition: all var(--transition);
   line-height: 1.4;
@@ -84,12 +145,12 @@ button:disabled {
 }
 
 input {
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   line-height: 1.4;
 }
 
 a {
-  color: var(--accent);
+  color: var(--primary);
   text-decoration: none;
   transition: color var(--transition);
 }
@@ -100,11 +161,18 @@ a:hover {
 
 ::selection {
   background: var(--accent-muted);
-  color: var(--text-primary);
+  color: var(--on-surface);
 }
 
-/* Focus visible for accessibility */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--primary-container);
   outline-offset: 2px;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.text-on-primary-fixed {
+  color: var(--on-primary-fixed);
 }

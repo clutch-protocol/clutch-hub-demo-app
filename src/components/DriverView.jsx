@@ -10,7 +10,8 @@ import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL } from '../config';
+import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
+import Icon from './Icon';
 import {
   subscribeActiveTripsCompat,
   subscribeRecentTripsCompat,
@@ -89,7 +90,7 @@ const RideRequestCard = ({
 
       <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
         <MapContainer center={pickup} zoom={13} style={{ height: '180px', width: '100%' }}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+          <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
           <MapFitBounds positions={[pickup, dropoff]} />
           <Marker position={pickup}><Popup>Pickup</Popup></Marker>
           <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>
@@ -98,27 +99,37 @@ const RideRequestCard = ({
       </div>
 
       {/* Existing offers */}
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem', marginBottom: '0.875rem' }}>
+      <div style={{ paddingTop: '0.875rem', marginBottom: '0.875rem' }}>
         <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Offers ({offers.length})</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--on-surface-variant)' }}>Offers ({offers.length})</span>
           <button type="button" className="btn-ghost" onClick={fetchOffers} disabled={loadingOffers} style={{ fontSize: '0.75rem' }}>
             {loadingOffers ? '...' : 'Refresh'}
           </button>
         </div>
         {offersError && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem', marginBottom: '0.5rem' }}>{offersError}</div>}
         {offers.length === 0 && !loadingOffers && !offersError && (
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No offers yet.</p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--on-surface-variant)', margin: 0 }}>No offers yet.</p>
         )}
         {offers.map((offer) => (
-          <div key={offer.txHash} className="offer-row">
-            <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>{offer.fare} CLT</span>
-            <span className="truncate-address">{truncAddr(offer.driverAddress)}</span>
+          <div key={offer.txHash} className="offer-row offer-row--driver">
+            <div className="offer-row-driver" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="offer-avatar" style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-container), var(--primary-dim))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="directions_car" size={20} fill={1} className="text-on-primary-fixed" />
+              </div>
+              <div>
+                <p style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--on-surface)', margin: 0 }}>{truncAddr(offer.driverAddress)}</p>
+                <p style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--on-surface-variant)', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Driver</p>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--on-surface)', margin: 0, fontFamily: 'var(--font-headline)' }}>{offer.fare} CLT</p>
+            </div>
           </div>
         ))}
       </div>
 
       {/* Make offer */}
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.875rem' }}>
+      <div style={{ paddingTop: '0.875rem' }}>
         <div className="form-row">
           <label className="label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Your offer</label>
           <input

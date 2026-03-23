@@ -5,7 +5,7 @@ import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL } from '../config';
+import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
 import UserProfile from './UserProfile';
 import BalanceDisplay from './BalanceDisplay';
 import TransactionHistory from './TransactionHistory';
@@ -120,10 +120,7 @@ const RideForm = () => {
           <p className="map-hint">Click on the map to select pickup (first) and dropoff (second) locations</p>
           <div className="map-wrapper">
             <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '380px', width: '100%' }}>
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution="&copy; OpenStreetMap contributors"
-              />
+              <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
               <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={setPickup} setDropoff={setDropoff} />
               {pickup && <Marker position={pickup}><Popup>Pickup</Popup></Marker>}
               {dropoff && <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>}

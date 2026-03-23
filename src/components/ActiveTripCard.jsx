@@ -184,19 +184,21 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
 
       {remaining > 0 && (
         <div
+          className="trip-progress-bar"
           style={{
             height: 6,
             borderRadius: 4,
-            background: 'var(--bg-surface)',
+            background: 'var(--surface-container-low)',
             marginBottom: '0.875rem',
             overflow: 'hidden',
           }}
         >
           <div
+            className="trip-progress-fill"
             style={{
               height: '100%',
               width: `${Math.min(100, (farePaid / totalFare) * 100)}%`,
-              background: 'var(--accent)',
+              background: 'linear-gradient(90deg, var(--primary-dim), var(--primary), var(--tertiary))',
               transition: 'width 0.3s ease',
             }}
           />
@@ -219,7 +221,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
       </div>
 
       {showPayUi && (
-        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+        <div style={{ marginTop: '1rem', paddingTop: '1rem' }}>
           <p className="card-title" style={{ marginBottom: '0.5rem' }}>Pay driver (partial OK)</p>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>
             Pay in portions as the ride progresses. Up to <strong>{remaining} CLT</strong> remaining.
@@ -265,7 +267,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
       )}
 
       {canCancel && (
-        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+        <div style={{ marginTop: '1rem', paddingTop: '1rem' }}>
           <button
             type="button"
             className="btn-secondary"

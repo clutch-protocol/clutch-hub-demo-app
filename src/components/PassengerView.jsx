@@ -10,7 +10,8 @@ import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL } from '../config';
+import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
+import Icon from './Icon';
 import {
   subscribeActiveTripsCompat,
   subscribeRecentTripsCompat,
@@ -198,20 +199,28 @@ const RideRequestCard = ({ req, userProfile, onAcceptSuccess, onCancelSuccess })
         )}
 
         {offers.map((offer) => (
-          <div key={offer.txHash} className="offer-row">
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>{offer.fare} CLT</span>
-              <span className="truncate-address" style={{ marginLeft: '0.5rem' }}>{truncAddr(offer.driverAddress)}</span>
+          <div key={offer.txHash} className="offer-row offer-row--driver">
+            <div className="offer-row-driver" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="offer-avatar" style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-container), var(--primary-dim))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="directions_car" size={20} fill={1} className="text-on-primary-fixed" />
+              </div>
+              <div>
+                <p style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--on-surface)', margin: 0 }}>{truncAddr(offer.driverAddress)}</p>
+                <p style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--on-surface-variant)', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Driver</p>
+              </div>
             </div>
-            <button
-              type="button"
-              className="btn-primary"
-              style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', flexShrink: 0 }}
-              onClick={() => handleAcceptOffer(offer)}
-              disabled={!!acceptingOfferTxHash}
-            >
-              {acceptingOfferTxHash === offer.txHash ? 'Accepting...' : 'Accept'}
-            </button>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--on-surface)', margin: 0, fontFamily: 'var(--font-headline)' }}>{offer.fare} CLT</p>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', flexShrink: 0, marginTop: '0.35rem' }}
+                onClick={() => handleAcceptOffer(offer)}
+                disabled={!!acceptingOfferTxHash}
+              >
+                {acceptingOfferTxHash === offer.txHash ? 'Accepting...' : 'Accept'}
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -428,9 +437,13 @@ const PassengerView = () => {
           ) : (
             <>
               <div className="map-hero" style={{ position: 'relative', marginBottom: '1.5rem' }}>
-                <div className="map-wrapper" style={{ height: '380px', borderRadius: 'var(--radius-md)' }}>
+                <div className="step-pill" style={{ marginBottom: '0.75rem' }}>
+                  Step {!pickup ? 1 : !dropoff ? 2 : 3}: {!pickup ? 'Pickup' : !dropoff ? 'Destination' : 'Fare'}
+                </div>
+                <div className="map-wrapper" style={{ height: '380px', borderRadius: 'var(--radius-md)', position: 'relative' }}>
+                  <div className="map-gradient-overlay" />
                   <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '100%', width: '100%' }}>
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+                    <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
 
                     {previousRequests.map((r) => (
                       <React.Fragment key={r.txHash}>
@@ -505,7 +518,7 @@ const PassengerView = () => {
 
               <div className="card">
               {activeTrips.length > 0 && (
-                <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+                <div style={{ marginTop: '1.5rem', paddingTop: '1rem' }}>
                   {activeTrips.map((trip) => (
                     <ActiveTripCard
                       key={trip.txHash}
@@ -518,7 +531,7 @@ const PassengerView = () => {
               )}
 
               {previousRequests.length > 0 && (
-                <div style={{ marginTop: activeTrips.length > 0 ? '1rem' : '1.5rem', paddingTop: activeTrips.length > 0 ? '1rem' : 0, borderTop: activeTrips.length > 0 ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ marginTop: activeTrips.length > 0 ? '1rem' : '1.5rem', paddingTop: activeTrips.length > 0 ? '1rem' : 0 }}>
                   {previousRequests.map((req, idx) => (
                     <RideRequestCard
                       key={req.txHash || idx}

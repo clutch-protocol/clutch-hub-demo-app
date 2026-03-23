@@ -158,54 +158,33 @@ const NetworkView = () => {
 
   return (
     <div>
-      {/* Compact network status + metrics */}
-      <div className="form-row" style={{ marginBottom: '1.5rem', gap: '0.75rem', alignItems: 'center' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 500 }}>
-          {loading ? (
-            <span className="status-dot" />
-          ) : error ? (
-            <span className="status-dot status-dot--error" />
-          ) : (
-            <span className={`status-dot ${apiOk ? 'status-dot--live' : 'status-dot--error'}`} />
-          )}
-          <span style={{ color: error ? 'var(--error)' : 'var(--text-secondary)' }}>
-            {loading ? 'Checking...' : error ? 'API Offline' : apiOk ? 'API Online' : 'API Unknown'}
-          </span>
+      <div className="explorer-network-header" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
+        <ExplorerTabs
+          tabs={[
+            { id: 'requests', label: 'Ride Requests', icon: '📍', count: rideRequests.length },
+            { id: 'trips', label: 'Active Trips', icon: '🚗', count: activeTrips.length },
+            { id: 'recent', label: 'Recent rides', icon: '✅', count: recentTrips.length },
+            { id: 'about', label: 'About', icon: 'ℹ️' },
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="pill"
+        />
+        <span className="api-status-pill" style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.4rem',
+          fontSize: '0.78rem',
+          fontWeight: 600,
+          padding: '0.35rem 0.75rem',
+          borderRadius: 'var(--radius-full)',
+          background: loading ? 'var(--bg-surface)' : apiOk ? 'rgba(5, 150, 105, 0.12)' : 'rgba(220, 38, 38, 0.1)',
+          color: loading ? 'var(--text-muted)' : apiOk ? 'var(--success)' : 'var(--error)',
+        }}>
+          {loading ? <span className="status-dot" /> : apiOk ? <span className="status-dot status-dot--live" /> : <span className="status-dot status-dot--error" />}
+          {loading ? 'Checking...' : error ? 'API Offline' : apiOk ? 'Hub Online' : 'API Unknown'}
         </span>
       </div>
-
-      <div className="metrics-bar">
-        <button
-          type="button"
-          className={`metric-card metric-card--clickable ${activeTab === 'requests' ? 'metric-card--active' : ''}`}
-          onClick={() => setActiveTab('requests')}
-        >
-          <div className="metric-value">{rideRequests.length}</div>
-          <div className="metric-label">Requests</div>
-        </button>
-        <button
-          type="button"
-          className={`metric-card metric-card--clickable ${activeTab === 'trips' ? 'metric-card--active' : ''}`}
-          onClick={() => setActiveTab('trips')}
-        >
-          <div className="metric-value">{activeTrips.length}</div>
-          <div className="metric-label">Active Trips</div>
-        </button>
-        <button
-          type="button"
-          className={`metric-card metric-card--clickable ${activeTab === 'recent' ? 'metric-card--active' : ''}`}
-          onClick={() => setActiveTab('recent')}
-        >
-          <div className="metric-value">{recentTrips.length}</div>
-          <div className="metric-label">Recent rides</div>
-        </button>
-        <div className="metric-card">
-          <div className="metric-value">{apiOk ? 'Online' : '--'}</div>
-          <div className="metric-label">Hub API</div>
-        </div>
-      </div>
-
-      <ExplorerTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       {activeTab === 'requests' && (
         <>

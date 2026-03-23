@@ -420,37 +420,142 @@
   line-height: 1.6;
 }
 
-/* ===== Tabs ===== */
+/* ===== Explorer Tabs ===== */
 .explorer-tabs {
   display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-bottom: 1.25rem;
 }
 
+.explorer-tabs--pill {
+  background: var(--bg-surface);
+  padding: 5px;
+  border-radius: var(--radius);
+  width: fit-content;
+}
+
+.explorer-tabs--underline {
+  gap: 0;
+  padding-bottom: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.explorer-tabs--underline .explorer-tab {
+  margin-bottom: -1px;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+}
+
 .explorer-tab {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.7rem 1rem;
+  gap: 0.45rem;
+  padding: 0.6rem 1.1rem;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-muted);
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition);
-  margin-bottom: -1px;
 }
 
-.explorer-tab:hover {
+.explorer-tabs--pill .explorer-tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+}
+
+.explorer-tabs--pill .explorer-tab.active {
+  color: var(--text-inverse);
+  background: var(--accent);
+  box-shadow: var(--shadow-xs);
+}
+
+.explorer-tabs--underline .explorer-tab:hover {
   color: var(--text-secondary);
 }
 
-.explorer-tab.active {
+.explorer-tabs--underline .explorer-tab.active {
   color: var(--accent);
   border-bottom-color: var(--accent);
+}
+
+.explorer-tab-icon {
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.explorer-tab-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.25);
+  color: inherit;
+}
+
+.explorer-tabs--pill .explorer-tab:not(.active) .explorer-tab-badge {
+  background: var(--accent-muted);
+  color: var(--accent-strong);
+}
+
+/* ===== Metrics bar (Network view) ===== */
+.metrics-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.metric-card {
+  flex: 1;
+  min-width: 90px;
+  padding: 0.9rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  box-shadow: var(--shadow-xs);
+}
+
+.metric-card--clickable {
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.metric-card--clickable:hover {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.metric-card--clickable.metric-card--active {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.25rem;
 }
 
 /* ===== Utility ===== */
@@ -490,6 +595,14 @@
 
 .status-dot--done {
   background: var(--success);
+}
+
+.status-dot--error {
+  background: var(--error);
+}
+
+.status-dot--warn {
+  background: var(--warning);
 }
 
 @keyframes pulse-dot {
@@ -628,5 +741,14 @@
 
   .trip-details-grid {
     grid-template-columns: 1fr;
+  }
+
+  .explorer-tabs--pill {
+    width: 100%;
+  }
+
+  .explorer-tab {
+    padding: 0.55rem 0.9rem;
+    font-size: 0.8rem;
   }
 }

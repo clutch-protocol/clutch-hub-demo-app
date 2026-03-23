@@ -4,6 +4,7 @@ import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
 import CompletedTripCard from './CompletedTripCard';
 import { Section, WalletBar, EmptyState } from './layout';
+import ExplorerTabs from './ExplorerTabs';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -406,28 +407,15 @@ const PassengerView = () => {
         onFaucetSuccess={() => setRefreshBalanceCounter((c) => c + 1)}
       />
 
-      <div className="explorer-tabs">
-        <button
-          type="button"
-          className={`explorer-tab ${passengerTab === 'rides' ? 'active' : ''}`}
-          onClick={() => setPassengerTab('rides')}
-        >
-          My Ride
-          {userProfile.publicKey && (activeTrips.length + previousRequests.length) > 0 && (
-            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length + previousRequests.length}</span>
-          )}
-        </button>
-        <button
-          type="button"
-          className={`explorer-tab ${passengerTab === 'recent' ? 'active' : ''}`}
-          onClick={() => setPassengerTab('recent')}
-        >
-          Recent rides
-          {userProfile.publicKey && recentTrips.length > 0 && (
-            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{recentTrips.length}</span>
-          )}
-        </button>
-      </div>
+      <ExplorerTabs
+        tabs={[
+          { id: 'rides', label: 'My Ride', icon: '🚗', count: userProfile.publicKey ? activeTrips.length + previousRequests.length : 0 },
+          { id: 'recent', label: 'Recent rides', icon: '✅', count: userProfile.publicKey ? recentTrips.length : 0 },
+        ]}
+        activeTab={passengerTab}
+        onTabChange={setPassengerTab}
+        variant="pill"
+      />
 
       {passengerTab === 'rides' && (
         <Section

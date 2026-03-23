@@ -4,6 +4,7 @@ import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
 import CompletedTripCard from './CompletedTripCard';
 import { Section, WalletBar, EmptyState } from './layout';
+import ExplorerTabs from './ExplorerTabs';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -320,38 +321,16 @@ const DriverView = () => {
         onFaucetSuccess={() => setRefreshBalanceCounter((c) => c + 1)}
       />
 
-      <div className="explorer-tabs">
-        <button
-          type="button"
-          className={`explorer-tab ${driverTab === 'find' ? 'active' : ''}`}
-          onClick={() => setDriverTab('find')}
-        >
-          Find Rides
-          {rideRequests.length > 0 && (
-            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{rideRequests.length}</span>
-          )}
-        </button>
-        <button
-          type="button"
-          className={`explorer-tab ${driverTab === 'trips' ? 'active' : ''}`}
-          onClick={() => setDriverTab('trips')}
-        >
-          My Trips
-          {userProfile.publicKey && activeTrips.length > 0 && (
-            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{activeTrips.length}</span>
-          )}
-        </button>
-        <button
-          type="button"
-          className={`explorer-tab ${driverTab === 'recent' ? 'active' : ''}`}
-          onClick={() => setDriverTab('recent')}
-        >
-          Recent rides
-          {userProfile.publicKey && recentTrips.length > 0 && (
-            <span className="section-badge" style={{ marginLeft: '0.35rem' }}>{recentTrips.length}</span>
-          )}
-        </button>
-      </div>
+      <ExplorerTabs
+        tabs={[
+          { id: 'find', label: 'Find Rides', icon: '📍', count: rideRequests.length },
+          { id: 'trips', label: 'My Trips', icon: '🚗', count: userProfile.publicKey ? activeTrips.length : 0 },
+          { id: 'recent', label: 'Recent rides', icon: '✅', count: userProfile.publicKey ? recentTrips.length : 0 },
+        ]}
+        activeTab={driverTab}
+        onTabChange={setDriverTab}
+        variant="pill"
+      />
 
       {driverTab === 'find' && (
         <>

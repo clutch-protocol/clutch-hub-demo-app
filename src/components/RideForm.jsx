@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -36,6 +36,11 @@ const RideForm = () => {
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
+  const sdk = useMemo(() => {
+    if (!userProfile.publicKey) return null;
+    return new ClutchHubSdk(API_URL, userProfile.publicKey);
+  }, [userProfile.publicKey]);
+
   const handleReset = useCallback(() => {
     setPickup(null);
     setDropoff(null);
@@ -49,7 +54,7 @@ const RideForm = () => {
       setIsLoading(true);
       setTransactionStatus({ type: 'info', message: 'Creating transaction...' });
 
-      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      if (!sdk) return;
       const unsignedTx = await sdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
       setTransactionStatus({ type: 'info', message: 'Transaction created. Signing...' });
 
@@ -94,7 +99,7 @@ const RideForm = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [pickup, dropoff, userProfile, fare, requestPrivateKey]);
+  }, [pickup, dropoff, userProfile, fare, requestPrivateKey, sdk]);
 
   return (
     <div>

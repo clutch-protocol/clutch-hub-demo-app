@@ -3,6 +3,7 @@ import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
 import TransactionHistory from './TransactionHistory';
 import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
+import { useConfirmDialog } from './layout/useConfirmDialog.jsx';
 
 function truncAddr(addr) {
   if (!addr || addr.length < 12) return addr || '';
@@ -47,6 +48,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
   const [cancelError, setCancelError] = useState(null);
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
+  const { ConfirmModal, requestConfirm } = useConfirmDialog();
 
   const showPayUi =
     passengerPayment?.userProfile?.publicKey &&
@@ -121,7 +123,13 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
 
   const handleCancel = useCallback(async () => {
     if (!cancelAction?.userProfile?.publicKey || remaining <= 0) return;
-    if (!window.confirm('Cancel this ride? Unpaid fare will be refunded to the passenger.')) return;
+    const ok = await requestConfirm({
+      title: 'Cancel this ride?',
+      desc: 'Unpaid fare will be refunded to the passenger.',
+      confirmText: 'Cancel ride',
+      cancelText: 'Keep ride',
+    });
+    if (!ok) return;
     setCancelling(true);
     setCancelError(null);
     try {
@@ -160,7 +168,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
     } finally {
       setCancelling(false);
     }
-  }, [cancelAction, remaining, trip.txHash, requestPrivateKey]);
+  }, [cancelAction, remaining, trip.txHash, requestPrivateKey, requestConfirm]);
 
   const puLat = trip.pickupLocation.latitude;
   const puLng = trip.pickupLocation.longitude;
@@ -283,6 +291,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
           {cancelError && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem', marginTop: '0.5rem' }}>{cancelError}</div>}
         </div>
       )}
+      <ConfirmModal />
       <PrivateKeyModal />
     </div>
   );

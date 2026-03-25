@@ -7,7 +7,7 @@ const stageApiUrl =
     : null;
 
 export const API_URL =
-  import.meta.env.VITE_API_URL || stageApiUrl || "http://localhost:3000";
+  stageApiUrl || import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 /** Light map tiles for better visibility (Voyager style) */
 export const MAP_TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";

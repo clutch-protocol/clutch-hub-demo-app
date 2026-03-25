@@ -9,6 +9,7 @@ import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
 import UserProfile from './UserProfile';
 import BalanceDisplay from './BalanceDisplay';
 import TransactionHistory from './TransactionHistory';
+import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
@@ -32,6 +33,8 @@ const RideForm = () => {
   const [transactionStatus, setTransactionStatus] = useState(null);
   const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
 
+  const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
+
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
   const handleReset = useCallback(() => {
     setPickup(null);
@@ -52,7 +55,7 @@ const RideForm = () => {
 
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
-        privateKey = window.prompt('Enter your private key to sign the transaction:');
+        privateKey = await requestPrivateKey('Enter your private key to sign the transaction:');
         if (!privateKey) {
           setTransactionStatus({ type: 'warning', message: 'Signing cancelled.' });
           setIsLoading(false);
@@ -91,7 +94,7 @@ const RideForm = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [pickup, dropoff, userProfile, fare]);
+  }, [pickup, dropoff, userProfile, fare, requestPrivateKey]);
 
   return (
     <div>
@@ -142,6 +145,7 @@ const RideForm = () => {
       </div>
 
       <TransactionHistory userPublicKey={userProfile.publicKey} />
+      <PrivateKeyModal />
     </div>
   );
 };

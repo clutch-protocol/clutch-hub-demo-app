@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
 import TransactionHistory from './TransactionHistory';
+import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
 
 function truncAddr(addr) {
   if (!addr || addr.length < 12) return addr || '';
@@ -45,6 +46,8 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState(null);
 
+  const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
+
   const showPayUi =
     passengerPayment?.userProfile?.publicKey &&
     normAddr(passengerPayment.userProfile.publicKey) === normAddr(trip.passengerAddress) &&
@@ -78,7 +81,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
       });
       let pk = privateKey;
       if (!pk) {
-        pk = window.prompt('Enter your private key to sign the payment:');
+        pk = await requestPrivateKey('Enter your private key to sign the payment:');
         if (!pk) {
           setPayError('Signing cancelled.');
           setPaying(false);
@@ -109,7 +112,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
     } finally {
       setPaying(false);
     }
-  }, [passengerPayment, payAmount, remaining, trip.txHash]);
+  }, [passengerPayment, payAmount, remaining, trip.txHash, requestPrivateKey]);
 
   const setQuickPay = (fraction) => {
     const v = Math.max(1, Math.floor(remaining * fraction));
@@ -129,7 +132,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
       });
       let pk = privateKey;
       if (!pk) {
-        pk = window.prompt('Enter your private key to sign the cancellation:');
+        pk = await requestPrivateKey('Enter your private key to sign the cancellation:');
         if (!pk) {
           setCancelError('Signing cancelled.');
           setCancelling(false);
@@ -157,7 +160,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
     } finally {
       setCancelling(false);
     }
-  }, [cancelAction, remaining, trip.txHash]);
+  }, [cancelAction, remaining, trip.txHash, requestPrivateKey]);
 
   const puLat = trip.pickupLocation.latitude;
   const puLng = trip.pickupLocation.longitude;
@@ -280,6 +283,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
           {cancelError && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem', marginTop: '0.5rem' }}>{cancelError}</div>}
         </div>
       )}
+      <PrivateKeyModal />
     </div>
   );
 };

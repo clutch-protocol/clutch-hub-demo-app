@@ -19,6 +19,7 @@ import {
   subscribeRideRequestsCompat,
 } from '../sdkRealtime';
 import TransactionHistory from './TransactionHistory';
+import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
@@ -38,7 +39,13 @@ const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
   return null;
 };
 
-const RideRequestCard = ({ req, userProfile, onAcceptSuccess, onCancelSuccess }) => {
+const RideRequestCard = ({
+  req,
+  userProfile,
+  onAcceptSuccess,
+  onCancelSuccess,
+  requestPrivateKey,
+}) => {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -91,7 +98,7 @@ const RideRequestCard = ({ req, userProfile, onAcceptSuccess, onCancelSuccess })
       const unsignedTx = await sdk.createUnsignedRideAcceptance({ rideOfferTxHash: offer.txHash });
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
-        privateKey = window.prompt('Enter your private key to sign the acceptance:');
+        privateKey = await requestPrivateKey('Enter your private key to sign the acceptance:');
         if (!privateKey) {
           setAcceptError('Signing cancelled.');
           setAcceptingOfferTxHash(null);
@@ -121,7 +128,7 @@ const RideRequestCard = ({ req, userProfile, onAcceptSuccess, onCancelSuccess })
     } finally {
       setAcceptingOfferTxHash(null);
     }
-  }, [userProfile, onAcceptSuccess]);
+  }, [userProfile, onAcceptSuccess, requestPrivateKey]);
 
   const handleCancelRequest = useCallback(async () => {
     if (!userProfile.publicKey || !req.txHash) return;
@@ -132,7 +139,7 @@ const RideRequestCard = ({ req, userProfile, onAcceptSuccess, onCancelSuccess })
       const unsignedTx = await sdk.createUnsignedRideRequestCancel({ rideRequestTxHash: req.txHash });
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
-        privateKey = window.prompt('Enter your private key to sign the cancellation:');
+        privateKey = await requestPrivateKey('Enter your private key to sign the cancellation:');
         if (!privateKey) {
           setCancelError('Signing cancelled.');
           setCancelling(false);
@@ -162,7 +169,7 @@ const RideRequestCard = ({ req, userProfile, onAcceptSuccess, onCancelSuccess })
     } finally {
       setCancelling(false);
     }
-  }, [userProfile, req.txHash, onCancelSuccess]);
+  }, [userProfile, req.txHash, onCancelSuccess, requestPrivateKey]);
 
   return (
     <div className="card" style={{ marginBottom: '1rem' }}>
@@ -245,6 +252,8 @@ const PassengerView = () => {
   const [recentTripsLoading, setRecentTripsLoading] = useState(false);
   const [recentTripsError, setRecentTripsError] = useState(null);
   const [passengerTab, setPassengerTab] = useState('rides');
+
+  const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
   const hasConcurrent = activeTrips.length > 0 || previousRequests.length > 0;
 
@@ -367,7 +376,7 @@ const PassengerView = () => {
       setTransactionStatus({ type: 'info', message: 'Signing...' });
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
-        privateKey = window.prompt('Enter your private key to sign the transaction:');
+        privateKey = await requestPrivateKey('Enter your private key to sign the transaction:');
         if (!privateKey) {
           setTransactionStatus({ type: 'warning', message: 'Signing cancelled.' });
           submittingRef.current = false;
@@ -539,6 +548,7 @@ const PassengerView = () => {
                       userProfile={userProfile}
                       onAcceptSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
                       onCancelSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
+                      requestPrivateKey={requestPrivateKey}
                     />
                   ))}
                 </div>
@@ -582,6 +592,7 @@ const PassengerView = () => {
           <TransactionHistory userPublicKey={userProfile.publicKey} refreshTrigger={refreshBalanceCounter} contentOnly />
         </Section>
       )}
+      <PrivateKeyModal />
     </div>
   );
 };

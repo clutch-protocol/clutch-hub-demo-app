@@ -1027,3 +1027,62 @@
     font-size: 0.8rem;
   }
 }
+
+/* ===== Private key modal (anti-prompt UX) ===== */
+.pk-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.pk-modal {
+  width: min(520px, 100%);
+  padding: 1.25rem 1.25rem 1.1rem;
+  margin-bottom: 0;
+}
+
+.pk-modal-header {
+  margin-bottom: 0.75rem;
+}
+
+.pk-modal-title {
+  font-family: var(--font-headline);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--on-surface);
+  margin: 0;
+}
+
+.pk-modal-desc {
+  margin: 0.35rem 0 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.pk-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.pk-modal-help {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.pk-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}

@@ -19,6 +19,7 @@ import {
   subscribeRideRequestsCompat,
 } from '../sdkRealtime';
 import TransactionHistory from './TransactionHistory';
+import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
@@ -174,6 +175,8 @@ const DriverView = () => {
   const [recentTripsError, setRecentTripsError] = useState(null);
   const [driverTab, setDriverTab] = useState('find');
 
+  const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
+
   const hasActiveTrip = activeTrips.length > 0;
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
@@ -286,7 +289,7 @@ const DriverView = () => {
       const unsignedTx = await sdk.createUnsignedRideOffer({ rideRequestTxHash: req.txHash, fare: offerFare });
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
-        privateKey = window.prompt('Enter your private key to sign the ride offer:');
+        privateKey = await requestPrivateKey('Enter your private key to sign the ride offer:');
         if (!privateKey) {
           setAcceptStatus({ type: 'warning', message: 'Signing cancelled.' });
           setAcceptingTxHash(null);
@@ -320,7 +323,7 @@ const DriverView = () => {
     } finally {
       setAcceptingTxHash(null);
     }
-  }, [userProfile, offerFares]);
+  }, [userProfile, offerFares, requestPrivateKey]);
 
   return (
     <div>
@@ -451,6 +454,7 @@ const DriverView = () => {
           <TransactionHistory userPublicKey={userProfile.publicKey} refreshTrigger={refreshBalanceCounter} contentOnly />
         </Section>
       )}
+      <PrivateKeyModal />
     </div>
   );
 };

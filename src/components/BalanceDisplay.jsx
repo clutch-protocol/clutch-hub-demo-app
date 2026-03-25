@@ -2,33 +2,31 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL } from '../config';
 
-const BalanceDisplay = ({ publicKey, refreshTrigger = 0, onFaucetSuccess }) => {
+const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(false);
   const [faucetLoading, setFaucetLoading] = useState(false);
   const [faucetMessage, setFaucetMessage] = useState(null);
 
-  const fetchBalance = useCallback(async (silent = false) => {
-    if (!publicKey) {
-      setBalance(null);
-      return;
-    }
-    try {
-      if (!silent) setLoading(true);
-      const sdk = new ClutchHubSdk(API_URL, publicKey);
-      const accountBalance = await sdk.getAccountBalance(publicKey);
-      setBalance(accountBalance);
-    } catch (err) {
-      console.error('Error fetching balance:', err);
-      setBalance(null);
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [publicKey]);
-
   useEffect(() => {
-    fetchBalance();
-  }, [publicKey, refreshTrigger, fetchBalance]);
+    if (!publicKey) return undefined;
+
+    setLoading(true);
+    const sdk = new ClutchHubSdk(API_URL, publicKey);
+
+    const dispose = sdk.subscribeAccountBalance({ publicKey }, { 
+      onData: (value) => {
+        setBalance(value);
+        setLoading(false);
+      },
+      onError: (err) => {
+        console.error('Balance subscription error:', err);
+        setLoading(false);
+      },
+    });
+
+    return () => dispose();
+  }, [publicKey]);
 
   const handleFaucet = useCallback(async () => {
     if (!publicKey) return;
@@ -40,10 +38,6 @@ const BalanceDisplay = ({ publicKey, refreshTrigger = 0, onFaucetSuccess }) => {
       if (res.ok) {
         setFaucetMessage(`+${res.amount_clt} CLT`);
         onFaucetSuccess?.();
-        // Refetch balance immediately and retry (tx may take a few seconds to mine)
-        fetchBalance(true);
-        setTimeout(() => fetchBalance(true), 2000);
-        setTimeout(() => fetchBalance(true), 5000);
       } else {
         setFaucetMessage(res.error || 'Faucet failed');
       }
@@ -52,7 +46,7 @@ const BalanceDisplay = ({ publicKey, refreshTrigger = 0, onFaucetSuccess }) => {
     } finally {
       setFaucetLoading(false);
     }
-  }, [publicKey, onFaucetSuccess, fetchBalance]);
+  }, [publicKey, onFaucetSuccess]);
 
   if (!publicKey) return null;
 

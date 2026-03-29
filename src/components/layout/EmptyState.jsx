@@ -9,7 +9,7 @@ const EmptyIcon = () => (
   </svg>
 );
 
-const EmptyState = ({ message, action, onAction, className = '' }) => (
+const EmptyState = ({ message, action, onAction, actionDisabled, className = '' }) => (
   <div className={`empty-state ${className}`}>
     <div className="empty-state-icon">
       <EmptyIcon />
@@ -17,7 +17,13 @@ const EmptyState = ({ message, action, onAction, className = '' }) => (
     <p className="empty-state-message">{message}</p>
     {action && onAction && (
       <div className="empty-state-action">
-        <button type="button" className="btn-primary" onClick={onAction} style={{ fontSize: '0.8rem' }}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={onAction}
+          disabled={actionDisabled}
+          style={{ fontSize: '0.8rem' }}
+        >
           {action}
         </button>
       </div>

@@ -386,16 +386,43 @@ const DriverView = () => {
           icon="📍"
           description="Ride requests from passengers. One trip at a time—complete your current trip before making new offers."
           action={
-            <button type="button" className="btn-ghost" onClick={fetchRideRequests} disabled={isLoadingRides} style={{ fontSize: '0.75rem' }}>
-              {isLoadingRides ? '...' : 'Refresh'}
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={fetchRideRequests}
+              disabled={isLoadingRides}
+              title="Fetch the latest ride requests from the hub (same as live subscription)"
+              style={{ fontSize: '0.75rem' }}
+            >
+              {isLoadingRides ? '…' : 'Refresh list'}
             </button>
           }
         >
           {acceptStatus && <div className={`status-banner ${acceptStatus.type}`}>{acceptStatus.message}</div>}
           {ridesError && <div className="status-banner error">{ridesError}</div>}
 
+          {rideRequests.length > 0 && (
+            <div className="form-row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Live updates + manual refresh</span>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={fetchRideRequests}
+                disabled={isLoadingRides}
+                style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+              >
+                {isLoadingRides ? 'Refreshing…' : 'Refresh available rides'}
+              </button>
+            </div>
+          )}
+
           {rideRequests.length === 0 && !isLoadingRides && !ridesError && (
-            <EmptyState message="No ride requests yet. When passengers request rides, they will appear here." />
+            <EmptyState
+              message="No ride requests yet. When passengers request rides, they will appear here."
+              action="Refresh available rides"
+              onAction={fetchRideRequests}
+              actionDisabled={isLoadingRides}
+            />
           )}
 
           {rideRequests.map((req) => (

@@ -111,6 +111,22 @@ jobs:
     outputs:
       digest: ${{ steps.build.outputs.digest }}
 
+  # Tell clutch-deploy to SSH-deploy stage (pull latest images + recreate). Requires org/repo secret
+  # CLUTCH_DEPLOY_DISPATCH_TOKEN: PAT with repo scope able to POST repository_dispatch to clutch-deploy.
+  trigger-stage-deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Trigger deploy-stage in clutch-deploy
+        continue-on-error: true
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.CLUTCH_DEPLOY_DISPATCH_TOKEN }}
+          repository: clutchprotocol/clutch-deploy
+          event-type: deploy-stage
+
   update-description:
     needs: build-and-push
     runs-on: ubuntu-latest

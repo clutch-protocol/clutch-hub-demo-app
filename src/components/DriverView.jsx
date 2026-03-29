@@ -366,21 +366,26 @@ const DriverView = () => {
         variant="pill"
       />
 
-      {driverTab === 'find' && (
-        <>
-          {hasActiveTrip && userProfile.publicKey && (
-            <div className="status-banner info" style={{ marginBottom: '1rem' }}>
-              You have an active trip. Complete it before accepting new ride requests.
-              <button
-                type="button"
-                className="btn-ghost"
-                style={{ marginLeft: '0.5rem', fontSize: '0.8rem' }}
-                onClick={() => setDriverTab('trips')}
-              >
-                View my trip
-              </button>
-            </div>
-          )}
+      <div
+        role="tabpanel"
+        id="panel-find"
+        aria-labelledby="tab-find"
+        hidden={driverTab !== 'find'}
+        style={{ display: driverTab === 'find' ? 'block' : 'none' }}
+      >
+        {hasActiveTrip && userProfile.publicKey && (
+          <div className="status-banner info" style={{ marginBottom: '1rem' }}>
+            You have an active trip. Complete it before accepting new ride requests.
+            <button
+              type="button"
+              className="btn-ghost"
+              style={{ marginLeft: '0.5rem', fontSize: '0.8rem' }}
+              onClick={() => setDriverTab('trips')}
+            >
+              View my trip
+            </button>
+          </div>
+        )}
         <Section
           title="Available rides"
           icon="📍"
@@ -401,24 +406,28 @@ const DriverView = () => {
           {acceptStatus && <div className={`status-banner ${acceptStatus.type}`}>{acceptStatus.message}</div>}
           {ridesError && <div className="status-banner error">{ridesError}</div>}
 
-          {rideRequests.length > 0 && (
-            <div className="form-row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Live updates + manual refresh</span>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={fetchRideRequests}
-                disabled={isLoadingRides}
-                style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-              >
-                {isLoadingRides ? 'Refreshing…' : 'Refresh available rides'}
-              </button>
-            </div>
-          )}
+          <div className="form-row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              {isLoadingRides && rideRequests.length === 0 ? 'Loading ride requests…' : 'Live updates + manual refresh'}
+            </span>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={fetchRideRequests}
+              disabled={isLoadingRides}
+              style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+            >
+              {isLoadingRides ? 'Refreshing…' : 'Refresh available rides'}
+            </button>
+          </div>
 
-          {rideRequests.length === 0 && !isLoadingRides && !ridesError && (
+          {rideRequests.length === 0 && !isLoadingRides && (
             <EmptyState
-              message="No ride requests yet. When passengers request rides, they will appear here."
+              message={
+                ridesError
+                  ? 'Could not load the list. Use refresh to try again, or wait for the live connection to recover.'
+                  : 'No ride requests yet. When passengers request rides, they will appear here.'
+              }
               action="Refresh available rides"
               onAction={fetchRideRequests}
               actionDisabled={isLoadingRides}
@@ -438,10 +447,15 @@ const DriverView = () => {
             />
           ))}
         </Section>
-        </>
-      )}
+      </div>
 
-      {driverTab === 'trips' && (
+      <div
+        role="tabpanel"
+        id="panel-trips"
+        aria-labelledby="tab-trips"
+        hidden={driverTab !== 'trips'}
+        style={{ display: driverTab === 'trips' ? 'block' : 'none' }}
+      >
         <Section
           title="My trips"
           icon="🚗"
@@ -484,9 +498,15 @@ const DriverView = () => {
             </>
           )}
         </Section>
-      )}
+      </div>
 
-      {driverTab === 'recent' && (
+      <div
+        role="tabpanel"
+        id="panel-recent"
+        aria-labelledby="tab-recent"
+        hidden={driverTab !== 'recent'}
+        style={{ display: driverTab === 'recent' ? 'block' : 'none' }}
+      >
         <Section
           title="Recent rides"
           icon="✅"
@@ -508,7 +528,7 @@ const DriverView = () => {
             </>
           )}
         </Section>
-      )}
+      </div>
 
       {userProfile.publicKey && (
         <Section title="Transaction history" icon="📋" collapsible defaultExpanded={false}>

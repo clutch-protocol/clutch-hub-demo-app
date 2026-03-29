@@ -13,7 +13,7 @@ function App() {
       <header className="app-header">
         <div className="app-logo">
           <img src="/clutch-logo.svg" alt="Clutch" className="app-logo-icon" width={32} height={32} />
-          <span className="app-logo-text">Clutch</span>
+          <span className="app-logo-text">Clutch Stage</span>
         </div>
         <RoleSelector role={role} onRoleChange={setRole} />
       </header>

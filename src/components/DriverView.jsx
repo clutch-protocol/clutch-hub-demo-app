@@ -174,6 +174,8 @@ const DriverView = () => {
   const [recentTripsLoading, setRecentTripsLoading] = useState(false);
   const [recentTripsError, setRecentTripsError] = useState(null);
   const [driverTab, setDriverTab] = useState('find');
+  const [myTripsRefreshing, setMyTripsRefreshing] = useState(false);
+  const [myTripsRefreshError, setMyTripsRefreshError] = useState(null);
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
@@ -325,6 +327,24 @@ const DriverView = () => {
     }
   }, [userProfile, offerFares, requestPrivateKey]);
 
+  const refreshDriverMyTrips = useCallback(async () => {
+    if (!userProfile.publicKey) return;
+    setMyTripsRefreshing(true);
+    setMyTripsRefreshError(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const trips = await sdk.listActiveTrips({ driverAddress: userProfile.publicKey });
+      setActiveTrips(trips);
+      setActiveTripsError(null);
+      setActiveTripsLoading(false);
+    } catch (err) {
+      console.error('Refresh my trips failed:', err);
+      setMyTripsRefreshError(err.message || 'Failed to refresh');
+    } finally {
+      setMyTripsRefreshing(false);
+    }
+  }, [userProfile.publicKey]);
+
   return (
     <div>
       <WalletBar
@@ -399,12 +419,26 @@ const DriverView = () => {
           title="My trips"
           icon="🚗"
           description={userProfile.publicKey ? 'Rides in progress after a passenger accepts your offer.' : 'Connect your wallet to see your active trips.'}
+          action={
+            userProfile.publicKey ? (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={refreshDriverMyTrips}
+                disabled={myTripsRefreshing}
+                style={{ fontSize: '0.75rem' }}
+              >
+                {myTripsRefreshing ? '…' : 'Refresh'}
+              </button>
+            ) : null
+          }
         >
           {!userProfile.publicKey ? (
             <EmptyState message="Connect your wallet above to view active trips." />
           ) : (
             <>
               {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
+              {myTripsRefreshError && <div className="status-banner error">{myTripsRefreshError}</div>}
 
               {activeTrips.length > 0 ? (
                 activeTrips.map((trip) => (

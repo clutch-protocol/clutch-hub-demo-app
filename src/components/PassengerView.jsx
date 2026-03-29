@@ -29,6 +29,37 @@ function truncAddr(addr) {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
+/** Map open ride requests to card rows for the signed-in passenger (shared by subscription + manual refresh). */
+function formatPassengerOpenRequests(allRequests, publicKey) {
+  if (!publicKey) return [];
+  const myRequests = allRequests.filter((r) => r.passengerAddress === publicKey);
+  const stored = localStorage.getItem(`clutch_tx_${publicKey}`);
+  let txMap = {};
+  if (stored) {
+    try {
+      JSON.parse(stored).forEach((tx) => {
+        if (tx.txHash) txMap[tx.txHash] = tx;
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+  const formatted = myRequests.map((r) => {
+    const localTx = txMap[r.txHash];
+    return {
+      type: 'Ride Request',
+      timestamp: localTx?.timestamp ?? Date.now(),
+      pickup: { lat: r.pickupLocation.latitude, lng: r.pickupLocation.longitude },
+      dropoff: { lat: r.dropoffLocation.latitude, lng: r.dropoffLocation.longitude },
+      fare: r.fare,
+      txHash: r.txHash,
+      passengerAddress: r.passengerAddress,
+    };
+  });
+  formatted.sort((a, b) => b.timestamp - a.timestamp);
+  return formatted;
+}
+
 const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
   useMapEvents({
     click(e) {
@@ -252,6 +283,10 @@ const PassengerView = () => {
   const [recentTripsLoading, setRecentTripsLoading] = useState(false);
   const [recentTripsError, setRecentTripsError] = useState(null);
   const [passengerTab, setPassengerTab] = useState('rides');
+  const [myRideRefreshing, setMyRideRefreshing] = useState(false);
+  const [myRideRefreshError, setMyRideRefreshError] = useState(null);
+  const [myTripsRefreshing, setMyTripsRefreshing] = useState(false);
+  const [myTripsRefreshError, setMyTripsRefreshError] = useState(null);
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
@@ -323,32 +358,7 @@ const PassengerView = () => {
     const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
     const dispose = subscribeRideRequestsCompat(sdk, null, {
       onData: (allRequests) => {
-        const myRequests = allRequests.filter((r) => r.passengerAddress === userProfile.publicKey);
-        const stored = localStorage.getItem(`clutch_tx_${userProfile.publicKey}`);
-        let txMap = {};
-        if (stored) {
-          try {
-            JSON.parse(stored).forEach((tx) => {
-              if (tx.txHash) txMap[tx.txHash] = tx;
-            });
-          } catch {
-            /* ignore */
-          }
-        }
-        const formatted = myRequests.map((r) => {
-          const localTx = txMap[r.txHash];
-          return {
-            type: 'Ride Request',
-            timestamp: localTx?.timestamp ?? Date.now(),
-            pickup: { lat: r.pickupLocation.latitude, lng: r.pickupLocation.longitude },
-            dropoff: { lat: r.dropoffLocation.latitude, lng: r.dropoffLocation.longitude },
-            fare: r.fare,
-            txHash: r.txHash,
-            passengerAddress: r.passengerAddress,
-          };
-        });
-        formatted.sort((a, b) => b.timestamp - a.timestamp);
-        setPreviousRequests(formatted);
+        setPreviousRequests(formatPassengerOpenRequests(allRequests, userProfile.publicKey));
       },
       onError: (err) => {
         console.error('Ride requests subscription error:', err);
@@ -415,6 +425,46 @@ const PassengerView = () => {
     }
   }, [pickup, dropoff, userProfile, fare]);
 
+  const refreshMyRide = useCallback(async () => {
+    if (!userProfile.publicKey) return;
+    setMyRideRefreshing(true);
+    setMyRideRefreshError(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const [allRequests, trips] = await Promise.all([
+        sdk.listRideRequests(),
+        sdk.listActiveTrips({ passengerAddress: userProfile.publicKey }),
+      ]);
+      setPreviousRequests(formatPassengerOpenRequests(allRequests, userProfile.publicKey));
+      setActiveTrips(trips);
+      setActiveTripsError(null);
+      setActiveTripsLoading(false);
+    } catch (err) {
+      console.error('Refresh my ride failed:', err);
+      setMyRideRefreshError(err.message || 'Failed to refresh');
+    } finally {
+      setMyRideRefreshing(false);
+    }
+  }, [userProfile.publicKey]);
+
+  const refreshPassengerMyTrips = useCallback(async () => {
+    if (!userProfile.publicKey) return;
+    setMyTripsRefreshing(true);
+    setMyTripsRefreshError(null);
+    try {
+      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const trips = await sdk.listActiveTrips({ passengerAddress: userProfile.publicKey });
+      setActiveTrips(trips);
+      setActiveTripsError(null);
+      setActiveTripsLoading(false);
+    } catch (err) {
+      console.error('Refresh my trips failed:', err);
+      setMyTripsRefreshError(err.message || 'Failed to refresh trips');
+    } finally {
+      setMyTripsRefreshing(false);
+    }
+  }, [userProfile.publicKey]);
+
   return (
     <div>
       <WalletBar
@@ -440,6 +490,19 @@ const PassengerView = () => {
           title="My ride"
           icon="🚗"
           description={userProfile.publicKey ? 'Tap the map to set pickup → dropoff, enter fare, and request. Your ride appears on the map and in the cards below.' : 'Connect your wallet to request rides.'}
+          action={
+            userProfile.publicKey ? (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={refreshMyRide}
+                disabled={myRideRefreshing}
+                style={{ fontSize: '0.75rem' }}
+              >
+                {myRideRefreshing ? '…' : 'Refresh'}
+              </button>
+            ) : null
+          }
         >
           {!userProfile.publicKey ? (
             <EmptyState message="Connect your wallet above to request a ride." />
@@ -488,6 +551,11 @@ const PassengerView = () => {
                     </div>
                   )}
                   {activeTripsError && <div className="status-banner error" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>{activeTripsError}</div>}
+                  {myRideRefreshError && (
+                    <div className="status-banner error" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
+                      {myRideRefreshError}
+                    </div>
+                  )}
 
                   <form onSubmit={handleSubmit}>
                     <div className="form-row" style={{ flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-end' }}>
@@ -526,8 +594,25 @@ const PassengerView = () => {
               </div>
 
               <div className="card">
+              <div className="form-row" style={{ justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--on-surface-variant)' }}>My trips</span>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={refreshPassengerMyTrips}
+                  disabled={myTripsRefreshing}
+                  style={{ fontSize: '0.75rem' }}
+                >
+                  {myTripsRefreshing ? '…' : 'Refresh'}
+                </button>
+              </div>
+              {myTripsRefreshError && (
+                <div className="status-banner error" style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
+                  {myTripsRefreshError}
+                </div>
+              )}
               {activeTrips.length > 0 && (
-                <div style={{ marginTop: '1.5rem', paddingTop: '1rem' }}>
+                <div style={{ marginTop: '1rem' }}>
                   {activeTrips.map((trip) => (
                     <ActiveTripCard
                       key={trip.txHash}
@@ -540,7 +625,7 @@ const PassengerView = () => {
               )}
 
               {previousRequests.length > 0 && (
-                <div style={{ marginTop: activeTrips.length > 0 ? '1rem' : '1.5rem', paddingTop: activeTrips.length > 0 ? '1rem' : 0 }}>
+                <div style={{ marginTop: '1rem', paddingTop: activeTrips.length > 0 ? '1rem' : 0 }}>
                   {previousRequests.map((req, idx) => (
                     <RideRequestCard
                       key={req.txHash || idx}

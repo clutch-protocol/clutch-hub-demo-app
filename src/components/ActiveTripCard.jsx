@@ -4,11 +4,7 @@ import { API_URL } from '../config';
 import TransactionHistory from './TransactionHistory';
 import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
 import { useConfirmDialog } from './layout/useConfirmDialog.jsx';
-
-function truncAddr(addr) {
-  if (!addr || addr.length < 12) return addr || '';
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
+import { truncAddr } from '../utils/address';
 
 function normAddr(a) {
   if (!a) return '';

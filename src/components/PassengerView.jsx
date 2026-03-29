@@ -11,6 +11,8 @@ import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
+import { useClutchSdk } from '../hooks/useClutchSdk';
+import { truncAddr } from '../utils/address';
 import Icon from './Icon';
 import {
   subscribeActiveTripsCompat,
@@ -23,11 +25,6 @@ import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
-
-function truncAddr(addr) {
-  if (!addr || addr.length < 12) return addr || '';
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
 
 /** Map open ride requests to card rows for the signed-in passenger (shared by subscription + manual refresh). */
 function formatPassengerOpenRequests(allRequests, publicKey) {
@@ -73,6 +70,7 @@ const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
 const RideRequestCard = ({
   req,
   userProfile,
+  hubSdk,
   onAcceptSuccess,
   onCancelSuccess,
   requestPrivateKey,
@@ -90,7 +88,7 @@ const RideRequestCard = ({
     setLoading(true);
     setError(null);
     try {
-      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey);
       const fetchedOffers = await sdk.listRideOffers(req.txHash);
       setOffers(fetchedOffers);
     } catch (err) {
@@ -99,13 +97,13 @@ const RideRequestCard = ({
     } finally {
       setLoading(false);
     }
-  }, [req.txHash, userProfile.publicKey]);
+  }, [req.txHash, userProfile.publicKey, hubSdk]);
 
   useEffect(() => {
     if (!userProfile.publicKey || !req.txHash) return undefined;
     setLoading(true);
     setError(null);
-    const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+    const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey);
     const dispose = subscribeRideOffersCompat(sdk, req.txHash, {
       onData: (list) => {
         setOffers(list);
@@ -118,14 +116,14 @@ const RideRequestCard = ({
       },
     });
     return () => dispose();
-  }, [req.txHash, userProfile.publicKey]);
+  }, [req.txHash, userProfile.publicKey, hubSdk]);
 
   const handleAcceptOffer = useCallback(async (offer) => {
     if (!userProfile.publicKey || !offer.txHash) return;
     setAcceptingOfferTxHash(offer.txHash);
     setAcceptError(null);
     try {
-      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey);
       const unsignedTx = await sdk.createUnsignedRideAcceptance({ rideOfferTxHash: offer.txHash });
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
@@ -159,14 +157,14 @@ const RideRequestCard = ({
     } finally {
       setAcceptingOfferTxHash(null);
     }
-  }, [userProfile, onAcceptSuccess, requestPrivateKey]);
+  }, [userProfile, onAcceptSuccess, requestPrivateKey, hubSdk]);
 
   const handleCancelRequest = useCallback(async () => {
     if (!userProfile.publicKey || !req.txHash) return;
     setCancelling(true);
     setCancelError(null);
     try {
-      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey);
       const unsignedTx = await sdk.createUnsignedRideRequestCancel({ rideRequestTxHash: req.txHash });
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
@@ -200,7 +198,7 @@ const RideRequestCard = ({
     } finally {
       setCancelling(false);
     }
-  }, [userProfile, req.txHash, onCancelSuccess, requestPrivateKey]);
+  }, [userProfile, req.txHash, onCancelSuccess, requestPrivateKey, hubSdk]);
 
   return (
     <div className="card" style={{ marginBottom: '1rem' }}>
@@ -290,6 +288,8 @@ const PassengerView = () => {
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
+  const hubSdk = useClutchSdk(userProfile.publicKey, '0x0');
+
   const hasConcurrent = activeTrips.length > 0 || previousRequests.length > 0;
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
@@ -302,9 +302,8 @@ const PassengerView = () => {
     }
     setActiveTripsLoading(true);
     setActiveTripsError(null);
-    const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
     const dispose = subscribeActiveTripsCompat(
-      sdk,
+      hubSdk,
       { passengerAddress: userProfile.publicKey },
       {
         onData: (trips) => {
@@ -320,7 +319,7 @@ const PassengerView = () => {
       }
     );
     return () => dispose();
-  }, [userProfile.publicKey]);
+  }, [userProfile.publicKey, hubSdk]);
 
   useEffect(() => {
     if (!userProfile.publicKey) {
@@ -330,9 +329,8 @@ const PassengerView = () => {
     }
     setRecentTripsLoading(true);
     setRecentTripsError(null);
-    const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
     const dispose = subscribeRecentTripsCompat(
-      sdk,
+      hubSdk,
       { passengerAddress: userProfile.publicKey },
       {
         onData: (trips) => {
@@ -348,15 +346,14 @@ const PassengerView = () => {
       }
     );
     return () => dispose();
-  }, [userProfile.publicKey]);
+  }, [userProfile.publicKey, hubSdk]);
 
   useEffect(() => {
     if (!userProfile.publicKey) {
       setPreviousRequests([]);
       return undefined;
     }
-    const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-    const dispose = subscribeRideRequestsCompat(sdk, null, {
+    const dispose = subscribeRideRequestsCompat(hubSdk, null, {
       onData: (allRequests) => {
         setPreviousRequests(formatPassengerOpenRequests(allRequests, userProfile.publicKey));
       },
@@ -365,7 +362,7 @@ const PassengerView = () => {
       },
     });
     return () => dispose();
-  }, [userProfile.publicKey]);
+  }, [userProfile.publicKey, hubSdk]);
 
   const handleReset = useCallback(() => {
     setPickup(null);
@@ -381,8 +378,7 @@ const PassengerView = () => {
     setIsLoading(true);
     try {
       setTransactionStatus({ type: 'info', message: 'Creating transaction...' });
-      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-      const unsignedTx = await sdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
+      const unsignedTx = await hubSdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
       setTransactionStatus({ type: 'info', message: 'Signing...' });
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
@@ -394,9 +390,9 @@ const PassengerView = () => {
           return;
         }
       }
-      const signature = await sdk.signTransaction(unsignedTx, privateKey);
+      const signature = await hubSdk.signTransaction(unsignedTx, privateKey);
       setTransactionStatus({ type: 'info', message: 'Submitting...' });
-      await sdk.submitTransaction(signature.rawTransaction);
+      await hubSdk.submitTransaction(signature.rawTransaction);
       TransactionHistory.addTransaction(userProfile.publicKey, {
         type: 'Ride Request',
         timestamp: Date.now(),
@@ -423,17 +419,16 @@ const PassengerView = () => {
       submittingRef.current = false;
       setIsLoading(false);
     }
-  }, [pickup, dropoff, userProfile, fare]);
+  }, [pickup, dropoff, userProfile, fare, hubSdk]);
 
   const refreshMyRide = useCallback(async () => {
     if (!userProfile.publicKey) return;
     setMyRideRefreshing(true);
     setMyRideRefreshError(null);
     try {
-      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
       const [allRequests, trips] = await Promise.all([
-        sdk.listRideRequests(),
-        sdk.listActiveTrips({ passengerAddress: userProfile.publicKey }),
+        hubSdk.listRideRequests(),
+        hubSdk.listActiveTrips({ passengerAddress: userProfile.publicKey }),
       ]);
       setPreviousRequests(formatPassengerOpenRequests(allRequests, userProfile.publicKey));
       setActiveTrips(trips);
@@ -445,15 +440,14 @@ const PassengerView = () => {
     } finally {
       setMyRideRefreshing(false);
     }
-  }, [userProfile.publicKey]);
+  }, [userProfile.publicKey, hubSdk]);
 
   const refreshPassengerMyTrips = useCallback(async () => {
     if (!userProfile.publicKey) return;
     setMyTripsRefreshing(true);
     setMyTripsRefreshError(null);
     try {
-      const sdk = new ClutchHubSdk(API_URL, userProfile.publicKey);
-      const trips = await sdk.listActiveTrips({ passengerAddress: userProfile.publicKey });
+      const trips = await hubSdk.listActiveTrips({ passengerAddress: userProfile.publicKey });
       setActiveTrips(trips);
       setActiveTripsError(null);
       setActiveTripsLoading(false);
@@ -463,7 +457,7 @@ const PassengerView = () => {
     } finally {
       setMyTripsRefreshing(false);
     }
-  }, [userProfile.publicKey]);
+  }, [userProfile.publicKey, hubSdk]);
 
   return (
     <div>
@@ -637,6 +631,7 @@ const PassengerView = () => {
                       key={req.txHash || idx}
                       req={req}
                       userProfile={userProfile}
+                      hubSdk={hubSdk}
                       onAcceptSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
                       onCancelSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
                       requestPrivateKey={requestPrivateKey}

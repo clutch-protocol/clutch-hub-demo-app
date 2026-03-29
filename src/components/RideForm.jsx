@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
-import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
+import { MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
+import { useClutchSdk } from '../hooks/useClutchSdk';
 import UserProfile from './UserProfile';
 import BalanceDisplay from './BalanceDisplay';
 import TransactionHistory from './TransactionHistory';
@@ -36,10 +36,8 @@ const RideForm = () => {
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
-  const sdk = useMemo(() => {
-    if (!userProfile.publicKey) return null;
-    return new ClutchHubSdk(API_URL, userProfile.publicKey);
-  }, [userProfile.publicKey]);
+  const hubSdk = useClutchSdk(userProfile.publicKey || undefined, '0x0');
+  const sdk = userProfile.publicKey ? hubSdk : null;
 
   const handleReset = useCallback(() => {
     setPickup(null);

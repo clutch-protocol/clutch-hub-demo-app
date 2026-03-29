@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL } from '../config';
+import { useClutchSdk } from '../hooks/useClutchSdk';
 
 const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
   const [balance, setBalance] = useState(null);
@@ -8,13 +7,13 @@ const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
   const [faucetLoading, setFaucetLoading] = useState(false);
   const [faucetMessage, setFaucetMessage] = useState(null);
 
+  const sdk = useClutchSdk(publicKey || undefined, '0x0');
+
   useEffect(() => {
     if (!publicKey) return undefined;
 
     setLoading(true);
-    const sdk = new ClutchHubSdk(API_URL, publicKey);
-
-    const dispose = sdk.subscribeAccountBalance({ publicKey }, { 
+    const dispose = sdk.subscribeAccountBalance({ publicKey }, {
       onData: (value) => {
         setBalance(value);
         setLoading(false);
@@ -26,14 +25,13 @@ const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
     });
 
     return () => dispose();
-  }, [publicKey]);
+  }, [publicKey, sdk]);
 
   const handleFaucet = useCallback(async () => {
     if (!publicKey) return;
     setFaucetMessage(null);
     setFaucetLoading(true);
     try {
-      const sdk = new ClutchHubSdk(API_URL, publicKey);
       const res = await sdk.requestFaucet(publicKey);
       if (res.ok) {
         setFaucetMessage(`+${res.amount_clt} CLT`);
@@ -46,7 +44,7 @@ const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
     } finally {
       setFaucetLoading(false);
     }
-  }, [publicKey, onFaucetSuccess]);
+  }, [publicKey, onFaucetSuccess, sdk]);
 
   if (!publicKey) return null;
 

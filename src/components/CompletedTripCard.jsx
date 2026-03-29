@@ -2,11 +2,7 @@ import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
 import { MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
-
-function truncAddr(addr) {
-  if (!addr || addr.length < 12) return addr || '';
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
+import { truncAddr } from '../utils/address';
 
 function CopyableAddress({ address }) {
   const [copied, setCopied] = useState(false);

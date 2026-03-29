@@ -9,8 +9,9 @@ import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
-import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
+import { useClutchSdk } from '../hooks/useClutchSdk';
+import { truncAddr } from '../utils/address';
 import Icon from './Icon';
 import {
   subscribeActiveTripsCompat,
@@ -24,11 +25,6 @@ L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
 
 const DEFAULT_CENTER = [27.1883, 56.3772];
 const DEFAULT_ZOOM = 12;
-
-function truncAddr(addr) {
-  if (!addr || addr.length < 12) return addr || '';
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
 
 const NetworkView = () => {
   const [activeTab, setActiveTab] = useState('requests');
@@ -47,6 +43,8 @@ const NetworkView = () => {
   const [recentTrips, setRecentTrips] = useState([]);
   const [recentTripsLoading, setRecentTripsLoading] = useState(false);
   const [recentTripsError, setRecentTripsError] = useState(null);
+
+  const sdk = useClutchSdk(undefined, '0x0');
 
   useEffect(() => {
     const fetchHealth = async () => {
@@ -71,7 +69,6 @@ const NetworkView = () => {
   useEffect(() => {
     setRidesLoading(true);
     setRidesError(null);
-    const sdk = new ClutchHubSdk(API_URL, '0x0');
     const dispose = subscribeRideRequestsCompat(sdk, null, {
       onData: (requests) => {
         setRideRequests(requests);
@@ -85,12 +82,11 @@ const NetworkView = () => {
       },
     });
     return () => dispose();
-  }, []);
+  }, [sdk]);
 
   useEffect(() => {
     setActiveTripsLoading(true);
     setActiveTripsError(null);
-    const sdk = new ClutchHubSdk(API_URL, '0x0');
     const dispose = subscribeActiveTripsCompat(sdk, undefined, {
       onData: (trips) => {
         setActiveTrips(trips);
@@ -104,12 +100,11 @@ const NetworkView = () => {
       },
     });
     return () => dispose();
-  }, []);
+  }, [sdk]);
 
   useEffect(() => {
     setRecentTripsLoading(true);
     setRecentTripsError(null);
-    const sdk = new ClutchHubSdk(API_URL, '0x0');
     const dispose = subscribeRecentTripsCompat(sdk, undefined, {
       onData: (trips) => {
         setRecentTrips(trips);
@@ -123,7 +118,7 @@ const NetworkView = () => {
       },
     });
     return () => dispose();
-  }, []);
+  }, [sdk]);
 
   useEffect(() => {
     if (!selectedTxHash) {
@@ -132,7 +127,6 @@ const NetworkView = () => {
       return undefined;
     }
     setOffersLoading(true);
-    const sdk = new ClutchHubSdk(API_URL, '0x0');
     const dispose = subscribeRideOffersCompat(sdk, selectedTxHash, {
       onData: (list) => {
         setOffers(list);
@@ -145,7 +139,7 @@ const NetworkView = () => {
       },
     });
     return () => dispose();
-  }, [selectedTxHash]);
+  }, [sdk, selectedTxHash]);
 
   const selectedRequest = rideRequests.find((r) => r.txHash === selectedTxHash);
 

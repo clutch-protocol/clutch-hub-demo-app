@@ -18,10 +18,35 @@ function App() {
         <RoleSelector role={role} onRoleChange={setRole} />
       </header>
       <main className="app-main">
-        <div className="fade-in" key={`view-${role}`} style={{ animationDelay: '0.05s' }}>
-          {role === 'passenger' && <PassengerView />}
-          {role === 'driver' && <DriverView />}
-          {role === 'explorer' && <NetworkView />}
+        <div
+          className="fade-in"
+          role="tabpanel"
+          id="role-panel-passenger"
+          aria-labelledby="role-tab-passenger"
+          hidden={role !== 'passenger'}
+          style={{ display: role === 'passenger' ? 'block' : 'none', animationDelay: '0.05s' }}
+        >
+          <PassengerView />
+        </div>
+        <div
+          className="fade-in"
+          role="tabpanel"
+          id="role-panel-driver"
+          aria-labelledby="role-tab-driver"
+          hidden={role !== 'driver'}
+          style={{ display: role === 'driver' ? 'block' : 'none', animationDelay: '0.05s' }}
+        >
+          <DriverView />
+        </div>
+        <div
+          className="fade-in"
+          role="tabpanel"
+          id="role-panel-explorer"
+          aria-labelledby="role-tab-explorer"
+          hidden={role !== 'explorer'}
+          style={{ display: role === 'explorer' ? 'block' : 'none', animationDelay: '0.05s' }}
+        >
+          <NetworkView />
         </div>
       </main>
     </div>

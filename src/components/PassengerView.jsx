@@ -485,7 +485,13 @@ const PassengerView = () => {
         variant="pill"
       />
 
-      {passengerTab === 'rides' && (
+      <div
+        role="tabpanel"
+        id="panel-rides"
+        aria-labelledby="tab-rides"
+        hidden={passengerTab !== 'rides'}
+        style={{ display: passengerTab === 'rides' ? 'block' : 'none' }}
+      >
         <Section
           title="My ride"
           icon="🚗"
@@ -646,9 +652,15 @@ const PassengerView = () => {
             </>
           )}
         </Section>
-      )}
+      </div>
 
-      {passengerTab === 'recent' && (
+      <div
+        role="tabpanel"
+        id="panel-recent"
+        aria-labelledby="tab-recent"
+        hidden={passengerTab !== 'recent'}
+        style={{ display: passengerTab === 'recent' ? 'block' : 'none' }}
+      >
         <Section
           title="Recent rides"
           icon="✅"
@@ -670,7 +682,7 @@ const PassengerView = () => {
             </>
           )}
         </Section>
-      )}
+      </div>
 
       {userProfile.publicKey && (
         <Section title="Transaction history" icon="📋" collapsible defaultExpanded={false}>

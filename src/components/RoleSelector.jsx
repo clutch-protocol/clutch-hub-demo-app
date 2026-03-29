@@ -8,11 +8,15 @@ const ROLES = [
 
 const RoleSelector = ({ role, onRoleChange }) => (
   <div className="role-selector">
-    <div className="role-tabs">
+    <div className="role-tabs" role="tablist" aria-label="Role selector">
       {ROLES.map((r) => (
         <button
           key={r.id}
           type="button"
+          role="tab"
+          aria-selected={role === r.id}
+          aria-controls={`role-panel-${r.id}`}
+          id={`role-tab-${r.id}`}
           className={`role-tab ${role === r.id ? 'active' : ''}`}
           onClick={() => onRoleChange(r.id)}
         >

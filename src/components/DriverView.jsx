@@ -171,7 +171,7 @@ const DriverView = () => {
   const [recentTrips, setRecentTrips] = useState([]);
   const [recentTripsLoading, setRecentTripsLoading] = useState(false);
   const [recentTripsError, setRecentTripsError] = useState(null);
-  const [driverTab, setDriverTab] = useState('find');
+  const [driverTab, setDriverTab] = useState('rides');
   const [myTripsRefreshing, setMyTripsRefreshing] = useState(false);
   const [myTripsRefreshError, setMyTripsRefreshError] = useState(null);
 
@@ -250,7 +250,7 @@ const DriverView = () => {
     } finally {
       setIsLoadingRides(false);
     }
-  }, [userProfile.publicKey, hubSdk]);
+  }, [hubSdk]);
 
   useEffect(() => {
     setIsLoadingRides(true);
@@ -268,7 +268,7 @@ const DriverView = () => {
       },
     });
     return () => dispose();
-  }, [userProfile.publicKey, hubSdk]);
+  }, [hubSdk]);
 
   const handleFareChange = useCallback((txHash, value) => {
     setOfferFares((prev) => ({ ...prev, [txHash]: value }));
@@ -351,8 +351,12 @@ const DriverView = () => {
 
       <ExplorerTabs
         tabs={[
-          { id: 'find', label: 'Find Rides', icon: '📍', count: rideRequests.length },
-          { id: 'trips', label: 'My Trips', icon: '🚗', count: userProfile.publicKey ? activeTrips.length : 0 },
+          {
+            id: 'rides',
+            label: 'Rides',
+            icon: '📍',
+            count: userProfile.publicKey ? (hasActiveTrip ? activeTrips.length : rideRequests.length) : rideRequests.length,
+          },
           { id: 'recent', label: 'Recent rides', icon: '✅', count: userProfile.publicKey ? recentTrips.length : 0 },
         ]}
         activeTab={driverTab}
@@ -362,95 +366,17 @@ const DriverView = () => {
 
       <div
         role="tabpanel"
-        id="panel-find"
-        aria-labelledby="tab-find"
-        hidden={driverTab !== 'find'}
-        style={{ display: driverTab === 'find' ? 'block' : 'none' }}
+        id="panel-rides"
+        aria-labelledby="tab-rides"
+        hidden={driverTab !== 'rides'}
+        style={{ display: driverTab === 'rides' ? 'block' : 'none' }}
       >
         {hasActiveTrip && userProfile.publicKey && (
           <div className="status-banner info" style={{ marginBottom: '1rem' }}>
-            You have an active trip. Complete it before accepting new ride requests.
-            <button
-              type="button"
-              className="btn-ghost"
-              style={{ marginLeft: '0.5rem', fontSize: '0.8rem' }}
-              onClick={() => setDriverTab('trips')}
-            >
-              View my trip
-            </button>
+            You have an active trip. Finish it before accepting new ride offers.
           </div>
         )}
-        <Section
-          title="Available rides"
-          icon="📍"
-          description="Ride requests from passengers. One trip at a time—complete your current trip before making new offers."
-          action={
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={fetchRideRequests}
-              disabled={isLoadingRides}
-              title="Fetch the latest ride requests from the hub (same as live subscription)"
-              style={{ fontSize: '0.75rem' }}
-            >
-              {isLoadingRides ? '…' : 'Refresh list'}
-            </button>
-          }
-        >
-          {acceptStatus && <div className={`status-banner ${acceptStatus.type}`}>{acceptStatus.message}</div>}
-          {ridesError && <div className="status-banner error">{ridesError}</div>}
 
-          <div className="form-row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              {isLoadingRides && rideRequests.length === 0 ? 'Loading ride requests…' : 'Live updates + manual refresh'}
-            </span>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={fetchRideRequests}
-              disabled={isLoadingRides}
-              style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-            >
-              {isLoadingRides ? 'Refreshing…' : 'Refresh available rides'}
-            </button>
-          </div>
-
-          {rideRequests.length === 0 && !isLoadingRides && (
-            <EmptyState
-              message={
-                ridesError
-                  ? 'Could not load the list. Use refresh to try again, or wait for the live connection to recover.'
-                  : 'No ride requests yet. When passengers request rides, they will appear here.'
-              }
-              action="Refresh available rides"
-              onAction={fetchRideRequests}
-              actionDisabled={isLoadingRides}
-            />
-          )}
-
-          {rideRequests.map((req) => (
-            <RideRequestCard
-              key={req.txHash}
-              req={req}
-              userProfile={userProfile}
-              hubSdk={hubSdk}
-              offerFares={offerFares}
-              handleFareChange={handleFareChange}
-              handleAcceptOffer={handleAcceptOffer}
-              acceptingTxHash={acceptingTxHash}
-              disabled={hasActiveTrip}
-            />
-          ))}
-        </Section>
-      </div>
-
-      <div
-        role="tabpanel"
-        id="panel-trips"
-        aria-labelledby="tab-trips"
-        hidden={driverTab !== 'trips'}
-        style={{ display: driverTab === 'trips' ? 'block' : 'none' }}
-      >
         <Section
           title="My trips"
           icon="🚗"
@@ -493,6 +419,74 @@ const DriverView = () => {
             </>
           )}
         </Section>
+
+        {!hasActiveTrip && (
+          <Section
+            title="Available rides"
+            icon="📍"
+            description="Ride requests from passengers."
+            action={
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={fetchRideRequests}
+                disabled={isLoadingRides}
+                title="Fetch the latest ride requests from the hub (same as live subscription)"
+                style={{ fontSize: '0.75rem' }}
+              >
+                {isLoadingRides ? '…' : 'Refresh list'}
+              </button>
+            }
+          >
+            {acceptStatus && <div className={`status-banner ${acceptStatus.type}`}>{acceptStatus.message}</div>}
+            {ridesError && <div className="status-banner error">{ridesError}</div>}
+
+            <div
+              className="form-row"
+              style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}
+            >
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                {isLoadingRides && rideRequests.length === 0 ? 'Loading ride requests…' : 'Live updates + manual refresh'}
+              </span>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={fetchRideRequests}
+                disabled={isLoadingRides}
+                style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+              >
+                {isLoadingRides ? 'Refreshing…' : 'Refresh available rides'}
+              </button>
+            </div>
+
+            {rideRequests.length === 0 && !isLoadingRides && (
+              <EmptyState
+                message={
+                  ridesError
+                    ? 'Could not load the list. Use refresh to try again, or wait for the live connection to recover.'
+                    : 'No ride requests yet. When passengers request rides, they will appear here.'
+                }
+                action="Refresh available rides"
+                onAction={fetchRideRequests}
+                actionDisabled={isLoadingRides}
+              />
+            )}
+
+            {rideRequests.map((req) => (
+              <RideRequestCard
+                key={req.txHash}
+                req={req}
+                userProfile={userProfile}
+                hubSdk={hubSdk}
+                offerFares={offerFares}
+                handleFareChange={handleFareChange}
+                handleAcceptOffer={handleAcceptOffer}
+                acceptingTxHash={acceptingTxHash}
+                disabled={hasActiveTrip}
+              />
+            ))}
+          </Section>
+        )}
       </div>
 
       <div

@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import MapFitBounds from './MapFitBounds';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL } from '../config';
+import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
 import TransactionHistory from './TransactionHistory';
 import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
 import { useConfirmDialog } from './layout/useConfirmDialog.jsx';
@@ -171,6 +173,9 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
   const doLat = trip.dropoffLocation.latitude;
   const doLng = trip.dropoffLocation.longitude;
 
+  const pickup = [puLat, puLng];
+  const dropoff = [doLat, doLng];
+
   return (
     <div className="card active-trip-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -215,6 +220,20 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0 0 0.875rem 0', lineHeight: 1.5 }}>
         Route: pickup {puLat.toFixed(4)}, {puLng.toFixed(4)} → dropoff {doLat.toFixed(4)}, {doLng.toFixed(4)}
       </p>
+
+      <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
+        <MapContainer center={pickup} zoom={13} style={{ height: '160px', width: '100%' }}>
+          <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
+          <MapFitBounds positions={[pickup, dropoff]} />
+          <Marker position={pickup}>
+            <Popup>Pickup</Popup>
+          </Marker>
+          <Marker position={dropoff}>
+            <Popup>Dropoff</Popup>
+          </Marker>
+          <Polyline positions={[pickup, dropoff]} color="var(--accent)" weight={3} opacity={0.85} />
+        </MapContainer>
+      </div>
 
       <div className="trip-details-grid">
         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>

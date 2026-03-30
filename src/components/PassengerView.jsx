@@ -291,6 +291,14 @@ const PassengerView = () => {
   const hubSdk = useClutchSdk(userProfile.publicKey, '0x0');
 
   const hasConcurrent = activeTrips.length > 0 || previousRequests.length > 0;
+  const hasActiveTrip = activeTrips.length > 0;
+  const firstActiveTrip = hasActiveTrip ? activeTrips[0] : null;
+  const activeTripPickup = firstActiveTrip
+    ? [firstActiveTrip.pickupLocation.latitude, firstActiveTrip.pickupLocation.longitude]
+    : null;
+  const activeTripDropoff = firstActiveTrip
+    ? [firstActiveTrip.dropoffLocation.latitude, firstActiveTrip.dropoffLocation.longitude]
+    : null;
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
 
@@ -489,7 +497,13 @@ const PassengerView = () => {
         <Section
           title="My ride"
           icon="🚗"
-          description={userProfile.publicKey ? 'Tap the map to set pickup → dropoff, enter fare, and request. Your ride appears on the map and in the cards below.' : 'Connect your wallet to request rides.'}
+          description={
+            userProfile.publicKey
+              ? hasActiveTrip
+                ? 'Active trip in progress. Origin and destination are shown on the map.'
+                : 'Tap the map to set pickup → dropoff, enter fare, and request. Your ride appears on the map and in the cards below.'
+              : 'Connect your wallet to request rides.'
+          }
           action={
             userProfile.publicKey ? (
               <button
@@ -509,20 +523,28 @@ const PassengerView = () => {
           ) : (
             <>
               <div className="map-hero" style={{ position: 'relative', marginBottom: '1.5rem' }}>
-                <div className="step-pill" style={{ marginBottom: '0.75rem' }}>
-                  Step {!pickup ? 1 : !dropoff ? 2 : 3}: {!pickup ? 'Pickup' : !dropoff ? 'Destination' : 'Fare'}
-                </div>
+                {hasActiveTrip ? (
+                  <div className="step-pill" style={{ marginBottom: '0.75rem' }}>
+                    Active trip in progress
+                  </div>
+                ) : (
+                  <div className="step-pill" style={{ marginBottom: '0.75rem' }}>
+                    Step {!pickup ? 1 : !dropoff ? 2 : 3}: {!pickup ? 'Pickup' : !dropoff ? 'Destination' : 'Fare'}
+                  </div>
+                )}
                 <div className="map-wrapper" style={{ height: '380px', borderRadius: 'var(--radius-md)', position: 'relative' }}>
                   <div className="map-gradient-overlay" />
                   <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '100%', width: '100%' }}>
                     <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
 
                     {previousRequests.map((r) => (
-                      <React.Fragment key={r.txHash}>
-                        <Marker position={[r.pickup.lat, r.pickup.lng]}><Popup>Awaiting offers</Popup></Marker>
-                        <Marker position={[r.dropoff.lat, r.dropoff.lng]}><Popup>Awaiting offers</Popup></Marker>
-                        <Polyline positions={[[r.pickup.lat, r.pickup.lng], [r.dropoff.lat, r.dropoff.lng]]} color="#94a3b8" weight={3} opacity={0.75} />
-                      </React.Fragment>
+                      !hasActiveTrip && (
+                        <React.Fragment key={r.txHash}>
+                          <Marker position={[r.pickup.lat, r.pickup.lng]}><Popup>Awaiting offers</Popup></Marker>
+                          <Marker position={[r.dropoff.lat, r.dropoff.lng]}><Popup>Awaiting offers</Popup></Marker>
+                          <Polyline positions={[[r.pickup.lat, r.pickup.lng], [r.dropoff.lat, r.dropoff.lng]]} color="#94a3b8" weight={3} opacity={0.75} />
+                        </React.Fragment>
+                      )
                     ))}
 
                     {activeTrips.map((t) => (
@@ -533,21 +555,35 @@ const PassengerView = () => {
                       </React.Fragment>
                     ))}
 
-                    {pickup && dropoff && <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />}
+                    {hasActiveTrip && activeTripPickup && activeTripDropoff && (
+                      <MapFitBounds positions={[activeTripPickup, activeTripDropoff]} />
+                    )}
+                    {!hasActiveTrip && pickup && dropoff && (
+                      <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />
+                    )}
                     <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={hasConcurrent ? () => {} : setPickup} setDropoff={hasConcurrent ? () => {} : setDropoff} />
-                    {pickup && <Marker position={pickup}><Popup>Pickup</Popup></Marker>}
-                    {dropoff && <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>}
-                    {pickup && dropoff && <Polyline positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} color="var(--accent)" weight={3} opacity={0.8}></Polyline>}
+                    {!hasActiveTrip && pickup && <Marker position={pickup}><Popup>Pickup</Popup></Marker>}
+                    {!hasActiveTrip && dropoff && <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>}
+                    {!hasActiveTrip && pickup && dropoff && (
+                      <Polyline
+                        positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]}
+                        color="var(--accent)"
+                        weight={3}
+                        opacity={0.8}
+                      />
+                    )}
                   </MapContainer>
                 </div>
 
                 <div className="floating-panel">
-                  {transactionStatus && (
-                    <div className={`status-banner ${transactionStatus.type}`} style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>{transactionStatus.message}</div>
+                  {!hasActiveTrip && transactionStatus && (
+                    <div className={`status-banner ${transactionStatus.type}`} style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
+                      {transactionStatus.message}
+                    </div>
                   )}
-                  {hasConcurrent && (
+                  {!hasActiveTrip && hasConcurrent && (
                     <div className="status-banner info" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
-                      Active request or trip. Complete or cancel it first.
+                      Active request. Complete or cancel it first.
                     </div>
                   )}
                   {activeTripsError && <div className="status-banner error" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>{activeTripsError}</div>}
@@ -556,40 +592,49 @@ const PassengerView = () => {
                       {myRideRefreshError}
                     </div>
                   )}
-
-                  <form onSubmit={handleSubmit}>
-                    <div className="form-row" style={{ flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-end' }}>
-                      <div style={{ flex: '0 0 auto' }}>
-                        <label className="label">Fare (CLT)</label>
-                        <input
-                          type="number"
-                          value={fare}
-                          onChange={(e) => setFare(e.target.value)}
-                          className="input-field"
-                          style={{ width: 90 }}
-                          min={0}
-                          placeholder="0"
-                          required
-                          disabled={hasConcurrent}
-                        />
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                        <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }} disabled={isLoading || hasConcurrent}>Reset</button>
-                        <button type="submit" disabled={hasConcurrent || !(pickup && dropoff && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
-                          {isLoading ? 'Submitting…' : 'Request Ride'}
-                        </button>
-                      </div>
+                  {hasActiveTrip ? (
+                    <div className="status-banner info" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
+                      Active trip in progress (origin → destination)
                     </div>
-
-                    {pickup && dropoff && (
-                      <div className="form-row" style={{ marginTop: '0.5rem', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <span className="location-chip pickup">Pickup: {pickup.lat.toFixed(3)}, {pickup.lng.toFixed(3)}</span>
-                        <span className="location-chip dropoff">Dropoff: {dropoff.lat.toFixed(3)}, {dropoff.lng.toFixed(3)}</span>
+                  ) : (
+                    <form onSubmit={handleSubmit}>
+                      <div className="form-row" style={{ flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-end' }}>
+                        <div style={{ flex: '0 0 auto' }}>
+                          <label className="label">Fare (CLT)</label>
+                          <input
+                            type="number"
+                            value={fare}
+                            onChange={(e) => setFare(e.target.value)}
+                            className="input-field"
+                            style={{ width: 90 }}
+                            min={0}
+                            placeholder="0"
+                            required
+                            disabled={hasConcurrent}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                          <button type="button" onClick={handleReset} className="btn-secondary" style={{ whiteSpace: 'nowrap' }} disabled={isLoading || hasConcurrent}>Reset</button>
+                          <button type="submit" disabled={hasConcurrent || !(pickup && dropoff && fare) || isLoading} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                            {isLoading ? 'Submitting…' : 'Request Ride'}
+                          </button>
+                        </div>
                       </div>
-                    )}
-                    {!pickup && <p className="map-hint" style={{ margin: '0.5rem 0 0', fontSize: '0.8rem' }}>Tap map to set pickup → dropoff</p>}
-                    {pickup && !dropoff && <p className="map-hint" style={{ margin: '0.5rem 0 0', fontSize: '0.8rem' }}>Tap map for dropoff</p>}
-                  </form>
+
+                      {pickup && dropoff && (
+                        <div className="form-row" style={{ marginTop: '0.5rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span className="location-chip pickup">Pickup: {pickup.lat.toFixed(3)}, {pickup.lng.toFixed(3)}</span>
+                          <span className="location-chip dropoff">Dropoff: {dropoff.lat.toFixed(3)}, {dropoff.lng.toFixed(3)}</span>
+                        </div>
+                      )}
+                      {!pickup && (
+                        <p className="map-hint" style={{ margin: '0.5rem 0 0', fontSize: '0.8rem' }}>Tap map to set pickup → dropoff</p>
+                      )}
+                      {pickup && !dropoff && (
+                        <p className="map-hint" style={{ margin: '0.5rem 0 0', fontSize: '0.8rem' }}>Tap map for dropoff</p>
+                      )}
+                    </form>
+                  )}
                 </div>
               </div>
 
@@ -624,7 +669,7 @@ const PassengerView = () => {
                 </div>
               )}
 
-              {previousRequests.length > 0 && (
+              {previousRequests.length > 0 && !hasActiveTrip && (
                 <div style={{ marginTop: '1rem', paddingTop: activeTrips.length > 0 ? '1rem' : 0 }}>
                   {previousRequests.map((req, idx) => (
                     <RideRequestCard

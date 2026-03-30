@@ -15,6 +15,12 @@ const REPOS = [
   { name: 'Demo App', desc: 'Passenger, driver, and explorer views.', url: 'https://github.com/clutchprotocol/clutch-hub-demo-app', icon: 'apps' },
 ];
 
+const DEFAULT_STAGE_NODE_ENDPOINTS = [
+  'wss://node1-stage.clutchprotocol.io/ws',
+  'wss://node2-stage.clutchprotocol.io/ws',
+  'wss://node3-stage.clutchprotocol.io/ws',
+];
+
 const EndpointRow = ({ label, value, href }) => (
   <div className="general-endpoint-row">
     <span className="general-endpoint-label">{label}</span>
@@ -73,12 +79,23 @@ const GeneralView = () => {
             ))}
           </ul>
         ) : (
-          <p className="general-node-hint">
-            The browser only talks to the Hub API above. Clutch nodes are reached by the Hub over WebSocket
-            (for example <code className="general-inline-code">CLUTCH_NODE_WS_URL</code> in deploy, often{' '}
-            <code className="general-inline-code">ws://node1:8081/ws</code> inside Docker). Set{' '}
-            <code className="general-inline-code">VITE_PUBLIC_NODE_ENDPOINTS</code> at build time to list public node URLs here.
-          </p>
+          <>
+            <ul className="general-node-list">
+              {DEFAULT_STAGE_NODE_ENDPOINTS.map((url) => (
+                <li key={url}>
+                  <code className="general-endpoint-value">
+                    <a href={url} target="_blank" rel="noopener noreferrer">
+                      {url}
+                    </a>
+                  </code>
+                </li>
+              ))}
+            </ul>
+            <p className="general-node-hint">
+              The browser only talks to the Hub API above. Clutch nodes are reached by the Hub over WebSocket.
+              Set <code className="general-inline-code">VITE_PUBLIC_NODE_ENDPOINTS</code> at build time to override these defaults.
+            </p>
+          </>
         )}
       </section>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import RoleSelector from './components/RoleSelector';
 import PassengerView from './components/PassengerView';
 import DriverView from './components/DriverView';
@@ -7,6 +7,28 @@ import './App.css';
 
 function App() {
   const [role, setRole] = useState('passenger');
+  const themeStorageKey = 'clutch_demo_theme';
+
+  const initialTheme = useMemo(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const stored = window.localStorage.getItem(themeStorageKey);
+    if (stored === 'light' || stored === 'dark') return stored;
+    // Respect OS preference as default
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches;
+    return prefersDark ? 'dark' : 'light';
+  }, []);
+
+  const [theme, setTheme] = useState(initialTheme);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(themeStorageKey, theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+  };
 
   return (
     <div className="app">
@@ -15,7 +37,17 @@ function App() {
           <img src="/clutch-logo.svg" alt="Clutch" className="app-logo-icon" width={32} height={32} />
           <span className="app-logo-text">Clutch Stage</span>
         </div>
-        <RoleSelector role={role} onRoleChange={setRole} />
+        <div className="app-header-right">
+          <button
+            type="button"
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            aria-label="Toggle dark/light mode"
+          >
+            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
+          <RoleSelector role={role} onRoleChange={setRole} />
+        </div>
       </header>
       <main className="app-main">
         <div

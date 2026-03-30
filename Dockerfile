@@ -31,6 +31,17 @@ RUN echo 'server { \
   listen 80; \
   root /usr/share/nginx/html; \
   index index.html; \
+  # Never serve HTML as a response for the web app manifest or service worker.
+  location = /manifest.webmanifest { \
+    default_type application/manifest+json; \
+    try_files $uri =404; \
+  } \
+  location = /sw.js { \
+    try_files $uri =404; \
+  } \
+  location = /registerSW.js { \
+    try_files $uri =404; \
+  } \
   location / { try_files $uri $uri/ /index.html; } \
 }' > /etc/nginx/conf.d/default.conf
 

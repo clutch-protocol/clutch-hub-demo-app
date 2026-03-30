@@ -2,11 +2,22 @@ const host = typeof window !== "undefined" ? window.location.hostname : "";
 const port = typeof window !== "undefined" ? window.location.port : "";
 const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
 
-// Cloudflare / split hostnames: demo on stageweb.<domain>, API on stageapi.<domain>
+// Cloudflare / split hostnames:
+// - app on app-stage.<domain>
+// - API on api-stage.<domain>
 const cloudflareStageApiUrl = (() => {
-  if (!host.startsWith("stageweb.")) return null;
-  const apiHost = host.replace(/^stageweb\./, "stageapi.");
-  return `${protocol}//${apiHost}`;
+  if (host.startsWith("app-stage.")) {
+    const apiHost = host.replace(/^app-stage\./, "api-stage.");
+    return `${protocol}//${apiHost}`;
+  }
+
+  // Backwards compatibility (older deployments)
+  if (host.startsWith("stageweb.")) {
+    const apiHost = host.replace(/^stageweb\./, "stageapi.");
+    return `${protocol}//${apiHost}`;
+  }
+
+  return null;
 })();
 
 // Legacy docker mapping: demo on :81, API on :82 (same host).

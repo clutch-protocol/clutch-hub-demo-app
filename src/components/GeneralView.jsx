@@ -88,7 +88,7 @@ const GeneralView = () => {
           GitHub
         </h3>
         <h1 className="about-hero">
-          Kinetic <span className="about-hero-accent">Infrastructure.</span>
+          Clutch <span className="about-hero-accent">Protocol.</span>
         </h1>
         <div className="about-bento">
           {REPOS.map((project, idx) => (

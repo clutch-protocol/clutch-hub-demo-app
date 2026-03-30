@@ -14,6 +14,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeManifestIcons: false,
+      // Important: make the PWA assets available in dev mode too.
+      // Without this, /sw.js and /registerSW.js fall back to index.html.
+      devOptions: {
+        enabled: true,
+        type: 'classic',
+      },
       manifest: {
         name: 'Clutch Stage',
         short_name: 'Clutch',

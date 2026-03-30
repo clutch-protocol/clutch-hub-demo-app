@@ -125,7 +125,11 @@ const RideForm = () => {
           />
           <p className="map-hint">Click on the map to select pickup (first) and dropoff (second) locations</p>
           <div className="map-wrapper">
-            <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '380px', width: '100%' }}>
+            <MapContainer
+              center={[27.1883, 56.3772]}
+              zoom={12}
+              style={{ height: 'clamp(260px, 45vh, 380px)', width: '100%' }}
+            >
               <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
               <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={setPickup} setDropoff={setDropoff} />
               {pickup && <Marker position={pickup}><Popup>Pickup</Popup></Marker>}

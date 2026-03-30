@@ -1054,6 +1054,24 @@
     padding: 0.55rem 0.9rem;
     font-size: 0.8rem;
   }
+
+  .map-hero .map-wrapper {
+    border-radius: var(--radius-md);
+  }
+
+  .floating-panel {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin-top: 0.75rem;
+    padding: 1rem 1rem;
+    z-index: auto;
+  }
+
+  .map-wrapper {
+    box-shadow: var(--shadow-sm);
+  }
 }
 
 /* ===== Private key modal (anti-prompt UX) ===== */

@@ -88,7 +88,7 @@ const RideRequestCard = ({
       </div>
 
       <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
-        <MapContainer center={pickup} zoom={13} style={{ height: '180px', width: '100%' }}>
+          <MapContainer center={pickup} zoom={13} style={{ height: 'clamp(130px, 22vh, 180px)', width: '100%' }}>
           <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
           <MapFitBounds positions={[pickup, dropoff]} />
           <Marker position={pickup}><Popup>Pickup</Popup></Marker>

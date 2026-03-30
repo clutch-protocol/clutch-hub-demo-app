@@ -222,7 +222,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
       </p>
 
       <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
-        <MapContainer center={pickup} zoom={13} style={{ height: '160px', width: '100%' }}>
+        <MapContainer center={pickup} zoom={13} style={{ height: 'clamp(120px, 18vh, 160px)', width: '100%' }}>
           <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
           <MapFitBounds positions={[pickup, dropoff]} />
           <Marker position={pickup}>

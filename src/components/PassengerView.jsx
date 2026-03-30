@@ -532,7 +532,10 @@ const PassengerView = () => {
                     Step {!pickup ? 1 : !dropoff ? 2 : 3}: {!pickup ? 'Pickup' : !dropoff ? 'Destination' : 'Fare'}
                   </div>
                 )}
-                <div className="map-wrapper" style={{ height: '380px', borderRadius: 'var(--radius-md)', position: 'relative' }}>
+                <div
+                  className="map-wrapper"
+                  style={{ height: 'clamp(260px, 45vh, 380px)', borderRadius: 'var(--radius-md)', position: 'relative' }}
+                >
                   <div className="map-gradient-overlay" />
                   <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '100%', width: '100%' }}>
                     <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />

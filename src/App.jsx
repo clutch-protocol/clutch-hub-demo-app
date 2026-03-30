@@ -3,6 +3,7 @@ import RoleSelector from './components/RoleSelector';
 import PassengerView from './components/PassengerView';
 import DriverView from './components/DriverView';
 import NetworkView from './components/NetworkView';
+import GeneralView from './components/GeneralView';
 import './App.css';
 
 function App() {
@@ -69,6 +70,16 @@ function App() {
           style={{ display: role === 'driver' ? 'block' : 'none', animationDelay: '0.05s' }}
         >
           <DriverView />
+        </div>
+        <div
+          className="fade-in"
+          role="tabpanel"
+          id="role-panel-general"
+          aria-labelledby="role-tab-general"
+          hidden={role !== 'general'}
+          style={{ display: role === 'general' ? 'block' : 'none', animationDelay: '0.05s' }}
+        >
+          <GeneralView />
         </div>
         <div
           className="fade-in"

@@ -36,6 +36,39 @@ export const API_URL =
   (typeof viteApi === "string" && viteApi.length > 0 ? viteApi : null) ||
   "http://localhost:3000";
 
+/** Hub API base without trailing slash */
+export const HUB_API_BASE_URL = API_URL.replace(/\/$/, "");
+
+export const HUB_HEALTH_URL = `${HUB_API_BASE_URL}/health`;
+export const HUB_GRAPHQL_HTTP_URL = `${HUB_API_BASE_URL}/graphql`;
+
+/** Browser GraphQL subscriptions use this WebSocket URL (same host as Hub, `/graphql/ws`). */
+export const HUB_GRAPHQL_WS_URL = (() => {
+  try {
+    const u = new URL(HUB_API_BASE_URL);
+    u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
+    u.pathname = "/graphql/ws";
+    u.search = "";
+    u.hash = "";
+    return u.toString();
+  } catch {
+    return "";
+  }
+})();
+
+/**
+ * Optional comma-separated list of node RPC/WebSocket URLs to show on the General tab
+ * (e.g. stage operator). Not required for the app to run; the Hub talks to nodes server-side.
+ */
+const viteNodeEndpoints = import.meta.env.VITE_PUBLIC_NODE_ENDPOINTS;
+export const PUBLIC_NODE_ENDPOINTS =
+  typeof viteNodeEndpoints === "string" && viteNodeEndpoints.trim().length > 0
+    ? viteNodeEndpoints
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+
 /** Light map tiles for better visibility (Voyager style) */
 export const MAP_TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 export const MAP_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';

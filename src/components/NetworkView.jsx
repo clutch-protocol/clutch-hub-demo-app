@@ -163,7 +163,6 @@ const NetworkView = () => {
             { id: 'requests', label: 'Ride Requests', icon: '📍', count: rideRequests.length },
             { id: 'trips', label: 'Active Trips', icon: '🚗', count: activeTrips.length },
             { id: 'recent', label: 'Recent rides', icon: '✅', count: recentTrips.length },
-            { id: 'about', label: 'About', icon: 'ℹ️' },
           ]}
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -298,33 +297,6 @@ const NetworkView = () => {
         </>
       )}
 
-      {activeTab === 'about' && (
-        <div className="about-tab">
-          <h1 className="about-hero">
-            Kinetic <span className="about-hero-accent">Infrastructure.</span>
-          </h1>
-          <div className="about-bento">
-            {[
-              { name: 'Clutch Node', desc: 'Blockchain core with Aura consensus.', url: 'https://github.com/clutchprotocol/clutch-node', icon: 'hub' },
-              { name: 'Clutch Hub API', desc: 'Bridge between apps and the node. GraphQL and REST.', url: 'https://github.com/clutchprotocol/clutch-hub-api', icon: 'api' },
-              { name: 'Clutch Hub SDK', desc: 'Client-side transaction signing and encoding.', url: 'https://github.com/clutchprotocol/clutch-hub-sdk-js', icon: 'code' },
-              { name: 'Demo App', desc: 'Passenger, driver, and explorer views.', url: 'https://github.com/clutchprotocol/clutch-hub-demo-app', icon: 'apps' },
-            ].map((project, idx) => (
-              <div key={project.name} className={`about-bento-card ${idx === 1 || idx === 3 ? 'about-bento-card--offset' : ''}`}>
-                <div className="about-bento-icon">
-                  <Icon name={project.icon} size={28} />
-                </div>
-                <h3 className="about-bento-title">{project.name}</h3>
-                <p className="about-bento-desc">{project.desc}</p>
-                <a href={project.url} target="_blank" rel="noopener noreferrer" className="about-bento-link">
-                  {project.url.replace('https://github.com/', '')}
-                  <Icon name="arrow_forward" size={18} />
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

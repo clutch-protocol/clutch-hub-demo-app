@@ -3,6 +3,7 @@ import React from 'react';
 const ROLES = [
   { id: 'passenger', label: 'Passenger', icon: '🚗' },
   { id: 'driver', label: 'Driver', icon: '🚕' },
+  { id: 'general', label: 'General', icon: 'ℹ️' },
   { id: 'explorer', label: 'Explorer', icon: '🔍' },
 ];
 

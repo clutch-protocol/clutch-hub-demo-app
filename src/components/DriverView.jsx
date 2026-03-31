@@ -12,7 +12,6 @@ import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
 import { useClutchSdk } from '../hooks/useClutchSdk';
 import { truncAddr } from '../utils/address';
-import Icon from './Icon';
 import {
   subscribeActiveTripsCompat,
   subscribeRecentTripsCompat,
@@ -89,7 +88,7 @@ const RideRequestCard = ({
       </div>
 
       <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
-          <MapLegend style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 700 }} />
+          <MapLegend style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', zIndex: 700 }} />
           <MapContainer center={pickup} zoom={13} style={{ height: 'clamp(130px, 22vh, 180px)', width: '100%' }}>
           <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
           <MapFitBounds positions={[pickup, dropoff]} />
@@ -113,18 +112,14 @@ const RideRequestCard = ({
         )}
         {offers.map((offer) => (
           <div key={offer.txHash} className="offer-row offer-row--driver">
-            <div className="offer-row-driver" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div className="offer-avatar" style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-container), var(--primary-dim))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="directions_car" size={20} fill={1} className="text-on-primary-fixed" />
-              </div>
-              <div>
-                <p style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--on-surface)', margin: 0 }}>{truncAddr(offer.driverAddress)}</p>
-                <p style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--on-surface-variant)', margin: '0.15rem 0 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Driver</p>
+            <div className="offer-row-driver">
+              <div className="offer-avatar" aria-hidden>🚗</div>
+              <div className="offer-row-driver-meta">
+                <p className="offer-row-driver-address">{truncAddr(offer.driverAddress)}</p>
+                <p className="offer-row-driver-label">Driver</p>
               </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--on-surface)', margin: 0, fontFamily: 'var(--font-headline)' }}>{offer.fare} CLT</p>
-            </div>
+            <div className="offer-row-price">{offer.fare} CLT</div>
           </div>
         ))}
       </div>

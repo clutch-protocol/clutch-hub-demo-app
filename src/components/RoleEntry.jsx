@@ -1,4 +1,5 @@
 import React from 'react';
+import { WalletBar } from './layout';
 
 const ROLE_STORAGE_KEY = 'clutch_demo_role';
 
@@ -12,7 +13,14 @@ export function persistRole(roleId) {
   }
 }
 
-const RoleEntry = ({ onSelect }) => {
+const RoleEntry = ({
+  selectedRole,
+  onSelectRole,
+  userProfile,
+  onProfileUpdate,
+  refreshTrigger,
+  onFaucetSuccess,
+}) => {
   return (
     <div className="role-entry">
       <div className="role-entry-header">
@@ -23,35 +31,47 @@ const RoleEntry = ({ onSelect }) => {
         </p>
       </div>
 
-      <div className="role-entry-buttons" aria-label="Select your role">
-        <button
-          type="button"
-          className="role-entry-button role-entry-button--driver"
-          onClick={() => onSelect('driver')}
-        >
-          <span className="role-entry-emoji" aria-hidden="true">
-            🚗
-          </span>
-          <div className="role-entry-text">
-            <span className="role-entry-label">Driver</span>
-            <span className="role-entry-hint">Accept rides and track earnings.</span>
-          </div>
-        </button>
+      {!selectedRole ? (
+        <div className="role-entry-buttons" aria-label="Select your role">
+          <button
+            type="button"
+            className="role-entry-button role-entry-button--driver"
+            onClick={() => onSelectRole('driver')}
+          >
+            <span className="role-entry-emoji" aria-hidden="true">
+              🚗
+            </span>
+            <div className="role-entry-text">
+              <span className="role-entry-label">Driver</span>
+              <span className="role-entry-hint">Accept rides and track earnings.</span>
+            </div>
+          </button>
 
-        <button
-          type="button"
-          className="role-entry-button role-entry-button--passenger"
-          onClick={() => onSelect('passenger')}
-        >
-          <span className="role-entry-emoji" aria-hidden="true">
-            🧍
-          </span>
-          <div className="role-entry-text">
-            <span className="role-entry-label">Passenger</span>
-            <span className="role-entry-hint">Request rides and pay instantly.</span>
-          </div>
-        </button>
-      </div>
+          <button
+            type="button"
+            className="role-entry-button role-entry-button--passenger"
+            onClick={() => onSelectRole('passenger')}
+          >
+            <span className="role-entry-emoji" aria-hidden="true">
+              🧍
+            </span>
+            <div className="role-entry-text">
+              <span className="role-entry-label">Passenger</span>
+              <span className="role-entry-hint">Request rides and pay instantly.</span>
+            </div>
+          </button>
+        </div>
+      ) : (
+        <div className="role-entry-wallet">
+          <WalletBar
+            role={selectedRole}
+            userProfile={userProfile}
+            onProfileUpdate={onProfileUpdate}
+            refreshTrigger={refreshTrigger}
+            onFaucetSuccess={onFaucetSuccess}
+          />
+        </div>
+      )}
     </div>
   );
 };

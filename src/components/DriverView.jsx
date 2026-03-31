@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
 import CompletedTripCard from './CompletedTripCard';
-import { Section, WalletBar, EmptyState } from './layout';
+import { Section, EmptyState } from './layout';
 import ExplorerTabs from './ExplorerTabs';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -156,8 +156,7 @@ const RideRequestCard = ({
   );
 };
 
-const DriverView = () => {
-  const [userProfile, setUserProfile] = useState({ publicKey: '', privateKey: '' });
+const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSuccess }) => {
   const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
   const [rideRequests, setRideRequests] = useState([]);
   const [isLoadingRides, setIsLoadingRides] = useState(false);
@@ -181,7 +180,12 @@ const DriverView = () => {
 
   const hasActiveTrip = activeTrips.length > 0;
 
-  const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
+  const handleProfileUpdate = useCallback(
+    (profile) => {
+      onProfileUpdate?.(profile);
+    },
+    [onProfileUpdate],
+  );
 
   useEffect(() => {
     if (!userProfile.publicKey) {
@@ -341,13 +345,6 @@ const DriverView = () => {
 
   return (
     <div>
-      <WalletBar
-        role="driver"
-        userProfile={userProfile}
-        onProfileUpdate={handleProfileUpdate}
-        refreshTrigger={refreshBalanceCounter}
-        onFaucetSuccess={() => setRefreshBalanceCounter((c) => c + 1)}
-      />
 
       <ExplorerTabs
         tabs={[

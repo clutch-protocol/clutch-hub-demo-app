@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from '
 import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
 import CompletedTripCard from './CompletedTripCard';
-import { Section, WalletBar, EmptyState } from './layout';
+import { Section, EmptyState } from './layout';
 import ExplorerTabs from './ExplorerTabs';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -264,8 +264,7 @@ const RideRequestCard = ({
   );
 };
 
-const PassengerView = () => {
-  const [userProfile, setUserProfile] = useState({ publicKey: '', privateKey: '' });
+const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSuccess }) => {
   const [fare, setFare] = useState('');
   const [pickup, setPickup] = useState(null);
   const [dropoff, setDropoff] = useState(null);
@@ -299,8 +298,6 @@ const PassengerView = () => {
   const activeTripDropoff = firstActiveTrip
     ? [firstActiveTrip.dropoffLocation.latitude, firstActiveTrip.dropoffLocation.longitude]
     : null;
-
-  const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
 
   useEffect(() => {
     if (!userProfile.publicKey) {
@@ -469,13 +466,7 @@ const PassengerView = () => {
 
   return (
     <div>
-      <WalletBar
-        role="passenger"
-        userProfile={userProfile}
-        onProfileUpdate={handleProfileUpdate}
-        refreshTrigger={refreshBalanceCounter}
-        onFaucetSuccess={() => setRefreshBalanceCounter((c) => c + 1)}
-      />
+      {/* Wallet is now selected on entry; PassengerView assumes userProfile is managed by App. */}
 
       <ExplorerTabs
         tabs={[

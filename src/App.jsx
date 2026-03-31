@@ -16,9 +16,14 @@ function App() {
     return stored === 'passenger' || stored === 'driver' ? stored : null;
   }, []);
 
-  const [role, setRole] = useState(initialStoredRole || 'passenger');
-  const [hasChosenRole, setHasChosenRole] = useState(!!initialStoredRole);
+  // mode: wallet mode ('passenger' | 'driver') selected via entry
+  const [mode, setMode] = useState(initialStoredRole);
+  // activeTab: current visible panel ('passenger' | 'driver' | 'general' | 'explorer')
+  const [activeTab, setActiveTab] = useState(initialStoredRole || null);
   const themeStorageKey = 'clutch_demo_theme';
+
+  const [userProfile, setUserProfile] = useState({ publicKey: '', privateKey: '' });
+  const [walletRefresh, setWalletRefresh] = useState(0);
 
   const initialTheme = useMemo(() => {
     if (typeof window === 'undefined') return 'dark';
@@ -41,17 +46,41 @@ function App() {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
   };
 
-  const handleRoleChange = (nextRole) => {
-    setRole(nextRole);
-    setHasChosenRole(true);
-    persistRole(nextRole);
+  const handleEntryRoleSelect = (nextRole) => {
+    setMode(nextRole);
+    setActiveTab(nextRole);
+    // Clear current profile so the wallet bar uses the newly selected mode.
+    setUserProfile({ publicKey: '', privateKey: '' });
   };
 
-  if (!hasChosenRole) {
+  // Persist the chosen mode only after a wallet is actually selected (publicKey exists).
+  useEffect(() => {
+    if (mode && userProfile.publicKey) {
+      persistRole(mode);
+    }
+  }, [mode, userProfile.publicKey]);
+
+  // When the wallet becomes available, ensure the primary tab is set.
+  useEffect(() => {
+    if (mode && userProfile.publicKey && activeTab !== mode) {
+      setActiveTab(mode);
+    }
+  }, [mode, userProfile.publicKey, activeTab]);
+
+  const shouldShowEntry = !mode || !userProfile.publicKey;
+
+  if (shouldShowEntry) {
     return (
       <div className="app app--entry">
         <main className="app-main app-main--entry">
-          <RoleEntry onSelect={handleRoleChange} />
+          <RoleEntry
+            selectedRole={mode}
+            onSelectRole={handleEntryRoleSelect}
+            userProfile={userProfile}
+            onProfileUpdate={setUserProfile}
+            refreshTrigger={walletRefresh}
+            onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+          />
         </main>
       </div>
     );
@@ -73,7 +102,7 @@ function App() {
           >
             {theme === 'dark' ? 'Light mode' : 'Dark mode'}
           </button>
-          <RoleSelector role={role} onRoleChange={handleRoleChange} />
+          <RoleSelector mode={mode} activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
       </header>
       <main className="app-main">
@@ -82,28 +111,44 @@ function App() {
           role="tabpanel"
           id="role-panel-passenger"
           aria-labelledby="role-tab-passenger"
-          hidden={role !== 'passenger'}
-          style={{ display: role === 'passenger' ? 'block' : 'none', animationDelay: '0.05s' }}
+          hidden={activeTab !== 'passenger'}
+          style={{
+            display: activeTab === 'passenger' ? 'block' : 'none',
+            animationDelay: '0.05s',
+          }}
         >
-          <PassengerView />
+          <PassengerView
+            userProfile={userProfile}
+            onProfileUpdate={setUserProfile}
+            refreshTrigger={walletRefresh}
+            onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+          />
         </div>
         <div
           className="fade-in"
           role="tabpanel"
           id="role-panel-driver"
           aria-labelledby="role-tab-driver"
-          hidden={role !== 'driver'}
-          style={{ display: role === 'driver' ? 'block' : 'none', animationDelay: '0.05s' }}
+          hidden={activeTab !== 'driver'}
+          style={{
+            display: activeTab === 'driver' ? 'block' : 'none',
+            animationDelay: '0.05s',
+          }}
         >
-          <DriverView />
+          <DriverView
+            userProfile={userProfile}
+            onProfileUpdate={setUserProfile}
+            refreshTrigger={walletRefresh}
+            onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+          />
         </div>
         <div
           className="fade-in"
           role="tabpanel"
           id="role-panel-general"
           aria-labelledby="role-tab-general"
-          hidden={role !== 'general'}
-          style={{ display: role === 'general' ? 'block' : 'none', animationDelay: '0.05s' }}
+          hidden={activeTab !== 'general'}
+          style={{ display: activeTab === 'general' ? 'block' : 'none', animationDelay: '0.05s' }}
         >
           <GeneralView />
         </div>
@@ -112,8 +157,8 @@ function App() {
           role="tabpanel"
           id="role-panel-explorer"
           aria-labelledby="role-tab-explorer"
-          hidden={role !== 'explorer'}
-          style={{ display: role === 'explorer' ? 'block' : 'none', animationDelay: '0.05s' }}
+          hidden={activeTab !== 'explorer'}
+          style={{ display: activeTab === 'explorer' ? 'block' : 'none', animationDelay: '0.05s' }}
         >
           <NetworkView />
         </div>

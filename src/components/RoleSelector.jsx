@@ -7,11 +7,15 @@ const ALL_ROLES = [
   { id: 'explorer', label: 'Explorer', icon: '🔍' },
 ];
 
-const RoleSelector = ({ role, onRoleChange }) => {
-  const primaryRole = role === 'driver' ? 'driver' : 'passenger';
+/**
+ * mode: selected wallet mode ('driver' | 'passenger')
+ * activeTab: which panel is currently visible ('driver' | 'passenger' | 'general' | 'explorer')
+ */
+const RoleSelector = ({ mode, activeTab, onTabChange }) => {
+  const primaryRole = mode === 'driver' ? 'driver' : 'passenger';
 
-  const visibleRoles = ALL_ROLES.filter((r) =>
-    r.id === primaryRole || r.id === 'general' || r.id === 'explorer',
+  const visibleRoles = ALL_ROLES.filter(
+    (r) => r.id === primaryRole || r.id === 'general' || r.id === 'explorer',
   );
 
   return (
@@ -22,11 +26,11 @@ const RoleSelector = ({ role, onRoleChange }) => {
             key={r.id}
             type="button"
             role="tab"
-            aria-selected={role === r.id}
+            aria-selected={activeTab === r.id}
             aria-controls={`role-panel-${r.id}`}
             id={`role-tab-${r.id}`}
-            className={`role-tab ${role === r.id ? 'active' : ''}`}
-            onClick={() => onRoleChange(r.id)}
+            className={`role-tab ${activeTab === r.id ? 'active' : ''}`}
+            onClick={() => onTabChange(r.id)}
           >
             <span className="role-tab-icon">{r.icon}</span>
             <span>{r.label}</span>

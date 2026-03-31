@@ -298,6 +298,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState(null);
+  const defaultMapCenter = [27.1883, 56.3772];
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
@@ -516,6 +517,23 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
     );
   }, [hasActiveTrip, hasConcurrent, pickup]);
 
+  // Try to center the map at the user's location on first render.
+  useEffect(() => {
+    if (!navigator.geolocation || currentLocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCurrentLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      () => {
+        // Keep fallback center silently if geolocation fails/denied.
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  }, [currentLocation]);
+
   return (
     <div>
       <div
@@ -575,7 +593,11 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                 >
                   <MapLegend style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 700 }} />
                   <div className="map-gradient-overlay" />
-                  <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '100%', width: '100%' }}>
+                  <MapContainer
+                    center={currentLocation ? [currentLocation.lat, currentLocation.lng] : defaultMapCenter}
+                    zoom={12}
+                    style={{ height: '100%', width: '100%' }}
+                  >
                     <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
 
                     {previousRequests.map((r) => (

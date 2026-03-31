@@ -21,18 +21,21 @@ const RoleEntry = ({
   refreshTrigger,
   onFaucetSuccess,
 }) => {
+  const title = selectedRole ? 'Select your wallet' : 'Select your account';
+  const subtitle = selectedRole
+    ? 'Generate a new account or import an existing wallet.'
+    : 'Choose Driver or Passenger. You can switch later from Settings.';
+
   return (
     <div className="role-entry">
       <div className="role-entry-header">
         <img src="/clutch-logo.svg" alt="Clutch" className="role-entry-logo" width={40} height={40} />
-        <h1 className="role-entry-title">Select your role</h1>
-        <p className="role-entry-subtitle">
-          Choose how you want to use Clutch. You can switch later from Settings.
-        </p>
+        <h1 className="role-entry-title">{title}</h1>
+        <p className="role-entry-subtitle">{subtitle}</p>
       </div>
 
       {!selectedRole ? (
-        <div className="role-entry-buttons" aria-label="Select your role">
+        <div className="role-entry-buttons" aria-label="Select your account">
           <button
             type="button"
             className="role-entry-button role-entry-button--driver"

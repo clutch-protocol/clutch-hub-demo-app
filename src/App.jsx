@@ -5,6 +5,7 @@ import DriverView from './components/DriverView';
 import NetworkView from './components/NetworkView';
 import GeneralView from './components/GeneralView';
 import RoleEntry, { persistRole } from './components/RoleEntry';
+import { truncAddr } from './utils/address';
 import './App.css';
 
 const ROLE_STORAGE_KEY = 'clutch_demo_role';
@@ -106,6 +107,38 @@ function App() {
         </div>
       </header>
       <main className="app-main">
+        <section className="profile-section">
+          <div className="card">
+            <div className="form-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
+                  Profile
+                </div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--on-surface)' }}>
+                  Role:{' '}
+                  <span style={{ textTransform: 'capitalize' }}>
+                    {mode}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                  Wallet
+                </div>
+                {userProfile.publicKey ? (
+                  <span
+                    className="wallet-address"
+                    title={userProfile.publicKey}
+                  >
+                    {truncAddr(userProfile.publicKey)}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Not connected</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
         <div
           className="fade-in"
           role="tabpanel"

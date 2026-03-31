@@ -53,6 +53,10 @@
   padding: 1.25rem 1rem 5rem;
 }
 
+.profile-section {
+  margin-bottom: 1.25rem;
+}
+
 .app--entry .app-main--entry {
   max-width: 480px;
   display: flex;

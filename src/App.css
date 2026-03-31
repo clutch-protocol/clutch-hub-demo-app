@@ -223,10 +223,16 @@
   padding: 0.32rem 0.6rem;
   background: var(--surface-container-high);
   border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 130px;
+}
+
+.app-menu-wallet-address:hover {
+  background: var(--surface-container-highest);
 }
 
 .app-menu-profile-wallet-empty {

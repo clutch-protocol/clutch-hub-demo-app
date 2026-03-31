@@ -29,6 +29,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [passengerViewTab, setPassengerViewTab] = useState(null);
   const [driverViewTab, setDriverViewTab] = useState(null);
+  const [walletCopied, setWalletCopied] = useState(false);
 
   const initialTheme = useMemo(() => {
     if (typeof window === 'undefined') return 'dark';
@@ -49,6 +50,17 @@ function App() {
 
   const toggleTheme = () => {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+  };
+
+  const handleCopyWalletAddress = async () => {
+    if (!userProfile.publicKey) return;
+    try {
+      await navigator.clipboard.writeText(userProfile.publicKey);
+      setWalletCopied(true);
+      setTimeout(() => setWalletCopied(false), 1200);
+    } catch {
+      // ignore clipboard errors
+    }
   };
 
   const handleSignOut = () => {
@@ -251,9 +263,14 @@ function App() {
                   <div className="app-menu-profile-role-label">Wallet</div>
                   {userProfile.publicKey ? (
                     <div className="app-menu-profile-wallet-row">
-                      <span className="app-menu-wallet-address" title={userProfile.publicKey}>
-                        {truncAddr(userProfile.publicKey)}
-                      </span>
+                      <button
+                        type="button"
+                        className="app-menu-wallet-address"
+                        title={userProfile.publicKey}
+                        onClick={handleCopyWalletAddress}
+                      >
+                        {walletCopied ? 'Copied!' : truncAddr(userProfile.publicKey)}
+                      </button>
                       <BalanceDisplay
                         publicKey={userProfile.publicKey}
                         onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}

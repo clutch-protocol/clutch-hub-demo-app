@@ -88,6 +88,14 @@ function App() {
     }
   }, [mode, userProfile.publicKey, activeTab]);
 
+  // Prevent switching to the opposite role view after role selection.
+  useEffect(() => {
+    if (!mode || !activeTab) return;
+    if ((mode === 'passenger' && activeTab === 'driver') || (mode === 'driver' && activeTab === 'passenger')) {
+      setActiveTab(mode);
+    }
+  }, [mode, activeTab]);
+
   const shouldShowEntry = !mode || !userProfile.publicKey;
 
   if (shouldShowEntry) {
@@ -256,28 +264,31 @@ function App() {
                 <span className="app-menu-section-label">Navigation</span>
               </div>
               <nav className="app-menu-nav">
-                <button
-                  type="button"
-                  className={`app-menu-nav-item ${activeTab === 'passenger' ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveTab('passenger');
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="app-menu-nav-title">Passenger view</span>
-                  <span className="app-menu-nav-subtitle">Request rides and track your trips</span>
-                </button>
-                <button
-                  type="button"
-                  className={`app-menu-nav-item ${activeTab === 'driver' ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveTab('driver');
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="app-menu-nav-title">Driver view</span>
-                  <span className="app-menu-nav-subtitle">See available rides and active trips</span>
-                </button>
+                {mode === 'passenger' ? (
+                  <button
+                    type="button"
+                    className={`app-menu-nav-item ${activeTab === 'passenger' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTab('passenger');
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <span className="app-menu-nav-title">Passenger view</span>
+                    <span className="app-menu-nav-subtitle">Request rides and track your trips</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={`app-menu-nav-item ${activeTab === 'driver' ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveTab('driver');
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <span className="app-menu-nav-title">Driver view</span>
+                    <span className="app-menu-nav-subtitle">See available rides and active trips</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`app-menu-nav-item ${activeTab === 'general' ? 'active' : ''}`}

@@ -47,6 +47,23 @@ function App() {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
   };
 
+  const handleSignOut = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(ROLE_STORAGE_KEY);
+        window.localStorage.removeItem('clutch_passenger_publicKey');
+        window.localStorage.removeItem('clutch_passenger_privateKey');
+        window.localStorage.removeItem('clutch_driver_publicKey');
+        window.localStorage.removeItem('clutch_driver_privateKey');
+      }
+    } catch {
+      // ignore storage errors; we still reset local state
+    }
+    setMode(null);
+    setActiveTab(null);
+    setUserProfile({ publicKey: '', privateKey: '' });
+  };
+
   const handleEntryRoleSelect = (nextRole) => {
     setMode(nextRole);
     setActiveTab(nextRole);
@@ -125,16 +142,27 @@ function App() {
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                   Wallet
                 </div>
-                {userProfile.publicKey ? (
-                  <span
-                    className="wallet-address"
-                    title={userProfile.publicKey}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {userProfile.publicKey ? (
+                    <span
+                      className="wallet-address"
+                      title={userProfile.publicKey}
+                    >
+                      {truncAddr(userProfile.publicKey)}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Not connected</span>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={handleSignOut}
+                    aria-label="Sign out and return to entry"
+                    style={{ fontSize: '0.8rem' }}
                   >
-                    {truncAddr(userProfile.publicKey)}
-                  </span>
-                ) : (
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Not connected</span>
-                )}
+                    Sign out
+                  </button>
+                </div>
               </div>
             </div>
           </div>

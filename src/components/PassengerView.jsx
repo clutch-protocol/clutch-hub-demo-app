@@ -21,6 +21,8 @@ import {
 } from '../sdkRealtime';
 import TransactionHistory from './TransactionHistory';
 import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
+import { pickupIcon, dropoffIcon } from '../utils/mapMarkers';
+import MapLegend from './MapLegend';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
@@ -520,6 +522,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                   className="map-wrapper"
                   style={{ height: 'clamp(260px, 45vh, 380px)', borderRadius: 'var(--radius-md)', position: 'relative' }}
                 >
+                  <MapLegend style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 700 }} />
                   <div className="map-gradient-overlay" />
                   <MapContainer center={[27.1883, 56.3772]} zoom={12} style={{ height: '100%', width: '100%' }}>
                     <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
@@ -527,8 +530,8 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                     {previousRequests.map((r) => (
                       !hasActiveTrip && (
                         <React.Fragment key={r.txHash}>
-                          <Marker position={[r.pickup.lat, r.pickup.lng]}><Popup>Awaiting offers</Popup></Marker>
-                          <Marker position={[r.dropoff.lat, r.dropoff.lng]}><Popup>Awaiting offers</Popup></Marker>
+                          <Marker position={[r.pickup.lat, r.pickup.lng]} icon={pickupIcon}><Popup>Pickup (awaiting offers)</Popup></Marker>
+                          <Marker position={[r.dropoff.lat, r.dropoff.lng]} icon={dropoffIcon}><Popup>Dropoff (awaiting offers)</Popup></Marker>
                           <Polyline positions={[[r.pickup.lat, r.pickup.lng], [r.dropoff.lat, r.dropoff.lng]]} color="#94a3b8" weight={3} opacity={0.75} />
                         </React.Fragment>
                       )
@@ -536,8 +539,8 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
 
                     {activeTrips.map((t) => (
                       <React.Fragment key={t.txHash}>
-                        <Marker position={[t.pickupLocation.latitude, t.pickupLocation.longitude]}><Popup>Active trip</Popup></Marker>
-                        <Marker position={[t.dropoffLocation.latitude, t.dropoffLocation.longitude]}><Popup>Active trip</Popup></Marker>
+                        <Marker position={[t.pickupLocation.latitude, t.pickupLocation.longitude]} icon={pickupIcon}><Popup>Pickup (active trip)</Popup></Marker>
+                        <Marker position={[t.dropoffLocation.latitude, t.dropoffLocation.longitude]} icon={dropoffIcon}><Popup>Dropoff (active trip)</Popup></Marker>
                         <Polyline positions={[[t.pickupLocation.latitude, t.pickupLocation.longitude], [t.dropoffLocation.latitude, t.dropoffLocation.longitude]]} color="var(--accent)" weight={4} opacity={0.9} />
                       </React.Fragment>
                     ))}
@@ -549,8 +552,8 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />
                     )}
                     <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={hasConcurrent ? () => {} : setPickup} setDropoff={hasConcurrent ? () => {} : setDropoff} />
-                    {!hasActiveTrip && pickup && <Marker position={pickup}><Popup>Pickup</Popup></Marker>}
-                    {!hasActiveTrip && dropoff && <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>}
+                    {!hasActiveTrip && pickup && <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>}
+                    {!hasActiveTrip && dropoff && <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>}
                     {!hasActiveTrip && pickup && dropoff && (
                       <Polyline
                         positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]}

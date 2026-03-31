@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import MapFitBounds from './MapFitBounds';
 import { MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
 import { truncAddr } from '../utils/address';
+import { pickupIcon, dropoffIcon } from '../utils/mapMarkers';
+import MapLegend from './MapLegend';
 
 function CopyableAddress({ address }) {
   const [copied, setCopied] = useState(false);
@@ -80,11 +82,12 @@ const CompletedTripCard = ({ trip }) => {
       </div>
 
       <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
+        <MapLegend style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 700 }} />
         <MapContainer center={pickup} zoom={13} style={{ height: 'clamp(120px, 18vh, 160px)', width: '100%' }}>
           <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
           <MapFitBounds positions={[pickup, dropoff]} />
-          <Marker position={pickup}><Popup>Pickup</Popup></Marker>
-          <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>
+          <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>
+          <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>
           <Polyline positions={[pickup, dropoff]} color={lineColor} weight={3} opacity={0.75} />
         </MapContainer>
       </div>

@@ -21,6 +21,8 @@ import {
 } from '../sdkRealtime';
 import TransactionHistory from './TransactionHistory';
 import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
+import { pickupIcon, dropoffIcon } from '../utils/mapMarkers';
+import MapLegend from './MapLegend';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
@@ -87,11 +89,12 @@ const RideRequestCard = ({
       </div>
 
       <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
+          <MapLegend style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 700 }} />
           <MapContainer center={pickup} zoom={13} style={{ height: 'clamp(130px, 22vh, 180px)', width: '100%' }}>
           <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
           <MapFitBounds positions={[pickup, dropoff]} />
-          <Marker position={pickup}><Popup>Pickup</Popup></Marker>
-          <Marker position={dropoff}><Popup>Dropoff</Popup></Marker>
+          <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>
+          <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>
           <Polyline positions={[pickup, dropoff]} color="var(--accent)" weight={3} opacity={0.8} />
         </MapContainer>
       </div>

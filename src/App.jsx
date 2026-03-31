@@ -4,10 +4,20 @@ import PassengerView from './components/PassengerView';
 import DriverView from './components/DriverView';
 import NetworkView from './components/NetworkView';
 import GeneralView from './components/GeneralView';
+import RoleEntry, { persistRole } from './components/RoleEntry';
 import './App.css';
 
+const ROLE_STORAGE_KEY = 'clutch_demo_role';
+
 function App() {
-  const [role, setRole] = useState('passenger');
+  const initialStoredRole = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = window.localStorage.getItem(ROLE_STORAGE_KEY);
+    return stored === 'passenger' || stored === 'driver' ? stored : null;
+  }, []);
+
+  const [role, setRole] = useState(initialStoredRole || 'passenger');
+  const [hasChosenRole, setHasChosenRole] = useState(!!initialStoredRole);
   const themeStorageKey = 'clutch_demo_theme';
 
   const initialTheme = useMemo(() => {
@@ -31,6 +41,22 @@ function App() {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
   };
 
+  const handleRoleChange = (nextRole) => {
+    setRole(nextRole);
+    setHasChosenRole(true);
+    persistRole(nextRole);
+  };
+
+  if (!hasChosenRole) {
+    return (
+      <div className="app app--entry">
+        <main className="app-main app-main--entry">
+          <RoleEntry onSelect={handleRoleChange} />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -47,7 +73,7 @@ function App() {
           >
             {theme === 'dark' ? 'Light mode' : 'Dark mode'}
           </button>
-          <RoleSelector role={role} onRoleChange={setRole} />
+          <RoleSelector role={role} onRoleChange={handleRoleChange} />
         </div>
       </header>
       <main className="app-main">

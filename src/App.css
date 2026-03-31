@@ -795,6 +795,52 @@
   color: #fca5a5;
 }
 
+/* Ride request steps */
+.ride-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ride-step {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.ride-step-number {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+}
+
+.ride-step--active .ride-step-number {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.ride-step--done .ride-step-number {
+  background: var(--success);
+  color: #ecfdf5;
+}
+
+.ride-step--active {
+  color: var(--on-surface);
+  font-weight: 600;
+}
+
 /* ===== Section ===== */
 .section {
   margin-bottom: 1.75rem;

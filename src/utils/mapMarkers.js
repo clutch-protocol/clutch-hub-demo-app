@@ -16,4 +16,12 @@ const dropoffIcon = L.divIcon({
   popupAnchor: [0, -24],
 });
 
-export { pickupIcon, dropoffIcon };
+const currentLocationIcon = L.divIcon({
+  className: 'map-point-icon-wrap',
+  html: '<div class="map-current-location-icon"><span class="map-current-location-dot"></span></div>',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12],
+});
+
+export { pickupIcon, dropoffIcon, currentLocationIcon };

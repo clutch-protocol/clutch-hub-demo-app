@@ -667,6 +667,25 @@
   background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
+.map-current-location-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.22);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.map-current-location-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #2563eb;
+}
+
 .map-legend {
   display: inline-flex;
   align-items: center;

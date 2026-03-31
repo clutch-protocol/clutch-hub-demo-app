@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
 import CompletedTripCard from './CompletedTripCard';
@@ -21,7 +21,7 @@ import {
 } from '../sdkRealtime';
 import TransactionHistory from './TransactionHistory';
 import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
-import { pickupIcon, dropoffIcon } from '../utils/mapMarkers';
+import { pickupIcon, dropoffIcon, currentLocationIcon } from '../utils/mapMarkers';
 import MapLegend from './MapLegend';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -65,6 +65,19 @@ const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
       else if (!dropoff) setDropoff(e.latlng);
     },
   });
+  return null;
+};
+
+const MapFlyToLocation = ({ location }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!location) return;
+    map.flyTo([location.lat, location.lng], Math.max(map.getZoom(), 14), {
+      duration: 0.7,
+    });
+  }, [location, map]);
+
   return null;
 };
 
@@ -285,6 +298,9 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
   const [myRideRefreshError, setMyRideRefreshError] = useState(null);
   const [myTripsRefreshing, setMyTripsRefreshing] = useState(false);
   const [myTripsRefreshError, setMyTripsRefreshError] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState(null);
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
@@ -471,6 +487,35 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
     }
   }, [userProfile.publicKey, hubSdk]);
 
+  const handleUseCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported in this browser.');
+      return;
+    }
+
+    setLocating(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const next = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setCurrentLocation(next);
+        if (!hasActiveTrip && !hasConcurrent && !pickup) {
+          setPickup(next);
+        }
+        setLocating(false);
+      },
+      (err) => {
+        setLocationError(err?.message || 'Unable to get your current location.');
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  }, [hasActiveTrip, hasConcurrent, pickup]);
+
   return (
     <div>
       <div
@@ -509,15 +554,26 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
           ) : (
             <>
               <div className="map-hero" style={{ position: 'relative', marginBottom: '1.5rem' }}>
-                {hasActiveTrip ? (
-                  <div className="step-pill" style={{ marginBottom: '0.75rem' }}>
-                    Active trip in progress
-                  </div>
-                ) : (
-                  <div className="step-pill" style={{ marginBottom: '0.75rem' }}>
-                    Step {!pickup ? 1 : !dropoff ? 2 : 3}: {!pickup ? 'Pickup' : !dropoff ? 'Destination' : 'Fare'}
-                  </div>
-                )}
+                <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  {hasActiveTrip ? (
+                    <div className="step-pill">
+                      Active trip in progress
+                    </div>
+                  ) : (
+                    <div className="step-pill">
+                      Step {!pickup ? 1 : !dropoff ? 2 : 3}: {!pickup ? 'Pickup' : !dropoff ? 'Destination' : 'Fare'}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleUseCurrentLocation}
+                    disabled={locating}
+                    style={{ fontSize: '0.75rem' }}
+                  >
+                    {locating ? 'Locating…' : 'Use current location'}
+                  </button>
+                </div>
                 <div
                   className="map-wrapper"
                   style={{ height: 'clamp(260px, 45vh, 380px)', borderRadius: 'var(--radius-md)', position: 'relative' }}
@@ -551,7 +607,9 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                     {!hasActiveTrip && pickup && dropoff && (
                       <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />
                     )}
+                    {currentLocation && <MapFlyToLocation location={currentLocation} />}
                     <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={hasConcurrent ? () => {} : setPickup} setDropoff={hasConcurrent ? () => {} : setDropoff} />
+                    {currentLocation && <Marker position={currentLocation} icon={currentLocationIcon}><Popup>Your current location</Popup></Marker>}
                     {!hasActiveTrip && pickup && <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>}
                     {!hasActiveTrip && dropoff && <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>}
                     {!hasActiveTrip && pickup && dropoff && (
@@ -580,6 +638,11 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                   {myRideRefreshError && (
                     <div className="status-banner error" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
                       {myRideRefreshError}
+                    </div>
+                  )}
+                  {locationError && (
+                    <div className="status-banner error" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
+                      {locationError}
                     </div>
                   )}
                   {hasActiveTrip ? (

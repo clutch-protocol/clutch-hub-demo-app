@@ -39,7 +39,7 @@ const EndpointRow = ({ label, value, href }) => (
 const GeneralView = () => {
   return (
     <div className="general-view">
-      <h2 className="general-view-title">General</h2>
+      <h2 className="general-view-title">About</h2>
       <p className="general-view-lead">Hub API endpoints for this session, optional public node URLs, and repositories.</p>
 
       <section className="general-section" aria-labelledby="general-endpoints-heading">

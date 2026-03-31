@@ -314,7 +314,7 @@ function App() {
                     setMenuOpen(false);
                   }}
                 >
-                  <span className="app-menu-nav-title">General</span>
+                  <span className="app-menu-nav-title">About</span>
                   <span className="app-menu-nav-subtitle">API endpoints, nodes, GitHub</span>
                 </button>
                 <button

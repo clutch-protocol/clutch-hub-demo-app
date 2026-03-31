@@ -5,6 +5,7 @@ import DriverView from './components/DriverView';
 import NetworkView from './components/NetworkView';
 import GeneralView from './components/GeneralView';
 import RoleEntry, { persistRole } from './components/RoleEntry';
+import BalanceDisplay from './components/BalanceDisplay';
 import { truncAddr } from './utils/address';
 import './App.css';
 
@@ -142,27 +143,39 @@ function App() {
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                   Wallet
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {userProfile.publicKey ? (
+                {userProfile.publicKey ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <span
                       className="wallet-address"
                       title={userProfile.publicKey}
                     >
                       {truncAddr(userProfile.publicKey)}
                     </span>
-                  ) : (
+                    <BalanceDisplay publicKey={userProfile.publicKey} onFaucetSuccess={() => setWalletRefresh((c) => c + 1)} />
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={handleSignOut}
+                      aria-label="Sign out and return to entry"
+                      style={{ fontSize: '0.8rem' }}
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Not connected</span>
-                  )}
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    onClick={handleSignOut}
-                    aria-label="Sign out and return to entry"
-                    style={{ fontSize: '0.8rem' }}
-                  >
-                    Sign out
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={handleSignOut}
+                      aria-label="Sign out and return to entry"
+                      style={{ fontSize: '0.8rem' }}
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

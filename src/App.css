@@ -841,6 +841,33 @@
   font-weight: 600;
 }
 
+.wait-offers-card {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(180deg, var(--surface-container-high), var(--surface-container));
+  border: 1px solid var(--outline-variant);
+}
+
+.wait-offers-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  margin-bottom: 0.35rem;
+}
+
+.wait-offers-text {
+  margin: 0;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}
+
+.wait-offers-actions {
+  margin-top: 0.8rem;
+  display: flex;
+  justify-content: flex-start;
+}
+
 /* ===== Section ===== */
 .section {
   margin-bottom: 1.75rem;

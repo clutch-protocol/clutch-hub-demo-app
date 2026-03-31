@@ -690,7 +690,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                 </div>
               </div>
 
-              {!hasActiveTrip && (
+              {!hasActiveTrip && !hasConcurrent && (
                 <div className="card" style={{ marginBottom: '1.5rem', padding: '0.9rem 1.1rem' }}>
                   <div className="card-title">Ride request</div>
                   <div className="form-row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', gap: '0.75rem' }}>
@@ -727,6 +727,26 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                         {isLoading ? 'Submitting…' : 'Confirm request'}
                       </button>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {!hasActiveTrip && hasConcurrent && (
+                <div className="card wait-offers-card">
+                  <div className="wait-offers-title">Waiting for driver offers</div>
+                  <p className="wait-offers-text">
+                    Your ride request is live. Drivers can now send offers.
+                    Stay on this page and review offers below when they arrive.
+                  </p>
+                  <div className="wait-offers-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={refreshMyRide}
+                      disabled={myRideRefreshing}
+                    >
+                      {myRideRefreshing ? 'Refreshing…' : 'Refresh status'}
+                    </button>
                   </div>
                 </div>
               )}

@@ -291,6 +291,23 @@ function App() {
                 )}
                 <button
                   type="button"
+                  className="app-menu-nav-item"
+                  onClick={() => {
+                    if (mode === 'driver') {
+                      setDriverViewTab('recent');
+                      setActiveTab('driver');
+                    } else {
+                      setPassengerViewTab('recent');
+                      setActiveTab('passenger');
+                    }
+                    setMenuOpen(false);
+                  }}
+                >
+                  <span className="app-menu-nav-title">Recent rides</span>
+                  <span className="app-menu-nav-subtitle">View your completed and cancelled trips</span>
+                </button>
+                <button
+                  type="button"
                   className={`app-menu-nav-item ${activeTab === 'general' ? 'active' : ''}`}
                   onClick={() => {
                     setActiveTab('general');
@@ -310,23 +327,6 @@ function App() {
                 >
                   <span className="app-menu-nav-title">Network explorer</span>
                   <span className="app-menu-nav-subtitle">Live hub status and metrics</span>
-                </button>
-                <button
-                  type="button"
-                  className="app-menu-nav-item"
-                  onClick={() => {
-                    if (mode === 'driver') {
-                      setDriverViewTab('recent');
-                      setActiveTab('driver');
-                    } else {
-                      setPassengerViewTab('recent');
-                      setActiveTab('passenger');
-                    }
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="app-menu-nav-title">Recent rides</span>
-                  <span className="app-menu-nav-subtitle">View your completed and cancelled trips</span>
                 </button>
               </nav>
             </div>

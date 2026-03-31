@@ -62,7 +62,7 @@ function App() {
 
   // When the wallet becomes available, ensure the primary tab is set.
   useEffect(() => {
-    if (mode && userProfile.publicKey && activeTab !== mode) {
+    if (mode && userProfile.publicKey && !activeTab) {
       setActiveTab(mode);
     }
   }, [mode, userProfile.publicKey, activeTab]);

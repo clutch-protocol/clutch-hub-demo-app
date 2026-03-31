@@ -26,6 +26,9 @@ function App() {
 
   const [userProfile, setUserProfile] = useState({ publicKey: '', privateKey: '' });
   const [walletRefresh, setWalletRefresh] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [passengerViewTab, setPassengerViewTab] = useState(null);
+  const [driverViewTab, setDriverViewTab] = useState(null);
 
   const initialTheme = useMemo(() => {
     if (typeof window === 'undefined') return 'dark';
@@ -115,6 +118,16 @@ function App() {
         <div className="app-header-right">
           <button
             type="button"
+            className="hamburger-btn"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          <button
+            type="button"
             className="theme-toggle-btn"
             onClick={toggleTheme}
             aria-label="Toggle dark/light mode"
@@ -125,61 +138,6 @@ function App() {
         </div>
       </header>
       <main className="app-main">
-        <section className="profile-section">
-          <div className="card">
-            <div className="form-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
-                  Profile
-                </div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--on-surface)' }}>
-                  Role:{' '}
-                  <span style={{ textTransform: 'capitalize' }}>
-                    {mode}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                  Wallet
-                </div>
-                {userProfile.publicKey ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <span
-                      className="wallet-address"
-                      title={userProfile.publicKey}
-                    >
-                      {truncAddr(userProfile.publicKey)}
-                    </span>
-                    <BalanceDisplay publicKey={userProfile.publicKey} onFaucetSuccess={() => setWalletRefresh((c) => c + 1)} />
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={handleSignOut}
-                      aria-label="Sign out and return to entry"
-                      style={{ fontSize: '0.8rem' }}
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Not connected</span>
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={handleSignOut}
-                      aria-label="Sign out and return to entry"
-                      style={{ fontSize: '0.8rem' }}
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
         <div
           className="fade-in"
           role="tabpanel"
@@ -196,6 +154,7 @@ function App() {
             onProfileUpdate={setUserProfile}
             refreshTrigger={walletRefresh}
             onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+            externalTab={passengerViewTab}
           />
         </div>
         <div
@@ -214,6 +173,7 @@ function App() {
             onProfileUpdate={setUserProfile}
             refreshTrigger={walletRefresh}
             onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+            externalTab={driverViewTab}
           />
         </div>
         <div
@@ -237,6 +197,111 @@ function App() {
           <NetworkView />
         </div>
       </main>
+      {menuOpen && (
+        <div className="app-menu-overlay" onClick={() => setMenuOpen(false)}>
+          <aside className="app-menu" onClick={(e) => e.stopPropagation()}>
+            <div className="app-menu-top-row">
+              <span className="app-menu-title">Menu</span>
+              <button
+                type="button"
+                className="app-menu-close-btn"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                ×
+              </button>
+            </div>
+            <div className="card app-menu-card">
+              <div className="app-menu-section-header">
+                <span className="app-menu-section-label">Profile</span>
+              </div>
+              <div className="app-menu-profile">
+                <div>
+                  <div className="app-menu-profile-role-label">Role</div>
+                  <div className="app-menu-profile-role-value">
+                    <span style={{ textTransform: 'capitalize' }}>{mode}</span>
+                  </div>
+                </div>
+                <div className="app-menu-profile-wallet">
+                  <div className="app-menu-profile-role-label">Wallet</div>
+                  {userProfile.publicKey ? (
+                    <div className="app-menu-profile-wallet-row">
+                      <span className="wallet-address" title={userProfile.publicKey}>
+                        {truncAddr(userProfile.publicKey)}
+                      </span>
+                      <BalanceDisplay
+                        publicKey={userProfile.publicKey}
+                        onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+                      />
+                    </div>
+                  ) : (
+                    <span className="app-menu-profile-wallet-empty">Not connected</span>
+                  )}
+                </div>
+              </div>
+              <div className="app-menu-actions">
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    handleSignOut();
+                  }}
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+
+            <div className="card app-menu-card">
+              <div className="app-menu-section-header">
+                <span className="app-menu-section-label">Explore</span>
+              </div>
+              <nav className="app-menu-nav">
+                <button
+                  type="button"
+                  className={`app-menu-nav-item ${activeTab === 'general' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('general');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <span className="app-menu-nav-title">General</span>
+                  <span className="app-menu-nav-subtitle">API endpoints, nodes, GitHub</span>
+                </button>
+                <button
+                  type="button"
+                  className={`app-menu-nav-item ${activeTab === 'explorer' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('explorer');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <span className="app-menu-nav-title">Network explorer</span>
+                  <span className="app-menu-nav-subtitle">Live hub status and metrics</span>
+                </button>
+                <button
+                  type="button"
+                  className="app-menu-nav-item"
+                  onClick={() => {
+                    if (mode === 'driver') {
+                      setDriverViewTab('recent');
+                      setActiveTab('driver');
+                    } else {
+                      setPassengerViewTab('recent');
+                      setActiveTab('passenger');
+                    }
+                    setMenuOpen(false);
+                  }}
+                >
+                  <span className="app-menu-nav-title">Recent rides</span>
+                  <span className="app-menu-nav-subtitle">View your completed and cancelled trips</span>
+                </button>
+              </nav>
+            </div>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

@@ -264,7 +264,7 @@ const RideRequestCard = ({
   );
 };
 
-const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSuccess }) => {
+const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSuccess, externalTab }) => {
   const [fare, setFare] = useState('');
   const [pickup, setPickup] = useState(null);
   const [dropoff, setDropoff] = useState(null);
@@ -298,6 +298,12 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
   const activeTripDropoff = firstActiveTrip
     ? [firstActiveTrip.dropoffLocation.latitude, firstActiveTrip.dropoffLocation.longitude]
     : null;
+
+  useEffect(() => {
+    if (externalTab) {
+      setPassengerTab(externalTab);
+    }
+  }, [externalTab]);
 
   useEffect(() => {
     if (!userProfile.publicKey) {

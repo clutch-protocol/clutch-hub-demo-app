@@ -156,7 +156,7 @@ const RideRequestCard = ({
   );
 };
 
-const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSuccess }) => {
+const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSuccess, externalTab }) => {
   const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
   const [rideRequests, setRideRequests] = useState([]);
   const [isLoadingRides, setIsLoadingRides] = useState(false);
@@ -179,6 +179,12 @@ const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSucc
   const hubSdk = useClutchSdk(userProfile.publicKey || undefined, '0x0');
 
   const hasActiveTrip = activeTrips.length > 0;
+
+  useEffect(() => {
+    if (externalTab) {
+      setDriverTab(externalTab);
+    }
+  }, [externalTab]);
 
   const handleProfileUpdate = useCallback(
     (profile) => {

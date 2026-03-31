@@ -17,15 +17,49 @@ const TransactionHistory = ({ userPublicKey, refreshTrigger, contentOnly = false
   const [transactions, setTransactions] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  useEffect(() => {
-    if (!userPublicKey) { setTransactions([]); return; }
+  const loadTransactions = useCallback(() => {
+    if (!userPublicKey) {
+      setTransactions([]);
+      return;
+    }
     const stored = localStorage.getItem(`clutch_tx_${userPublicKey}`);
     if (stored) {
-      try { setTransactions(JSON.parse(stored)); } catch { setTransactions([]); }
+      try {
+        setTransactions(JSON.parse(stored));
+      } catch {
+        setTransactions([]);
+      }
     } else {
       setTransactions([]);
     }
-  }, [userPublicKey, refreshTrigger]);
+  }, [userPublicKey]);
+
+  useEffect(() => {
+    loadTransactions();
+  }, [loadTransactions, refreshTrigger]);
+
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (!userPublicKey) return;
+      if (event.key === `clutch_tx_${userPublicKey}`) {
+        loadTransactions();
+      }
+    };
+
+    const handleTxUpdated = (event) => {
+      if (!userPublicKey) return;
+      if (event?.detail?.userPublicKey === userPublicKey) {
+        loadTransactions();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('clutch:tx-updated', handleTxUpdated);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('clutch:tx-updated', handleTxUpdated);
+    };
+  }, [userPublicKey, loadTransactions]);
 
   const addTransaction = useCallback((transaction) => {
     setTransactions((prev) => {
@@ -94,6 +128,7 @@ TransactionHistory.addTransaction = (userPublicKey, transaction) => {
   }
   const updated = [transaction, ...transactions];
   localStorage.setItem(`clutch_tx_${userPublicKey}`, JSON.stringify(updated.slice(0, 10)));
+  window.dispatchEvent(new CustomEvent('clutch:tx-updated', { detail: { userPublicKey } }));
   return updated;
 };
 

@@ -711,11 +711,6 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
         </Section>
       </div>
 
-      {userProfile.publicKey && (
-        <Section title="Transaction history" icon="📋" collapsible defaultExpanded={false}>
-          <TransactionHistory userPublicKey={userProfile.publicKey} refreshTrigger={refreshBalanceCounter} contentOnly />
-        </Section>
-      )}
       <PrivateKeyModal />
     </div>
   );

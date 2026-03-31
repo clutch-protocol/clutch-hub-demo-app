@@ -3,6 +3,7 @@ import PassengerView from './components/PassengerView';
 import DriverView from './components/DriverView';
 import NetworkView from './components/NetworkView';
 import GeneralView from './components/GeneralView';
+import TransactionHistoryPage from './components/TransactionHistoryPage';
 import RoleEntry, { persistRole } from './components/RoleEntry';
 import BalanceDisplay from './components/BalanceDisplay';
 import { truncAddr } from './utils/address';
@@ -19,7 +20,7 @@ function App() {
 
   // mode: wallet mode ('passenger' | 'driver') selected via entry
   const [mode, setMode] = useState(initialStoredRole);
-  // activeTab: current visible panel ('passenger' | 'driver' | 'general' | 'explorer')
+  // activeTab: current visible panel ('passenger' | 'driver' | 'general' | 'explorer' | 'transactions')
   const [activeTab, setActiveTab] = useState(initialStoredRole || null);
   const themeStorageKey = 'clutch_demo_theme';
 
@@ -198,6 +199,16 @@ function App() {
         <div
           className="fade-in"
           role="tabpanel"
+          id="role-panel-transactions"
+          aria-labelledby="role-tab-transactions"
+          hidden={activeTab !== 'transactions'}
+          style={{ display: activeTab === 'transactions' ? 'block' : 'none', animationDelay: '0.05s' }}
+        >
+          <TransactionHistoryPage userPublicKey={userProfile.publicKey} />
+        </div>
+        <div
+          className="fade-in"
+          role="tabpanel"
           id="role-panel-explorer"
           aria-labelledby="role-tab-explorer"
           hidden={activeTab !== 'explorer'}
@@ -321,6 +332,17 @@ function App() {
                 >
                   <span className="app-menu-nav-title">About</span>
                   <span className="app-menu-nav-subtitle">API endpoints, nodes, GitHub</span>
+                </button>
+                <button
+                  type="button"
+                  className={`app-menu-nav-item ${activeTab === 'transactions' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('transactions');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <span className="app-menu-nav-title">Transaction history</span>
+                  <span className="app-menu-nav-subtitle">View your latest signed transactions</span>
                 </button>
                 <button
                   type="button"

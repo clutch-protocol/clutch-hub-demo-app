@@ -4,7 +4,6 @@ import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
 import CompletedTripCard from './CompletedTripCard';
 import { Section, EmptyState } from './layout';
-import ExplorerTabs from './ExplorerTabs';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -351,22 +350,6 @@ const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSucc
 
   return (
     <div>
-
-      <ExplorerTabs
-        tabs={[
-          {
-            id: 'rides',
-            label: 'Rides',
-            icon: '📍',
-            count: userProfile.publicKey ? (hasActiveTrip ? activeTrips.length : rideRequests.length) : rideRequests.length,
-          },
-          { id: 'recent', label: 'Recent rides', icon: '✅', count: userProfile.publicKey ? recentTrips.length : 0 },
-        ]}
-        activeTab={driverTab}
-        onTabChange={setDriverTab}
-        variant="pill"
-      />
-
       <div
         role="tabpanel"
         id="panel-rides"

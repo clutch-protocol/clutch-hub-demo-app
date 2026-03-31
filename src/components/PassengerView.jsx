@@ -4,7 +4,6 @@ import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
 import CompletedTripCard from './CompletedTripCard';
 import { Section, EmptyState } from './layout';
-import ExplorerTabs from './ExplorerTabs';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -472,18 +471,6 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
 
   return (
     <div>
-      {/* Wallet is now selected on entry; PassengerView assumes userProfile is managed by App. */}
-
-      <ExplorerTabs
-        tabs={[
-          { id: 'rides', label: 'My Ride', icon: '🚗', count: userProfile.publicKey ? activeTrips.length + previousRequests.length : 0 },
-          { id: 'recent', label: 'Recent rides', icon: '✅', count: userProfile.publicKey ? recentTrips.length : 0 },
-        ]}
-        activeTab={passengerTab}
-        onTabChange={setPassengerTab}
-        variant="pill"
-      />
-
       <div
         role="tabpanel"
         id="panel-rides"

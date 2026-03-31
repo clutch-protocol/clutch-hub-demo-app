@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import RoleSelector from './components/RoleSelector';
 import PassengerView from './components/PassengerView';
 import DriverView from './components/DriverView';
 import NetworkView from './components/NetworkView';
@@ -134,7 +133,6 @@ function App() {
           >
             {theme === 'dark' ? 'Light mode' : 'Dark mode'}
           </button>
-          <RoleSelector mode={mode} activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
       </header>
       <main className="app-main">
@@ -255,9 +253,31 @@ function App() {
 
             <div className="card app-menu-card">
               <div className="app-menu-section-header">
-                <span className="app-menu-section-label">Explore</span>
+                <span className="app-menu-section-label">Navigation</span>
               </div>
               <nav className="app-menu-nav">
+                <button
+                  type="button"
+                  className={`app-menu-nav-item ${activeTab === 'passenger' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('passenger');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <span className="app-menu-nav-title">Passenger view</span>
+                  <span className="app-menu-nav-subtitle">Request rides and track your trips</span>
+                </button>
+                <button
+                  type="button"
+                  className={`app-menu-nav-item ${activeTab === 'driver' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('driver');
+                    setMenuOpen(false);
+                  }}
+                >
+                  <span className="app-menu-nav-title">Driver view</span>
+                  <span className="app-menu-nav-subtitle">See available rides and active trips</span>
+                </button>
                 <button
                   type="button"
                   className={`app-menu-nav-item ${activeTab === 'general' ? 'active' : ''}`}

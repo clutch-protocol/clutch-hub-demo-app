@@ -235,18 +235,23 @@ function App() {
               <div className="app-menu-section-header">
                 <span className="app-menu-section-label">Profile</span>
               </div>
-              <div className="app-menu-profile">
-                <div>
-                  <div className="app-menu-profile-role-label">Role</div>
-                  <div className="app-menu-profile-role-value">
-                    <span style={{ textTransform: 'capitalize' }}>{mode}</span>
+              <div className="app-menu-profile-card">
+                <div className="app-menu-profile-head">
+                  <div className="app-menu-profile-avatar" aria-hidden>
+                    {mode === 'driver' ? 'D' : 'P'}
+                  </div>
+                  <div>
+                    <div className="app-menu-profile-role-label">Role</div>
+                    <div className="app-menu-profile-role-value">
+                      <span style={{ textTransform: 'capitalize' }}>{mode}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="app-menu-profile-wallet">
                   <div className="app-menu-profile-role-label">Wallet</div>
                   {userProfile.publicKey ? (
                     <div className="app-menu-profile-wallet-row">
-                      <span className="wallet-address" title={userProfile.publicKey}>
+                      <span className="app-menu-wallet-address" title={userProfile.publicKey}>
                         {truncAddr(userProfile.publicKey)}
                       </span>
                       <BalanceDisplay
@@ -262,7 +267,7 @@ function App() {
               <div className="app-menu-actions">
                 <button
                   type="button"
-                  className="btn-ghost"
+                  className="btn-secondary app-menu-signout-btn"
                   onClick={() => {
                     setMenuOpen(false);
                     handleSignOut();

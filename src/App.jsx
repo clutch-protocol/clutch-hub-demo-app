@@ -97,6 +97,9 @@ function App() {
   }, [mode, activeTab]);
 
   const shouldShowEntry = !mode || !userProfile.publicKey;
+  const isPassengerRecentActive = activeTab === 'passenger' && passengerViewTab === 'recent';
+  const isDriverRecentActive = activeTab === 'driver' && driverViewTab === 'recent';
+  const isRecentRidesActive = isPassengerRecentActive || isDriverRecentActive;
 
   if (shouldShowEntry) {
     return (
@@ -267,8 +270,9 @@ function App() {
                 {mode === 'passenger' ? (
                   <button
                     type="button"
-                    className={`app-menu-nav-item ${activeTab === 'passenger' ? 'active' : ''}`}
+                    className={`app-menu-nav-item ${activeTab === 'passenger' && !isRecentRidesActive ? 'active' : ''}`}
                     onClick={() => {
+                      setPassengerViewTab('rides');
                       setActiveTab('passenger');
                       setMenuOpen(false);
                     }}
@@ -279,8 +283,9 @@ function App() {
                 ) : (
                   <button
                     type="button"
-                    className={`app-menu-nav-item ${activeTab === 'driver' ? 'active' : ''}`}
+                    className={`app-menu-nav-item ${activeTab === 'driver' && !isRecentRidesActive ? 'active' : ''}`}
                     onClick={() => {
+                      setDriverViewTab('rides');
                       setActiveTab('driver');
                       setMenuOpen(false);
                     }}
@@ -291,7 +296,7 @@ function App() {
                 )}
                 <button
                   type="button"
-                  className="app-menu-nav-item"
+                  className={`app-menu-nav-item ${isRecentRidesActive ? 'active' : ''}`}
                   onClick={() => {
                     if (mode === 'driver') {
                       setDriverViewTab('recent');

@@ -11,7 +11,10 @@ const MapFitBounds = ({ positions, padding = 24 }) => {
 
   useEffect(() => {
     if (!positions || positions.length === 0) return;
-    const valid = positions.filter((p) => Array.isArray(p) && p.length >= 2);
+    const valid = positions
+      .filter((p) => Array.isArray(p) && p.length >= 2)
+      .map((p) => [Number(p[0]), Number(p[1])])
+      .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
     if (valid.length === 0) return;
     const bounds = L.latLngBounds(valid);
     if (bounds.isValid()) {

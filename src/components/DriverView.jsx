@@ -75,8 +75,9 @@ const RideRequestCard = ({
     return () => dispose();
   }, [req.txHash, userProfile.publicKey, hubSdk]);
 
-  const pickup = [req.pickupLocation.latitude, req.pickupLocation.longitude];
-  const dropoff = [req.dropoffLocation.latitude, req.dropoffLocation.longitude];
+  const pickup = [Number(req.pickupLocation?.latitude), Number(req.pickupLocation?.longitude)];
+  const dropoff = [Number(req.dropoffLocation?.latitude), Number(req.dropoffLocation?.longitude)];
+  const hasValidRoute = Number.isFinite(pickup[0]) && Number.isFinite(pickup[1]) && Number.isFinite(dropoff[0]) && Number.isFinite(dropoff[1]);
 
   return (
     <div className="card">
@@ -87,16 +88,22 @@ const RideRequestCard = ({
         <span className="fare-badge">{req.fare} CLT</span>
       </div>
 
-      <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
+      {hasValidRoute ? (
+        <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
           <MapLegend style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', zIndex: 700 }} />
           <MapContainer center={pickup} zoom={13} style={{ height: 'clamp(130px, 22vh, 180px)', width: '100%' }}>
-          <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
-          <MapFitBounds positions={[pickup, dropoff]} />
-          <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>
-          <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>
-          <Polyline positions={[pickup, dropoff]} color="var(--accent)" weight={3} opacity={0.8} />
-        </MapContainer>
-      </div>
+            <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
+            <MapFitBounds positions={[pickup, dropoff]} />
+            <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>
+            <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>
+            <Polyline positions={[pickup, dropoff]} color="var(--accent)" weight={3} opacity={0.8} />
+          </MapContainer>
+        </div>
+      ) : (
+        <div className="status-banner warning" style={{ marginBottom: '1rem' }}>
+          This ride has invalid map coordinates and cannot be rendered.
+        </div>
+      )}
 
       {/* Existing offers */}
       <div style={{ paddingTop: '0.875rem', marginBottom: '0.875rem' }}>

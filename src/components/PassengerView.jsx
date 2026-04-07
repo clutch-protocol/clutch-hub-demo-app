@@ -42,19 +42,24 @@ function formatPassengerOpenRequests(allRequests, publicKey) {
     }
   }
   const formatted = myRequests.map((r) => {
+    const pickupLat = Number(r.pickupLocation?.latitude);
+    const pickupLng = Number(r.pickupLocation?.longitude);
+    const dropoffLat = Number(r.dropoffLocation?.latitude);
+    const dropoffLng = Number(r.dropoffLocation?.longitude);
     const localTx = txMap[r.txHash];
     return {
       type: 'Ride Request',
       timestamp: localTx?.timestamp ?? Date.now(),
-      pickup: { lat: r.pickupLocation.latitude, lng: r.pickupLocation.longitude },
-      dropoff: { lat: r.dropoffLocation.latitude, lng: r.dropoffLocation.longitude },
+      pickup: { lat: pickupLat, lng: pickupLng },
+      dropoff: { lat: dropoffLat, lng: dropoffLng },
       fare: r.fare,
       txHash: r.txHash,
       passengerAddress: r.passengerAddress,
     };
   });
-  formatted.sort((a, b) => b.timestamp - a.timestamp);
-  return formatted;
+  return formatted
+    .filter((r) => Number.isFinite(r.pickup.lat) && Number.isFinite(r.pickup.lng) && Number.isFinite(r.dropoff.lat) && Number.isFinite(r.dropoff.lng))
+    .sort((a, b) => b.timestamp - a.timestamp);
 }
 
 const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
@@ -72,9 +77,20 @@ const MapFlyToLocation = ({ location }) => {
 
   useEffect(() => {
     if (!location) return;
-    map.flyTo([location.lat, location.lng], Math.max(map.getZoom(), 14), {
-      duration: 0.7,
-    });
+    const lat = Number(location.lat);
+    const lng = Number(location.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const container = map.getContainer?.();
+    const isVisible = !!container && container.offsetWidth > 0 && container.offsetHeight > 0;
+    if (!isVisible) return;
+    const zoom = Number(map.getZoom());
+    const safeZoom = Number.isFinite(zoom) ? Math.max(zoom, 14) : 14;
+    try {
+      map.flyTo([lat, lng], safeZoom, { duration: 0.7 });
+    } catch (err) {
+      // Hidden/inactive maps can still throw inside Leaflet animations; ignore safely.
+      console.warn('Skipped map flyTo due to invalid map state:', err);
+    }
   }, [location, map]);
 
   return null;
@@ -306,7 +322,13 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
 
   const hasConcurrent = activeTrips.length > 0 || previousRequests.length > 0;
   const hasActiveTrip = activeTrips.length > 0;
-  const firstActiveTrip = hasActiveTrip ? activeTrips[0] : null;
+  const mapActiveTrips = activeTrips.filter((t) => (
+    Number.isFinite(Number(t?.pickupLocation?.latitude))
+    && Number.isFinite(Number(t?.pickupLocation?.longitude))
+    && Number.isFinite(Number(t?.dropoffLocation?.latitude))
+    && Number.isFinite(Number(t?.dropoffLocation?.longitude))
+  ));
+  const firstActiveTrip = mapActiveTrips.length > 0 ? mapActiveTrips[0] : null;
   const activeTripPickup = firstActiveTrip
     ? [firstActiveTrip.pickupLocation.latitude, firstActiveTrip.pickupLocation.longitude]
     : null;
@@ -565,8 +587,8 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
             <EmptyState message="Connect your wallet above to request a ride." />
           ) : (
             <>
-              <div className="map-hero" style={{ position: 'relative', marginBottom: '1.0rem' }}>
-                <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <div className="map-hero ride-builder-shell">
+                <div className="ride-builder-toolbar">
                   {hasActiveTrip ? (
                     <div className="step-pill">
                       Active trip in progress
@@ -582,14 +604,13 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                     className="btn-secondary"
                     onClick={handleUseCurrentLocation}
                     disabled={locating}
-                    style={{ fontSize: '0.75rem' }}
+                    className="ride-builder-location-btn"
                   >
                     {locating ? 'Locating…' : 'Use current location'}
                   </button>
                 </div>
                 <div
-                  className="map-wrapper"
-                  style={{ height: 'clamp(260px, 45vh, 380px)', borderRadius: 'var(--radius-md)', position: 'relative' }}
+                  className="map-wrapper map-wrapper--ride"
                 >
                   <MapLegend style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 700 }} />
                   <div className="map-gradient-overlay" />
@@ -610,11 +631,11 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       )
                     ))}
 
-                    {activeTrips.map((t) => (
+                    {mapActiveTrips.map((t) => (
                       <React.Fragment key={t.txHash}>
-                        <Marker position={[t.pickupLocation.latitude, t.pickupLocation.longitude]} icon={pickupIcon}><Popup>Pickup (active trip)</Popup></Marker>
-                        <Marker position={[t.dropoffLocation.latitude, t.dropoffLocation.longitude]} icon={dropoffIcon}><Popup>Dropoff (active trip)</Popup></Marker>
-                        <Polyline positions={[[t.pickupLocation.latitude, t.pickupLocation.longitude], [t.dropoffLocation.latitude, t.dropoffLocation.longitude]]} color="var(--accent)" weight={4} opacity={0.9} />
+                        <Marker position={[Number(t.pickupLocation.latitude), Number(t.pickupLocation.longitude)]} icon={pickupIcon}><Popup>Pickup (active trip)</Popup></Marker>
+                        <Marker position={[Number(t.dropoffLocation.latitude), Number(t.dropoffLocation.longitude)]} icon={dropoffIcon}><Popup>Dropoff (active trip)</Popup></Marker>
+                        <Polyline positions={[[Number(t.pickupLocation.latitude), Number(t.pickupLocation.longitude)], [Number(t.dropoffLocation.latitude), Number(t.dropoffLocation.longitude)]]} color="var(--accent)" weight={4} opacity={0.9} />
                       </React.Fragment>
                     ))}
 
@@ -691,28 +712,27 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
               </div>
 
               {!hasActiveTrip && !hasConcurrent && (
-                <div className="card" style={{ marginBottom: '1.5rem', padding: '0.9rem 1.1rem' }}>
+                <div className="card ride-request-card">
                   <div className="card-title">Ride request</div>
-                  <div className="form-row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', gap: '0.75rem' }}>
-                    <div style={{ flex: '1 1 auto' }}>
+                  <div className="ride-request-form-row">
+                    <div className="ride-request-fare-col">
                       <label className="label">Fare (CLT)</label>
                       <input
                         type="number"
                         value={fare}
                         onChange={(e) => setFare(e.target.value)}
                         className="input-field"
-                        style={{ width: '100%', maxWidth: 220 }}
                         min={0}
                         placeholder="Enter fare after selecting route"
                         disabled={hasConcurrent || !pickup || !dropoff}
                       />
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                    <div className="ride-request-actions">
                       <button
                         type="button"
                         onClick={handleReset}
                         className="btn-secondary"
-                        style={{ whiteSpace: 'nowrap' }}
+                        className="btn-secondary ride-request-btn"
                         disabled={isLoading || hasConcurrent}
                       >
                         Reset
@@ -720,7 +740,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       <button
                         type="button"
                         className="btn-primary"
-                        style={{ whiteSpace: 'nowrap' }}
+                        className="btn-primary ride-request-btn"
                         disabled={hasConcurrent || !(pickup && dropoff && fare) || isLoading}
                         onClick={() => handleSubmit()}
                       >

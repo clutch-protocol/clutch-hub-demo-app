@@ -72,6 +72,21 @@ const LocationSelector = ({ pickup, dropoff, setPickup, setDropoff }) => {
   return null;
 };
 
+const MapCenterTracker = ({ onCenterChange }) => {
+  const map = useMap();
+  useEffect(() => {
+    const c = map.getCenter();
+    onCenterChange?.({ lat: Number(c.lat), lng: Number(c.lng) });
+  }, [map, onCenterChange]);
+  useMapEvents({
+    moveend(e) {
+      const c = e.target.getCenter();
+      onCenterChange?.({ lat: Number(c.lat), lng: Number(c.lng) });
+    },
+  });
+  return null;
+};
+
 const MapFlyToLocation = ({ location }) => {
   const map = useMap();
 
@@ -311,10 +326,11 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
   const [myRideRefreshError, setMyRideRefreshError] = useState(null);
   const [myTripsRefreshing, setMyTripsRefreshing] = useState(false);
   const [myTripsRefreshError, setMyTripsRefreshError] = useState(null);
+  const defaultMapCenter = [27.1883, 56.3772];
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [mapCenter, setMapCenter] = useState({ lat: defaultMapCenter[0], lng: defaultMapCenter[1] });
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState(null);
-  const defaultMapCenter = [27.1883, 56.3772];
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
@@ -526,6 +542,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
           lng: position.coords.longitude,
         };
         setCurrentLocation(next);
+        setMapCenter(next);
         if (!hasActiveTrip && !hasConcurrent && !pickup) {
           setPickup(next);
         }
@@ -538,6 +555,17 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
   }, [hasActiveTrip, hasConcurrent, pickup]);
+
+  const handleSetFromCenter = useCallback(() => {
+    if (hasConcurrent || hasActiveTrip) return;
+    if (!pickup) {
+      setPickup(mapCenter);
+      return;
+    }
+    if (!dropoff) {
+      setDropoff(mapCenter);
+    }
+  }, [hasConcurrent, hasActiveTrip, pickup, dropoff, mapCenter]);
 
   // Try to center the map at the user's location on first render.
   useEffect(() => {
@@ -613,6 +641,12 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                   className="map-wrapper map-wrapper--ride"
                 >
                   <MapLegend style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 700 }} />
+                  {!hasActiveTrip && !hasConcurrent && (
+                    <div className="map-center-pin" aria-hidden>
+                      <div className="map-center-pin-head">+</div>
+                      <div className="map-center-pin-stem" />
+                    </div>
+                  )}
                   <div className="map-gradient-overlay" />
                   <MapContainer
                     center={currentLocation ? [currentLocation.lat, currentLocation.lng] : defaultMapCenter}
@@ -620,6 +654,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                     style={{ height: '100%', width: '100%' }}
                   >
                     <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
+                    <MapCenterTracker onCenterChange={setMapCenter} />
 
                     {previousRequests.map((r) => (
                       !hasActiveTrip && (
@@ -690,12 +725,12 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                   )}
                   {!hasActiveTrip && !pickup && !hasConcurrent && (
                     <p className="map-hint" style={{ margin: 0, fontSize: '0.8rem' }}>
-                      Step 1: Tap on the map to choose your pickup point.
+                      Step 1: Move the map and set pickup at the center marker.
                     </p>
                   )}
                   {!hasActiveTrip && pickup && !dropoff && !hasConcurrent && (
                     <p className="map-hint" style={{ margin: 0, fontSize: '0.8rem' }}>
-                      Step 2: Tap on the map again to choose your destination.
+                      Step 2: Move the map and set destination at the center marker.
                     </p>
                   )}
                   {!hasActiveTrip && pickup && dropoff && !fare && !hasConcurrent && (
@@ -728,6 +763,14 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       />
                     </div>
                     <div className="ride-request-actions">
+                      <button
+                        type="button"
+                        className="btn-secondary ride-request-btn"
+                        disabled={hasConcurrent || hasActiveTrip || !!(pickup && dropoff)}
+                        onClick={handleSetFromCenter}
+                      >
+                        {!pickup ? 'Set pickup at center' : !dropoff ? 'Set destination at center' : 'Route selected'}
+                      </button>
                       <button
                         type="button"
                         onClick={handleReset}

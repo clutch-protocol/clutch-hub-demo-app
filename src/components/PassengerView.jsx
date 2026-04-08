@@ -308,6 +308,7 @@ const RideRequestCard = ({
 
 const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSuccess, externalTab }) => {
   const [fare, setFare] = useState('');
+  const fareInputRef = useRef(null);
   const [pickup, setPickup] = useState(null);
   const [dropoff, setDropoff] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -338,6 +339,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
 
   const hasConcurrent = activeTrips.length > 0 || previousRequests.length > 0;
   const hasActiveTrip = activeTrips.length > 0;
+  const isRouteSelected = !!pickup && !!dropoff;
   const mapActiveTrips = activeTrips.filter((t) => (
     Number.isFinite(Number(t?.pickupLocation?.latitude))
     && Number.isFinite(Number(t?.pickupLocation?.longitude))
@@ -567,6 +569,12 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
     }
   }, [hasConcurrent, hasActiveTrip, pickup, dropoff, mapCenter]);
 
+  // Once route points are set, move user directly to fare entry.
+  useEffect(() => {
+    if (!isRouteSelected || hasConcurrent || hasActiveTrip) return;
+    fareInputRef.current?.focus();
+  }, [isRouteSelected, hasConcurrent, hasActiveTrip]);
+
   // Try to center the map at the user's location on first render.
   useEffect(() => {
     if (!navigator.geolocation || currentLocation) return;
@@ -641,7 +649,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                   className="map-wrapper map-wrapper--ride"
                 >
                   <MapLegend style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 700 }} />
-                  {!hasActiveTrip && !hasConcurrent && (
+                  {!hasActiveTrip && !hasConcurrent && !isRouteSelected && (
                     <div className="map-center-pin" aria-hidden>
                       <div className="map-center-pin-head">+</div>
                       <div className="map-center-pin-stem" />
@@ -681,7 +689,12 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />
                     )}
                     {currentLocation && <MapFlyToLocation location={currentLocation} />}
-                    <LocationSelector pickup={pickup} dropoff={dropoff} setPickup={hasConcurrent ? () => {} : setPickup} setDropoff={hasConcurrent ? () => {} : setDropoff} />
+                    <LocationSelector
+                      pickup={pickup}
+                      dropoff={dropoff}
+                      setPickup={hasConcurrent || isRouteSelected ? () => {} : setPickup}
+                      setDropoff={hasConcurrent || isRouteSelected ? () => {} : setDropoff}
+                    />
                     {currentLocation && <Marker position={currentLocation} icon={currentLocationIcon}><Popup>Your current location</Popup></Marker>}
                     {!hasActiveTrip && pickup && <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>}
                     {!hasActiveTrip && dropoff && <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>}
@@ -753,6 +766,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                     <div className="ride-request-fare-col">
                       <label className="label">Fare (CLT)</label>
                       <input
+                        ref={fareInputRef}
                         type="number"
                         value={fare}
                         onChange={(e) => setFare(e.target.value)}

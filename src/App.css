@@ -714,7 +714,7 @@
 }
 
 .ride-builder-shell {
-  margin-bottom: 1.15rem;
+  margin-bottom: 0.75rem;
 }
 
 .ride-builder-toolbar {
@@ -731,7 +731,9 @@
 }
 
 .map-wrapper--ride {
-  height: clamp(280px, 50vh, 430px);
+  height: calc(100vh - 170px);
+  min-height: 560px;
+  max-height: none;
   border-radius: var(--radius-xl);
 }
 
@@ -1808,7 +1810,8 @@
   }
 
   .map-wrapper--ride {
-    height: clamp(240px, 42vh, 340px);
+    height: calc(100vh - 145px);
+    min-height: 68vh;
     border-radius: var(--radius-md);
   }
 

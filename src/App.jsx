@@ -4,6 +4,7 @@ import DriverView from './components/DriverView';
 import NetworkView from './components/NetworkView';
 import GeneralView from './components/GeneralView';
 import TransactionHistoryPage from './components/TransactionHistoryPage';
+import ExplorerTabs from './components/ExplorerTabs';
 import RoleEntry, { persistRole } from './components/RoleEntry';
 import BalanceDisplay from './components/BalanceDisplay';
 import { truncAddr } from './utils/address';
@@ -20,8 +21,10 @@ function App() {
 
   // mode: wallet mode ('passenger' | 'driver') selected via entry
   const [mode, setMode] = useState(initialStoredRole);
-  // activeTab: current visible panel ('passenger' | 'driver' | 'general' | 'explorer' | 'transactions')
+  // activeTab: current visible panel ('passenger' | 'driver' | 'hub')
   const [activeTab, setActiveTab] = useState(initialStoredRole || null);
+  /** Sub-view when activeTab === 'hub' */
+  const [hubSubTab, setHubSubTab] = useState('about');
   const themeStorageKey = 'clutch_demo_theme';
 
   const [userProfile, setUserProfile] = useState({ publicKey: '', privateKey: '' });
@@ -252,29 +255,11 @@ function App() {
 
             <button
               type="button"
-              className={`app-menu-nav-item ${activeTab === 'general' ? 'active' : ''}`}
-              onClick={() => setActiveTab('general')}
+              className={`app-menu-nav-item ${activeTab === 'hub' ? 'active' : ''}`}
+              onClick={() => setActiveTab('hub')}
             >
-              <span className="app-menu-nav-title">About</span>
-              <span className="app-menu-nav-subtitle">API endpoints, nodes, GitHub</span>
-            </button>
-
-            <button
-              type="button"
-              className={`app-menu-nav-item ${activeTab === 'transactions' ? 'active' : ''}`}
-              onClick={() => setActiveTab('transactions')}
-            >
-              <span className="app-menu-nav-title">Transaction history</span>
-              <span className="app-menu-nav-subtitle">View your latest signed transactions</span>
-            </button>
-
-            <button
-              type="button"
-              className={`app-menu-nav-item ${activeTab === 'explorer' ? 'active' : ''}`}
-              onClick={() => setActiveTab('explorer')}
-            >
-              <span className="app-menu-nav-title">Network explorer</span>
-              <span className="app-menu-nav-subtitle">Live hub status and metrics</span>
+              <span className="app-menu-nav-title">About &amp; network</span>
+              <span className="app-menu-nav-subtitle">About, transaction history, and explorer</span>
             </button>
           </nav>
         </aside>
@@ -319,34 +304,50 @@ function App() {
             />
           </div>
           <div
-            className="fade-in"
+            className="fade-in hub-tools-panel"
             role="tabpanel"
-            id="role-panel-general"
-            aria-labelledby="role-tab-general"
-            hidden={activeTab !== 'general'}
-            style={{ display: activeTab === 'general' ? 'block' : 'none', animationDelay: '0.05s' }}
+            id="role-panel-hub"
+            aria-labelledby="role-tab-hub"
+            hidden={activeTab !== 'hub'}
+            style={{ display: activeTab === 'hub' ? 'block' : 'none', animationDelay: '0.05s' }}
           >
-            <GeneralView />
-          </div>
-          <div
-            className="fade-in"
-            role="tabpanel"
-            id="role-panel-transactions"
-            aria-labelledby="role-tab-transactions"
-            hidden={activeTab !== 'transactions'}
-            style={{ display: activeTab === 'transactions' ? 'block' : 'none', animationDelay: '0.05s' }}
-          >
-            <TransactionHistoryPage userPublicKey={userProfile.publicKey} />
-          </div>
-          <div
-            className="fade-in"
-            role="tabpanel"
-            id="role-panel-explorer"
-            aria-labelledby="role-tab-explorer"
-            hidden={activeTab !== 'explorer'}
-            style={{ display: activeTab === 'explorer' ? 'block' : 'none', animationDelay: '0.05s' }}
-          >
-            <NetworkView />
+            <ExplorerTabs
+              tabs={[
+                { id: 'about', label: 'About', icon: 'ℹ️' },
+                { id: 'transactions', label: 'Tx', icon: '📋' },
+                { id: 'network', label: 'Network', icon: '🔍' },
+              ]}
+              activeTab={hubSubTab}
+              onTabChange={setHubSubTab}
+              showCounts={false}
+            />
+            <div
+              role="tabpanel"
+              id="panel-about"
+              aria-labelledby="tab-about"
+              hidden={hubSubTab !== 'about'}
+              style={{ display: hubSubTab === 'about' ? 'block' : 'none' }}
+            >
+              <GeneralView />
+            </div>
+            <div
+              role="tabpanel"
+              id="panel-transactions"
+              aria-labelledby="tab-transactions"
+              hidden={hubSubTab !== 'transactions'}
+              style={{ display: hubSubTab === 'transactions' ? 'block' : 'none' }}
+            >
+              <TransactionHistoryPage userPublicKey={userProfile.publicKey} />
+            </div>
+            <div
+              role="tabpanel"
+              id="panel-network"
+              aria-labelledby="tab-network"
+              hidden={hubSubTab !== 'network'}
+              style={{ display: hubSubTab === 'network' ? 'block' : 'none' }}
+            >
+              <NetworkView />
+            </div>
           </div>
         </main>
       </div>
@@ -392,35 +393,13 @@ function App() {
 
         <button
           type="button"
-          className={`bottom-nav-item ${activeTab === 'general' ? 'active' : ''}`}
-          onClick={() => setActiveTab('general')}
+          className={`bottom-nav-item ${activeTab === 'hub' ? 'active' : ''}`}
+          onClick={() => setActiveTab('hub')}
         >
           <span className="bottom-nav-icon" aria-hidden>
-            ℹ️
+            ⋯
           </span>
-          <span className="bottom-nav-label">About</span>
-        </button>
-
-        <button
-          type="button"
-          className={`bottom-nav-item ${activeTab === 'transactions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('transactions')}
-        >
-          <span className="bottom-nav-icon" aria-hidden>
-            📋
-          </span>
-          <span className="bottom-nav-label">Tx</span>
-        </button>
-
-        <button
-          type="button"
-          className={`bottom-nav-item ${activeTab === 'explorer' ? 'active' : ''}`}
-          onClick={() => setActiveTab('explorer')}
-        >
-          <span className="bottom-nav-icon" aria-hidden>
-            🔍
-          </span>
-          <span className="bottom-nav-label">Network</span>
+          <span className="bottom-nav-label">More</span>
         </button>
       </nav>
 

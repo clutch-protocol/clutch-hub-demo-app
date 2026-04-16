@@ -1246,6 +1246,18 @@ body {
   line-height: 1.6;
 }
 
+.hub-tools-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hub-tools-panel .explorer-tabs--pill {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 /* ===== Explorer Tabs ===== */
 .explorer-tabs {
   display: flex;

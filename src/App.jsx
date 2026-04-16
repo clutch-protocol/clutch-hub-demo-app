@@ -159,76 +159,271 @@ function App() {
           </button>
         </div>
       </header>
-      <main className="app-main">
-        <div
-          className="fade-in"
-          role="tabpanel"
-          id="role-panel-passenger"
-          aria-labelledby="role-tab-passenger"
-          hidden={activeTab !== 'passenger'}
-          style={{
-            display: activeTab === 'passenger' ? 'block' : 'none',
-            animationDelay: '0.05s',
+      <div className="app-layout">
+        <aside className="app-sidebar" aria-label="App navigation">
+          <div className="card app-menu-card app-sidebar-profile-card">
+            <div className="app-menu-section-header">
+              <span className="app-menu-section-label">Profile</span>
+            </div>
+            <div className="app-menu-profile-card">
+              <div className="app-menu-profile-head">
+                <div className="app-menu-profile-avatar" aria-hidden>
+                  {mode === 'driver' ? 'D' : 'P'}
+                </div>
+                <div>
+                  <div className="app-menu-profile-role-label">Role</div>
+                  <div className="app-menu-profile-role-value">
+                    <span style={{ textTransform: 'capitalize' }}>{mode}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="app-menu-profile-wallet">
+                <div className="app-menu-profile-role-label">Wallet</div>
+                {userProfile.publicKey ? (
+                  <div className="app-menu-profile-wallet-row">
+                    <button
+                      type="button"
+                      className="app-menu-wallet-address"
+                      title={userProfile.publicKey}
+                      onClick={handleCopyWalletAddress}
+                    >
+                      {walletCopied ? 'Copied!' : truncAddr(userProfile.publicKey)}
+                    </button>
+                    <BalanceDisplay
+                      publicKey={userProfile.publicKey}
+                      onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+                    />
+                  </div>
+                ) : (
+                  <span className="app-menu-profile-wallet-empty">Not connected</span>
+                )}
+              </div>
+            </div>
+
+            <div className="app-menu-actions">
+              <button
+                type="button"
+                className="btn-secondary app-menu-signout-btn"
+                onClick={() => {
+                  handleSignOut();
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+
+          <nav className="app-menu-nav" aria-label="Primary navigation">
+            <button
+              type="button"
+              className={`app-menu-nav-item ${activeTab === mode && !isRecentRidesActive ? 'active' : ''}`}
+              onClick={() => {
+                if (mode === 'driver') {
+                  setDriverViewTab('rides');
+                  setActiveTab('driver');
+                } else {
+                  setPassengerViewTab('rides');
+                  setActiveTab('passenger');
+                }
+              }}
+            >
+              <span className="app-menu-nav-title">{mode === 'driver' ? 'Driver view' : 'Passenger view'}</span>
+              <span className="app-menu-nav-subtitle">
+                {mode === 'driver' ? 'See available rides and active trips' : 'Request rides and track your trips'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={`app-menu-nav-item ${isRecentRidesActive ? 'active' : ''}`}
+              onClick={() => {
+                if (mode === 'driver') {
+                  setDriverViewTab('recent');
+                  setActiveTab('driver');
+                } else {
+                  setPassengerViewTab('recent');
+                  setActiveTab('passenger');
+                }
+              }}
+            >
+              <span className="app-menu-nav-title">Recent rides</span>
+              <span className="app-menu-nav-subtitle">View your completed and cancelled trips</span>
+            </button>
+
+            <button
+              type="button"
+              className={`app-menu-nav-item ${activeTab === 'general' ? 'active' : ''}`}
+              onClick={() => setActiveTab('general')}
+            >
+              <span className="app-menu-nav-title">About</span>
+              <span className="app-menu-nav-subtitle">API endpoints, nodes, GitHub</span>
+            </button>
+
+            <button
+              type="button"
+              className={`app-menu-nav-item ${activeTab === 'transactions' ? 'active' : ''}`}
+              onClick={() => setActiveTab('transactions')}
+            >
+              <span className="app-menu-nav-title">Transaction history</span>
+              <span className="app-menu-nav-subtitle">View your latest signed transactions</span>
+            </button>
+
+            <button
+              type="button"
+              className={`app-menu-nav-item ${activeTab === 'explorer' ? 'active' : ''}`}
+              onClick={() => setActiveTab('explorer')}
+            >
+              <span className="app-menu-nav-title">Network explorer</span>
+              <span className="app-menu-nav-subtitle">Live hub status and metrics</span>
+            </button>
+          </nav>
+        </aside>
+
+        <main className="app-main" aria-live="polite">
+          <div
+            className="fade-in"
+            role="tabpanel"
+            id="role-panel-passenger"
+            aria-labelledby="role-tab-passenger"
+            hidden={activeTab !== 'passenger'}
+            style={{
+              display: activeTab === 'passenger' ? 'block' : 'none',
+              animationDelay: '0.05s',
+            }}
+          >
+            <PassengerView
+              userProfile={userProfile}
+              onProfileUpdate={setUserProfile}
+              refreshTrigger={walletRefresh}
+              onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+              externalTab={passengerViewTab}
+            />
+          </div>
+          <div
+            className="fade-in"
+            role="tabpanel"
+            id="role-panel-driver"
+            aria-labelledby="role-tab-driver"
+            hidden={activeTab !== 'driver'}
+            style={{
+              display: activeTab === 'driver' ? 'block' : 'none',
+              animationDelay: '0.05s',
+            }}
+          >
+            <DriverView
+              userProfile={userProfile}
+              onProfileUpdate={setUserProfile}
+              refreshTrigger={walletRefresh}
+              onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+              externalTab={driverViewTab}
+            />
+          </div>
+          <div
+            className="fade-in"
+            role="tabpanel"
+            id="role-panel-general"
+            aria-labelledby="role-tab-general"
+            hidden={activeTab !== 'general'}
+            style={{ display: activeTab === 'general' ? 'block' : 'none', animationDelay: '0.05s' }}
+          >
+            <GeneralView />
+          </div>
+          <div
+            className="fade-in"
+            role="tabpanel"
+            id="role-panel-transactions"
+            aria-labelledby="role-tab-transactions"
+            hidden={activeTab !== 'transactions'}
+            style={{ display: activeTab === 'transactions' ? 'block' : 'none', animationDelay: '0.05s' }}
+          >
+            <TransactionHistoryPage userPublicKey={userProfile.publicKey} />
+          </div>
+          <div
+            className="fade-in"
+            role="tabpanel"
+            id="role-panel-explorer"
+            aria-labelledby="role-tab-explorer"
+            hidden={activeTab !== 'explorer'}
+            style={{ display: activeTab === 'explorer' ? 'block' : 'none', animationDelay: '0.05s' }}
+          >
+            <NetworkView />
+          </div>
+        </main>
+      </div>
+
+      <nav className="bottom-nav" aria-label="Mobile navigation">
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === mode && !isRecentRidesActive ? 'active' : ''}`}
+          onClick={() => {
+            if (mode === 'driver') {
+              setDriverViewTab('rides');
+              setActiveTab('driver');
+            } else {
+              setPassengerViewTab('rides');
+              setActiveTab('passenger');
+            }
           }}
         >
-          <PassengerView
-            userProfile={userProfile}
-            onProfileUpdate={setUserProfile}
-            refreshTrigger={walletRefresh}
-            onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
-            externalTab={passengerViewTab}
-          />
-        </div>
-        <div
-          className="fade-in"
-          role="tabpanel"
-          id="role-panel-driver"
-          aria-labelledby="role-tab-driver"
-          hidden={activeTab !== 'driver'}
-          style={{
-            display: activeTab === 'driver' ? 'block' : 'none',
-            animationDelay: '0.05s',
+          <span className="bottom-nav-icon" aria-hidden>
+            {mode === 'driver' ? '🚕' : '🚗'}
+          </span>
+          <span className="bottom-nav-label">{mode === 'driver' ? 'Rides' : 'Rides'}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${isRecentRidesActive ? 'active' : ''}`}
+          onClick={() => {
+            if (mode === 'driver') {
+              setDriverViewTab('recent');
+              setActiveTab('driver');
+            } else {
+              setPassengerViewTab('recent');
+              setActiveTab('passenger');
+            }
           }}
         >
-          <DriverView
-            userProfile={userProfile}
-            onProfileUpdate={setUserProfile}
-            refreshTrigger={walletRefresh}
-            onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
-            externalTab={driverViewTab}
-          />
-        </div>
-        <div
-          className="fade-in"
-          role="tabpanel"
-          id="role-panel-general"
-          aria-labelledby="role-tab-general"
-          hidden={activeTab !== 'general'}
-          style={{ display: activeTab === 'general' ? 'block' : 'none', animationDelay: '0.05s' }}
+          <span className="bottom-nav-icon" aria-hidden>
+            ✅
+          </span>
+          <span className="bottom-nav-label">Recent</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === 'general' ? 'active' : ''}`}
+          onClick={() => setActiveTab('general')}
         >
-          <GeneralView />
-        </div>
-        <div
-          className="fade-in"
-          role="tabpanel"
-          id="role-panel-transactions"
-          aria-labelledby="role-tab-transactions"
-          hidden={activeTab !== 'transactions'}
-          style={{ display: activeTab === 'transactions' ? 'block' : 'none', animationDelay: '0.05s' }}
+          <span className="bottom-nav-icon" aria-hidden>
+            ℹ️
+          </span>
+          <span className="bottom-nav-label">About</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === 'transactions' ? 'active' : ''}`}
+          onClick={() => setActiveTab('transactions')}
         >
-          <TransactionHistoryPage userPublicKey={userProfile.publicKey} />
-        </div>
-        <div
-          className="fade-in"
-          role="tabpanel"
-          id="role-panel-explorer"
-          aria-labelledby="role-tab-explorer"
-          hidden={activeTab !== 'explorer'}
-          style={{ display: activeTab === 'explorer' ? 'block' : 'none', animationDelay: '0.05s' }}
+          <span className="bottom-nav-icon" aria-hidden>
+            📋
+          </span>
+          <span className="bottom-nav-label">Tx</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === 'explorer' ? 'active' : ''}`}
+          onClick={() => setActiveTab('explorer')}
         >
-          <NetworkView />
-        </div>
-      </main>
+          <span className="bottom-nav-icon" aria-hidden>
+            🔍
+          </span>
+          <span className="bottom-nav-label">Network</span>
+        </button>
+      </nav>
+
       {menuOpen && (
         <div className="app-menu-overlay" onClick={() => setMenuOpen(false)}>
           <aside className="app-menu" onClick={(e) => e.stopPropagation()}>
@@ -293,91 +488,6 @@ function App() {
                   Sign out
                 </button>
               </div>
-            </div>
-
-            <div className="card app-menu-card">
-              <div className="app-menu-section-header">
-                <span className="app-menu-section-label">Navigation</span>
-              </div>
-              <nav className="app-menu-nav">
-                {mode === 'passenger' ? (
-                  <button
-                    type="button"
-                    className={`app-menu-nav-item ${activeTab === 'passenger' && !isRecentRidesActive ? 'active' : ''}`}
-                    onClick={() => {
-                      setPassengerViewTab('rides');
-                      setActiveTab('passenger');
-                      setMenuOpen(false);
-                    }}
-                  >
-                    <span className="app-menu-nav-title">Passenger view</span>
-                    <span className="app-menu-nav-subtitle">Request rides and track your trips</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={`app-menu-nav-item ${activeTab === 'driver' && !isRecentRidesActive ? 'active' : ''}`}
-                    onClick={() => {
-                      setDriverViewTab('rides');
-                      setActiveTab('driver');
-                      setMenuOpen(false);
-                    }}
-                  >
-                    <span className="app-menu-nav-title">Driver view</span>
-                    <span className="app-menu-nav-subtitle">See available rides and active trips</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className={`app-menu-nav-item ${isRecentRidesActive ? 'active' : ''}`}
-                  onClick={() => {
-                    if (mode === 'driver') {
-                      setDriverViewTab('recent');
-                      setActiveTab('driver');
-                    } else {
-                      setPassengerViewTab('recent');
-                      setActiveTab('passenger');
-                    }
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="app-menu-nav-title">Recent rides</span>
-                  <span className="app-menu-nav-subtitle">View your completed and cancelled trips</span>
-                </button>
-                <button
-                  type="button"
-                  className={`app-menu-nav-item ${activeTab === 'general' ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveTab('general');
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="app-menu-nav-title">About</span>
-                  <span className="app-menu-nav-subtitle">API endpoints, nodes, GitHub</span>
-                </button>
-                <button
-                  type="button"
-                  className={`app-menu-nav-item ${activeTab === 'transactions' ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveTab('transactions');
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="app-menu-nav-title">Transaction history</span>
-                  <span className="app-menu-nav-subtitle">View your latest signed transactions</span>
-                </button>
-                <button
-                  type="button"
-                  className={`app-menu-nav-item ${activeTab === 'explorer' ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveTab('explorer');
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="app-menu-nav-title">Network explorer</span>
-                  <span className="app-menu-nav-subtitle">Live hub status and metrics</span>
-                </button>
-              </nav>
             </div>
           </aside>
         </div>

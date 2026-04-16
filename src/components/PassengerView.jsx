@@ -623,7 +623,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
             <EmptyState message="Connect your wallet above to request a ride." />
           ) : (
             <>
-              <div className="map-hero ride-builder-shell">
+              <div className="passenger-ride-split"><div className="passenger-ride-mapcol"><div className="map-hero ride-builder-shell">
                 <div className="ride-builder-toolbar">
                   {hasActiveTrip ? (
                     <div className="step-pill">
@@ -637,10 +637,9 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                   )}
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-secondary ride-builder-location-btn"
                     onClick={handleUseCurrentLocation}
                     disabled={locating}
-                    className="ride-builder-location-btn"
                   >
                     {locating ? 'Locating…' : 'Use current location'}
                   </button>
@@ -709,7 +708,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                   </MapContainer>
                 </div>
 
-                <div className="floating-panel">
+                </div></div><div className="passenger-ride-sidecol"><div className="floating-panel passenger-side-panel">
                   {!hasActiveTrip && transactionStatus && (
                     <div className={`status-banner ${transactionStatus.type}`} style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
                       {transactionStatus.message}
@@ -757,7 +756,6 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                     </p>
                   )}
                 </div>
-              </div>
 
               {!hasActiveTrip && !hasConcurrent && (
                 <div className="card ride-request-card">
@@ -788,7 +786,6 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       <button
                         type="button"
                         onClick={handleReset}
-                        className="btn-secondary"
                         className="btn-secondary ride-request-btn"
                         disabled={isLoading || hasConcurrent}
                       >
@@ -796,7 +793,6 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       </button>
                       <button
                         type="button"
-                        className="btn-primary"
                         className="btn-primary ride-request-btn"
                         disabled={hasConcurrent || !(pickup && dropoff && fare) || isLoading}
                         onClick={() => handleSubmit()}
@@ -878,7 +874,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
               {activeTrips.length === 0 && previousRequests.length === 0 && !activeTripsLoading && !activeTripsError && (
                 <EmptyState message="Set your route on the map above, then enter the fare and confirm. Your request will appear here and on the map." />
               )}
-              </div>
+              </div></div></div>
             </>
           )}
         </Section>

@@ -182,7 +182,7 @@ const NetworkView = () => {
             <>
               <div className="map-wrapper network-map-wrapper">
                 <div className="map-gradient-overlay" />
-                <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} style={{ height: '400px', width: '100%' }}>
+                <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} className="network-map" style={{ width: '100%' }}>
                   <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
                   <MapFitBounds
                     positions={

@@ -1960,14 +1960,13 @@ body {
     padding-bottom: 5.5rem;
   }
 
-  /* Keep passenger ride controls inside viewport on mobile/tablet.
-     The side column scrolls internally instead of overflowing the page. */
+  /* Mobile/tablet: prioritize map as primary full-view area. */
   .passenger-ride-split {
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - 170px);
+    max-height: none;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .passenger-ride-mapcol {
@@ -1978,11 +1977,31 @@ body {
   .passenger-ride-sidecol {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    /* Avoid clipping controls behind bottom nav */
+    overflow: visible;
     padding-bottom: 5.75rem;
     scroll-padding-bottom: 5.75rem;
+  }
+
+  .map-wrapper--ride {
+    height: clamp(320px, calc(100dvh - 260px), 620px);
+    max-height: calc(100dvh - 260px);
+    min-height: 320px;
+  }
+
+  /* Put "Set pickup at center" on its own row before Reset/Confirm. */
+  .ride-request-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .ride-request-actions .ride-request-btn:first-child {
+    flex: 1 1 100%;
+  }
+
+  .ride-request-actions .ride-request-btn:not(:first-child) {
+    flex: 1 1 calc(50% - 0.25rem);
   }
 }
 
@@ -2054,8 +2073,9 @@ body {
   }
 
   .map-wrapper--ride {
-    height: clamp(220px, 40dvh, 340px);
-    min-height: 220px;
+    height: clamp(300px, calc(100dvh - 250px), 560px);
+    max-height: calc(100dvh - 250px);
+    min-height: 300px;
     border-radius: var(--radius-md);
   }
 

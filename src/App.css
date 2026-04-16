@@ -1904,22 +1904,6 @@ body {
   animation: fadeIn 0.35s ease both;
 }
 
-/* ===== Floating panel (glassmorphism) ===== */
-.floating-panel {
-  position: absolute;
-  bottom: 1rem;
-  left: 1rem;
-  right: 1rem;
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-radius: var(--radius-2xl);
-  padding: 1.25rem 1.5rem;
-  box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  z-index: 500;
-}
-
 /* Passenger ride split layout */
 .passenger-ride-split {
   display: grid;
@@ -1937,16 +1921,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-}
-
-/* When placed in the right column, render the panel in-flow. */
-.passenger-side-panel {
-  position: static;
-  left: auto;
-  right: auto;
-  bottom: auto;
-  z-index: auto;
-  margin-top: 0;
 }
 
 @media (min-width: 901px) {
@@ -2124,16 +2098,6 @@ body {
     max-height: calc(100dvh - 250px);
     min-height: 300px;
     border-radius: var(--radius-md);
-  }
-
-  .floating-panel {
-    position: static;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    margin-top: 0.75rem;
-    padding: 1rem 1rem;
-    z-index: auto;
   }
 
   .map-wrapper {

@@ -730,7 +730,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                   </MapContainer>
                 </div>
 
-                </div></div><div className="passenger-ride-sidecol"><div className="floating-panel passenger-side-panel">
+                </div></div><div className="passenger-ride-sidecol">
                   {!hasActiveTrip && transactionStatus && (
                     <div className={`status-banner ${transactionStatus.type}`} style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
                       {transactionStatus.message}
@@ -757,27 +757,6 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       Active trip in progress (origin → destination)
                     </div>
                   )}
-                  {!hasActiveTrip && !pickup && !hasConcurrent && (
-                    <p className="map-hint" style={{ margin: 0, fontSize: '0.8rem' }}>
-                      Step 1: Move the map and set pickup at the center marker.
-                    </p>
-                  )}
-                  {!hasActiveTrip && pickup && !dropoff && !hasConcurrent && (
-                    <p className="map-hint" style={{ margin: 0, fontSize: '0.8rem' }}>
-                      Step 2: Move the map and set destination at the center marker.
-                    </p>
-                  )}
-                  {!hasActiveTrip && pickup && dropoff && !fare && !hasConcurrent && (
-                    <p className="map-hint" style={{ margin: 0, fontSize: '0.8rem' }}>
-                      Step 3: Enter fare amount above the map.
-                    </p>
-                  )}
-                  {!hasActiveTrip && pickup && dropoff && fare && !hasConcurrent && (
-                    <p className="map-hint" style={{ margin: 0, fontSize: '0.8rem' }}>
-                      Step 4: Click confirm request below the map.
-                    </p>
-                  )}
-                </div>
 
               {!hasActiveTrip && !hasConcurrent && (
                 <div className="card ride-request-card">

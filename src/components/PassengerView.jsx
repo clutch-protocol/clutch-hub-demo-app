@@ -635,14 +635,36 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       {!pickup ? 'Select pickup on map' : !dropoff ? 'Select destination on map' : !fare ? 'Enter fare amount' : 'Confirm request'}
                     </div>
                   )}
-                  <button
-                    type="button"
-                    className="btn-secondary ride-builder-location-btn"
-                    onClick={handleUseCurrentLocation}
-                    disabled={locating}
-                  >
-                    {locating ? 'Locating…' : 'Use current location'}
-                  </button>
+                  <div className="ride-builder-toolbar-actions">
+                    {!hasActiveTrip && !hasConcurrent && (
+                      <>
+                        <button
+                          type="button"
+                          className="btn-secondary ride-builder-set-center-btn"
+                          disabled={hasConcurrent || hasActiveTrip || !!(pickup && dropoff)}
+                          onClick={handleSetFromCenter}
+                        >
+                          {!pickup ? 'Set pickup at center' : !dropoff ? 'Set destination at center' : 'Route selected'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary ride-builder-reset-btn"
+                          onClick={handleReset}
+                          disabled={isLoading}
+                        >
+                          Reset
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      className="btn-secondary ride-builder-location-btn"
+                      onClick={handleUseCurrentLocation}
+                      disabled={locating}
+                    >
+                      {locating ? 'Locating…' : 'Use current location'}
+                    </button>
+                  </div>
                 </div>
                 <div
                   className="map-wrapper map-wrapper--ride"
@@ -775,22 +797,6 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       />
                     </div>
                     <div className="ride-request-actions">
-                      <button
-                        type="button"
-                        className="btn-secondary ride-request-btn"
-                        disabled={hasConcurrent || hasActiveTrip || !!(pickup && dropoff)}
-                        onClick={handleSetFromCenter}
-                      >
-                        {!pickup ? 'Set pickup at center' : !dropoff ? 'Set destination at center' : 'Route selected'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleReset}
-                        className="btn-secondary ride-request-btn"
-                        disabled={isLoading || hasConcurrent}
-                      >
-                        Reset
-                      </button>
                       <button
                         type="button"
                         className="btn-primary ride-request-btn"

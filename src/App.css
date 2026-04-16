@@ -819,6 +819,16 @@ body {
   flex-wrap: wrap;
 }
 
+.ride-builder-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ride-builder-set-center-btn,
+.ride-builder-reset-btn,
 .ride-builder-location-btn {
   font-size: 0.75rem;
 }
@@ -1988,20 +1998,51 @@ body {
     min-height: 320px;
   }
 
-  /* Put "Set pickup at center" on its own row before Reset/Confirm. */
   .ride-request-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: stretch;
+    justify-content: flex-end;
   }
 
-  .ride-request-actions .ride-request-btn:first-child {
-    flex: 1 1 100%;
+  .ride-request-actions .ride-request-btn {
+    flex: 1 1 auto;
+    min-width: min(100%, 12rem);
   }
 
-  .ride-request-actions .ride-request-btn:not(:first-child) {
-    flex: 1 1 calc(50% - 0.25rem);
+  /* Compact ride request card for mobile/tablet */
+  .ride-request-card {
+    padding: 0.85rem 0.9rem;
+    margin-bottom: 0.75rem;
+    border-radius: var(--radius);
+  }
+
+  .ride-request-card .card-title {
+    margin: 0 0 0.55rem 0;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+  }
+
+  .ride-request-card .label {
+    margin-bottom: 0.25rem;
+    font-size: 0.75rem;
+  }
+
+  .ride-request-card .input-field {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 10px;
+  }
+
+  .ride-request-card .ride-request-actions {
+    gap: 0.4rem;
+  }
+
+  .ride-request-card .ride-request-btn {
+    min-height: 36px;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -2068,7 +2109,13 @@ body {
     align-items: stretch;
   }
 
-  .ride-builder-location-btn {
+  .ride-builder-toolbar-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ride-builder-toolbar-actions .btn-secondary {
     width: 100%;
   }
 

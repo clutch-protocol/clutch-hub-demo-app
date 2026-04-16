@@ -630,22 +630,23 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       Active trip in progress
                     </div>
                   ) : (
-                    <div className="step-pill">
+                    <div className="step-pill ride-builder-step-pill">
                       Step {!pickup ? 1 : !dropoff ? 2 : !fare ? 3 : 4}:{' '}
-                      {!pickup ? 'Select pickup on map' : !dropoff ? 'Select destination on map' : !fare ? 'Enter fare amount' : 'Confirm request'}
+                      {!pickup ? 'Pick pickup' : !dropoff ? 'Pick destination' : !fare ? 'Enter fare' : 'Confirm'}
                     </div>
                   )}
                   <div className="ride-builder-toolbar-actions">
                     {!hasActiveTrip && !hasConcurrent && (
                       <>
-                        <button
-                          type="button"
-                          className="btn-secondary ride-builder-set-center-btn"
-                          disabled={hasConcurrent || hasActiveTrip || !!(pickup && dropoff)}
-                          onClick={handleSetFromCenter}
-                        >
-                          {!pickup ? 'Set pickup at center' : !dropoff ? 'Set destination at center' : 'Route selected'}
-                        </button>
+                        {(!pickup || !dropoff) && (
+                          <button
+                            type="button"
+                            className="btn-secondary ride-builder-set-center-btn"
+                            onClick={handleSetFromCenter}
+                          >
+                            {!pickup ? 'Set pickup' : 'Set drop-off'}
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="btn-secondary ride-builder-reset-btn"
@@ -662,7 +663,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
                       onClick={handleUseCurrentLocation}
                       disabled={locating}
                     >
-                      {locating ? 'Locating…' : 'Use current location'}
+                      {locating ? 'Locating…' : 'My location'}
                     </button>
                   </div>
                 </div>

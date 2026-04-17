@@ -415,10 +415,12 @@ body {
 
 .app--entry .app-main--entry {
   max-width: 480px;
+  width: min(100%, 480px);
+  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* ===== Role selector (pill tabs) ===== */

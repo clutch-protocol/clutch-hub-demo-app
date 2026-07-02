@@ -180,7 +180,7 @@ const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSucc
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
-  const hubSdk = useClutchSdk(userProfile.publicKey || undefined, '0x0');
+  const hubSdk = useClutchSdk(userProfile.publicKey || undefined, '0x0', userProfile.privateKey);
 
   const hasActiveTrip = activeTrips.length > 0;
 
@@ -296,8 +296,7 @@ const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSucc
     setAcceptingTxHash(req.txHash);
     setAcceptStatus(null);
     try {
-      const offerFare = offerFares[req.txHash] !== undefined ? Number(offerFares[req.txHash]) : req.fare;
-      const unsignedTx = await hubSdk.createUnsignedRideOffer({ rideRequestTxHash: req.txHash, fare: offerFare });
+      // Private key needed before createUnsigned*: generateToken requires a signed challenge.
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
         privateKey = await requestPrivateKey('Enter your private key to sign the ride offer:');
@@ -307,6 +306,9 @@ const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSucc
           return;
         }
       }
+      hubSdk.setPrivateKey(privateKey);
+      const offerFare = offerFares[req.txHash] !== undefined ? Number(offerFares[req.txHash]) : req.fare;
+      const unsignedTx = await hubSdk.createUnsignedRideOffer({ rideRequestTxHash: req.txHash, fare: offerFare });
       const signature = await hubSdk.signTransaction(unsignedTx, privateKey);
       await hubSdk.submitTransaction(signature.rawTransaction);
       setAcceptStatus({ type: 'success', message: 'Offer submitted!' });

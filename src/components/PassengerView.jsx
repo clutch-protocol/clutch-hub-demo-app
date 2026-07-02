@@ -167,8 +167,7 @@ const RideRequestCard = ({
     setAcceptingOfferTxHash(offer.txHash);
     setAcceptError(null);
     try {
-      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey);
-      const unsignedTx = await sdk.createUnsignedRideAcceptance({ rideOfferTxHash: offer.txHash });
+      // Private key needed before createUnsigned*: generateToken requires a signed challenge.
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
         privateKey = await requestPrivateKey('Enter your private key to sign the acceptance:');
@@ -178,6 +177,9 @@ const RideRequestCard = ({
           return;
         }
       }
+      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey, privateKey);
+      sdk.setPrivateKey(privateKey);
+      const unsignedTx = await sdk.createUnsignedRideAcceptance({ rideOfferTxHash: offer.txHash });
       const signature = await sdk.signTransaction(unsignedTx, privateKey);
       await sdk.submitTransaction(signature.rawTransaction);
       TransactionHistory.addTransaction(userProfile.publicKey, {
@@ -208,8 +210,7 @@ const RideRequestCard = ({
     setCancelling(true);
     setCancelError(null);
     try {
-      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey);
-      const unsignedTx = await sdk.createUnsignedRideRequestCancel({ rideRequestTxHash: req.txHash });
+      // Private key needed before createUnsigned*: generateToken requires a signed challenge.
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
         privateKey = await requestPrivateKey('Enter your private key to sign the cancellation:');
@@ -219,6 +220,9 @@ const RideRequestCard = ({
           return;
         }
       }
+      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey, privateKey);
+      sdk.setPrivateKey(privateKey);
+      const unsignedTx = await sdk.createUnsignedRideRequestCancel({ rideRequestTxHash: req.txHash });
       const signature = await sdk.signTransaction(unsignedTx, privateKey);
       await sdk.submitTransaction(signature.rawTransaction);
       TransactionHistory.addTransaction(userProfile.publicKey, {
@@ -335,7 +339,7 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
-  const hubSdk = useClutchSdk(userProfile.publicKey, '0x0');
+  const hubSdk = useClutchSdk(userProfile.publicKey, '0x0', userProfile.privateKey);
 
   const hasConcurrent = activeTrips.length > 0 || previousRequests.length > 0;
   const hasActiveTrip = activeTrips.length > 0;
@@ -446,9 +450,8 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
     submittingRef.current = true;
     setIsLoading(true);
     try {
-      setTransactionStatus({ type: 'info', message: 'Creating transaction...' });
-      const unsignedTx = await hubSdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
-      setTransactionStatus({ type: 'info', message: 'Signing...' });
+      // The private key is needed up front: creating the unsigned tx authenticates via
+      // generateToken, which requires a signed proof-of-key-ownership challenge.
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
         privateKey = await requestPrivateKey('Enter your private key to sign the transaction:');
@@ -459,6 +462,10 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
           return;
         }
       }
+      hubSdk.setPrivateKey(privateKey);
+      setTransactionStatus({ type: 'info', message: 'Creating transaction...' });
+      const unsignedTx = await hubSdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
+      setTransactionStatus({ type: 'info', message: 'Signing...' });
       const signature = await hubSdk.signTransaction(unsignedTx, privateKey);
       setTransactionStatus({ type: 'info', message: 'Submitting...' });
       await hubSdk.submitTransaction(signature.rawTransaction);

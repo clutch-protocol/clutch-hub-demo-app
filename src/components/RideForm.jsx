@@ -36,7 +36,7 @@ const RideForm = () => {
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
   const handleProfileUpdate = useCallback((profile) => setUserProfile(profile), []);
-  const hubSdk = useClutchSdk(userProfile.publicKey || undefined, '0x0');
+  const hubSdk = useClutchSdk(userProfile.publicKey || undefined, '0x0', userProfile.privateKey);
   const sdk = userProfile.publicKey ? hubSdk : null;
 
   const handleReset = useCallback(() => {
@@ -53,9 +53,7 @@ const RideForm = () => {
       setTransactionStatus({ type: 'info', message: 'Creating transaction...' });
 
       if (!sdk) return;
-      const unsignedTx = await sdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
-      setTransactionStatus({ type: 'info', message: 'Transaction created. Signing...' });
-
+      // Private key needed before createUnsigned*: generateToken requires a signed challenge.
       let privateKey = userProfile.privateKey;
       if (!privateKey) {
         privateKey = await requestPrivateKey('Enter your private key to sign the transaction:');
@@ -65,6 +63,10 @@ const RideForm = () => {
           return;
         }
       }
+      sdk.setPrivateKey(privateKey);
+
+      const unsignedTx = await sdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
+      setTransactionStatus({ type: 'info', message: 'Transaction created. Signing...' });
 
       const signature = await sdk.signTransaction(unsignedTx, privateKey);
       setTransactionStatus({ type: 'info', message: 'Submitting transaction to the network...' });

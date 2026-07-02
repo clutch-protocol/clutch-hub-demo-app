@@ -76,11 +76,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
     setPayError(null);
     try {
       const { publicKey, privateKey } = passengerPayment.userProfile;
-      const sdk = new ClutchHubSdk(API_URL, publicKey);
-      const unsignedTx = await sdk.createUnsignedRidePay({
-        rideAcceptanceTxHash: trip.txHash,
-        fare: Math.floor(amount),
-      });
+      // Private key needed before createUnsigned*: generateToken requires a signed challenge.
       let pk = privateKey;
       if (!pk) {
         pk = await requestPrivateKey('Enter your private key to sign the payment:');
@@ -90,6 +86,11 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
           return;
         }
       }
+      const sdk = new ClutchHubSdk(API_URL, publicKey, pk);
+      const unsignedTx = await sdk.createUnsignedRidePay({
+        rideAcceptanceTxHash: trip.txHash,
+        fare: Math.floor(amount),
+      });
       const signature = await sdk.signTransaction(unsignedTx, pk);
       await sdk.submitTransaction(signature.rawTransaction);
       TransactionHistory.addTransaction(publicKey, {
@@ -134,10 +135,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
     setCancelError(null);
     try {
       const { publicKey, privateKey } = cancelAction.userProfile;
-      const sdk = new ClutchHubSdk(API_URL, publicKey);
-      const unsignedTx = await sdk.createUnsignedRideCancel({
-        rideAcceptanceTxHash: trip.txHash,
-      });
+      // Private key needed before createUnsigned*: generateToken requires a signed challenge.
       let pk = privateKey;
       if (!pk) {
         pk = await requestPrivateKey('Enter your private key to sign the cancellation:');
@@ -147,6 +145,10 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
           return;
         }
       }
+      const sdk = new ClutchHubSdk(API_URL, publicKey, pk);
+      const unsignedTx = await sdk.createUnsignedRideCancel({
+        rideAcceptanceTxHash: trip.txHash,
+      });
       const signature = await sdk.signTransaction(unsignedTx, pk);
       await sdk.submitTransaction(signature.rawTransaction);
       TransactionHistory.addTransaction(publicKey, {

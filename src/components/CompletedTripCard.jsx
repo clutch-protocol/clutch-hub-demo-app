@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
-import { MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
+import { MAP_ATTRIBUTION, getMapTileUrl } from '../config';
+import { useTheme } from '../hooks/useTheme';
 import { truncAddr } from '../utils/address';
 import { pickupIcon, dropoffIcon } from '../utils/mapMarkers';
 import MapLegend from './MapLegend';
@@ -28,6 +29,8 @@ function CopyableAddress({ address }) {
 
 /** Read-only card for recent ride history (completed or cancelled). */
 const CompletedTripCard = ({ trip }) => {
+  const theme = useTheme();
+  const tileUrl = getMapTileUrl(theme);
   const farePaid = trip.farePaid ?? trip.fare_paid ?? 0;
   const totalFare = trip.fare;
   const rawStatus = (trip.tripStatus ?? trip.trip_status ?? 'completed').toLowerCase();
@@ -84,7 +87,7 @@ const CompletedTripCard = ({ trip }) => {
       <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
         <MapLegend style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 700 }} />
         <MapContainer center={pickup} zoom={13} style={{ height: 'clamp(120px, 18vh, 160px)', width: '100%' }}>
-          <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
+          <TileLayer key={tileUrl} url={tileUrl} attribution={MAP_ATTRIBUTION} />
           <MapFitBounds positions={[pickup, dropoff]} />
           <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>
           <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>

@@ -3,14 +3,15 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
 import CompletedTripCard from './CompletedTripCard';
-import { Section, EmptyState } from './layout';
+import { BottomSheet, OverlayPanel, Toast, EmptyState } from './layout';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
+import { API_URL, MAP_ATTRIBUTION, getMapTileUrl } from '../config';
 import { useClutchSdk } from '../hooks/useClutchSdk';
+import { useTheme } from '../hooks/useTheme';
 import { truncAddr } from '../utils/address';
 import {
   subscribeActiveTripsCompat,
@@ -26,7 +27,7 @@ import MapLegend from './MapLegend';
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
 
-const RideRequestCard = ({
+const RequestDetail = ({
   req,
   userProfile,
   hubSdk,
@@ -35,6 +36,7 @@ const RideRequestCard = ({
   handleAcceptOffer,
   acceptingTxHash,
   disabled,
+  onBack,
 }) => {
   const [offers, setOffers] = useState([]);
   const [loadingOffers, setLoadingOffers] = useState(false);
@@ -75,38 +77,17 @@ const RideRequestCard = ({
     return () => dispose();
   }, [req.txHash, userProfile.publicKey, hubSdk]);
 
-  const pickup = [Number(req.pickupLocation?.latitude), Number(req.pickupLocation?.longitude)];
-  const dropoff = [Number(req.dropoffLocation?.latitude), Number(req.dropoffLocation?.longitude)];
-  const hasValidRoute = Number.isFinite(pickup[0]) && Number.isFinite(pickup[1]) && Number.isFinite(dropoff[0]) && Number.isFinite(dropoff[1]);
-
   return (
-    <div className="card">
-      <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+    <div>
+      <button type="button" className="sheet-back-btn" onClick={onBack}>← All requests</button>
+      <div className="form-row" style={{ justifyContent: 'space-between', margin: '0.5rem 0 0.875rem' }}>
         <span className="truncate-address" title={req.passengerAddress}>
           Passenger: {truncAddr(req.passengerAddress)}
         </span>
         <span className="fare-badge">{req.fare} CLT</span>
       </div>
 
-      {hasValidRoute ? (
-        <div className="map-wrapper" style={{ marginBottom: '1rem' }}>
-          <MapLegend style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', zIndex: 700 }} />
-          <MapContainer center={pickup} zoom={13} style={{ height: 'clamp(130px, 22vh, 180px)', width: '100%' }}>
-            <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
-            <MapFitBounds positions={[pickup, dropoff]} />
-            <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>
-            <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>
-            <Polyline positions={[pickup, dropoff]} color="var(--accent)" weight={3} opacity={0.8} />
-          </MapContainer>
-        </div>
-      ) : (
-        <div className="status-banner warning" style={{ marginBottom: '1rem' }}>
-          This ride has invalid map coordinates and cannot be rendered.
-        </div>
-      )}
-
-      {/* Existing offers */}
-      <div style={{ paddingTop: '0.875rem', marginBottom: '0.875rem' }}>
+      <div style={{ marginBottom: '0.875rem' }}>
         <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--on-surface-variant)' }}>Offers ({offers.length})</span>
           <button type="button" className="btn-ghost" onClick={fetchOffers} disabled={loadingOffers} style={{ fontSize: '0.75rem' }}>
@@ -131,8 +112,7 @@ const RideRequestCard = ({
         ))}
       </div>
 
-      {/* Make offer */}
-      <div style={{ paddingTop: '0.875rem' }}>
+      <div>
         <div className="form-row">
           <label className="label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Your offer</label>
           <input
@@ -160,8 +140,8 @@ const RideRequestCard = ({
   );
 };
 
-const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSuccess, externalTab }) => {
-  const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
+const DriverView = ({ userProfile, externalTab, onTabSync }) => {
+  const [, setRefreshBalanceCounter] = useState(0);
   const [rideRequests, setRideRequests] = useState([]);
   const [isLoadingRides, setIsLoadingRides] = useState(false);
   const [ridesError, setRidesError] = useState(null);
@@ -169,7 +149,7 @@ const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSucc
   const [acceptStatus, setAcceptStatus] = useState(null);
   const [offerFares, setOfferFares] = useState({});
   const [activeTrips, setActiveTrips] = useState([]);
-  const [activeTripsLoading, setActiveTripsLoading] = useState(false);
+  const [, setActiveTripsLoading] = useState(false);
   const [activeTripsError, setActiveTripsError] = useState(null);
   const [recentTrips, setRecentTrips] = useState([]);
   const [recentTripsLoading, setRecentTripsLoading] = useState(false);
@@ -177,25 +157,37 @@ const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSucc
   const [driverTab, setDriverTab] = useState('rides');
   const [myTripsRefreshing, setMyTripsRefreshing] = useState(false);
   const [myTripsRefreshError, setMyTripsRefreshError] = useState(null);
+  const [sheetSnap, setSheetSnap] = useState('half');
+  const [selectedRequestTxHash, setSelectedRequestTxHash] = useState(null);
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
   const hubSdk = useClutchSdk(userProfile.publicKey || undefined, '0x0', userProfile.privateKey);
 
+  const theme = useTheme();
+  const tileUrl = getMapTileUrl(theme);
+  const defaultMapCenter = [27.1883, 56.3772];
+
   const hasActiveTrip = activeTrips.length > 0;
+
+  const validRequests = rideRequests.filter((r) => (
+    Number.isFinite(Number(r.pickupLocation?.latitude))
+    && Number.isFinite(Number(r.pickupLocation?.longitude))
+    && Number.isFinite(Number(r.dropoffLocation?.latitude))
+    && Number.isFinite(Number(r.dropoffLocation?.longitude))
+  ));
+  const selectedRequest = validRequests.find((r) => r.txHash === selectedRequestTxHash) || null;
+
+  // Clear a selection that disappeared (request fulfilled/cancelled).
+  useEffect(() => {
+    if (selectedRequestTxHash && !selectedRequest) setSelectedRequestTxHash(null);
+  }, [selectedRequestTxHash, selectedRequest]);
 
   useEffect(() => {
     if (externalTab) {
       setDriverTab(externalTab);
     }
   }, [externalTab]);
-
-  const handleProfileUpdate = useCallback(
-    (profile) => {
-      onProfileUpdate?.(profile);
-    },
-    [onProfileUpdate],
-  );
 
   useEffect(() => {
     if (!userProfile.publicKey) {
@@ -355,162 +347,185 @@ const DriverView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSucc
     }
   }, [userProfile.publicKey, hubSdk]);
 
+  const selPickup = selectedRequest
+    ? [Number(selectedRequest.pickupLocation.latitude), Number(selectedRequest.pickupLocation.longitude)]
+    : null;
+  const selDropoff = selectedRequest
+    ? [Number(selectedRequest.dropoffLocation.latitude), Number(selectedRequest.dropoffLocation.longitude)]
+    : null;
+
+  const tripWithRoute = activeTrips.find((t) => (
+    Number.isFinite(Number(t?.pickupLocation?.latitude))
+    && Number.isFinite(Number(t?.pickupLocation?.longitude))
+    && Number.isFinite(Number(t?.dropoffLocation?.latitude))
+    && Number.isFinite(Number(t?.dropoffLocation?.longitude))
+  ));
+
+  const sheetHeader = hasActiveTrip ? (
+    <div className="sheet-header-row">
+      <div>
+        <h2 className="sheet-title">Trip in progress</h2>
+        <p className="sheet-subtitle">Finish this trip before taking new requests.</p>
+      </div>
+      <button type="button" className="btn-ghost" onClick={refreshDriverMyTrips} disabled={myTripsRefreshing}>
+        {myTripsRefreshing ? '…' : 'Refresh'}
+      </button>
+    </div>
+  ) : (
+    <div className="sheet-header-row">
+      <div>
+        <h2 className="sheet-title">{selectedRequest ? 'Ride request' : 'Available rides'}</h2>
+        <p className="sheet-subtitle">
+          {selectedRequest ? 'Route shown on the map.' : `${validRequests.length} open request${validRequests.length === 1 ? '' : 's'} · live updates`}
+        </p>
+      </div>
+      <button type="button" className="btn-ghost" onClick={fetchRideRequests} disabled={isLoadingRides}>
+        {isLoadingRides ? '…' : 'Refresh'}
+      </button>
+    </div>
+  );
+
   return (
-    <div>
-      <div
-        role="tabpanel"
-        id="panel-rides"
-        aria-labelledby="tab-rides"
-        hidden={driverTab !== 'rides'}
-        style={{ display: driverTab === 'rides' ? 'block' : 'none' }}
-      >
-        {hasActiveTrip && userProfile.publicKey && (
-          <div className="status-banner info" style={{ marginBottom: '1rem' }}>
-            You have an active trip. Finish it before accepting new ride offers.
-          </div>
-        )}
+    <div className="mapfirst-view">
+      <div className="mapfirst-map">
+        <MapContainer center={defaultMapCenter} zoom={12} zoomControl={false} style={{ height: '100%', width: '100%' }}>
+          <TileLayer key={tileUrl} url={tileUrl} attribution={MAP_ATTRIBUTION} />
 
-        <Section
-          title="My trips"
-          icon="🚗"
-          description={userProfile.publicKey ? 'Rides in progress after a passenger accepts your offer.' : 'Connect your wallet to see your active trips.'}
-          action={
-            userProfile.publicKey ? (
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={refreshDriverMyTrips}
-                disabled={myTripsRefreshing}
-                style={{ fontSize: '0.75rem' }}
-              >
-                {myTripsRefreshing ? '…' : 'Refresh'}
-              </button>
-            ) : null
-          }
-        >
-          {!userProfile.publicKey ? (
-            <EmptyState message="Connect your wallet above to view active trips." />
-          ) : (
+          {!hasActiveTrip && validRequests.map((req) => (
+            <Marker
+              key={req.txHash}
+              position={[Number(req.pickupLocation.latitude), Number(req.pickupLocation.longitude)]}
+              icon={pickupIcon}
+              eventHandlers={{ click: () => setSelectedRequestTxHash(req.txHash) }}
+            >
+              <Popup>Pickup · {req.fare} CLT</Popup>
+            </Marker>
+          ))}
+
+          {!hasActiveTrip && selectedRequest && (
             <>
-              {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
-              {myTripsRefreshError && <div className="status-banner error">{myTripsRefreshError}</div>}
-
-              {activeTrips.length > 0 ? (
-                activeTrips.map((trip) => (
-                  <ActiveTripCard
-                    key={trip.txHash}
-                    trip={trip}
-                    cancelAction={{
-                      userProfile,
-                      onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1),
-                    }}
-                  />
-                ))
-              ) : !activeTripsLoading && !activeTripsError ? (
-                <EmptyState message="No active trips. When a passenger accepts your offer, it appears here. Finished rides are under Recent rides." />
-              ) : null}
+              <Marker position={selDropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>
+              <Polyline positions={[selPickup, selDropoff]} color="var(--accent)" weight={4} opacity={0.9} />
+              <MapFitBounds positions={[selPickup, selDropoff]} />
             </>
           )}
-        </Section>
 
-        {!hasActiveTrip && (
-          <Section
-            title="Available rides"
-            icon="📍"
-            description="Ride requests from passengers."
-            action={
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={fetchRideRequests}
-                disabled={isLoadingRides}
-                title="Fetch the latest ride requests from the hub (same as live subscription)"
-                style={{ fontSize: '0.75rem' }}
-              >
-                {isLoadingRides ? '…' : 'Refresh list'}
-              </button>
-            }
-          >
-            {acceptStatus && <div className={`status-banner ${acceptStatus.type}`}>{acceptStatus.message}</div>}
+          {!hasActiveTrip && !selectedRequest && validRequests.length > 0 && (
+            <MapFitBounds positions={validRequests.map((r) => [Number(r.pickupLocation.latitude), Number(r.pickupLocation.longitude)])} />
+          )}
+
+          {tripWithRoute && (
+            <>
+              <Marker position={[Number(tripWithRoute.pickupLocation.latitude), Number(tripWithRoute.pickupLocation.longitude)]} icon={pickupIcon}><Popup>Pickup</Popup></Marker>
+              <Marker position={[Number(tripWithRoute.dropoffLocation.latitude), Number(tripWithRoute.dropoffLocation.longitude)]} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>
+              <Polyline
+                positions={[
+                  [Number(tripWithRoute.pickupLocation.latitude), Number(tripWithRoute.pickupLocation.longitude)],
+                  [Number(tripWithRoute.dropoffLocation.latitude), Number(tripWithRoute.dropoffLocation.longitude)],
+                ]}
+                color="var(--accent)"
+                weight={4}
+                opacity={0.9}
+              />
+              <MapFitBounds
+                positions={[
+                  [Number(tripWithRoute.pickupLocation.latitude), Number(tripWithRoute.pickupLocation.longitude)],
+                  [Number(tripWithRoute.dropoffLocation.latitude), Number(tripWithRoute.dropoffLocation.longitude)],
+                ]}
+              />
+            </>
+          )}
+        </MapContainer>
+        <MapLegend style={{ position: 'absolute', top: 'calc(4rem + env(safe-area-inset-top))', left: '0.75rem', zIndex: 900 }} />
+      </div>
+
+      <Toast status={acceptStatus} onDismiss={() => setAcceptStatus(null)} />
+
+      <BottomSheet snap={sheetSnap} onSnapChange={setSheetSnap} header={sheetHeader} ariaLabel="Driver panel">
+        {!userProfile.publicKey ? (
+          <EmptyState message="Connect your wallet to see ride requests." />
+        ) : hasActiveTrip ? (
+          <>
+            {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
+            {myTripsRefreshError && <div className="status-banner error">{myTripsRefreshError}</div>}
+            {activeTrips.map((trip) => (
+              <ActiveTripCard
+                key={trip.txHash}
+                trip={trip}
+                cancelAction={{ userProfile, onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1) }}
+              />
+            ))}
+          </>
+        ) : selectedRequest ? (
+          <RequestDetail
+            req={selectedRequest}
+            userProfile={userProfile}
+            hubSdk={hubSdk}
+            offerFares={offerFares}
+            handleFareChange={handleFareChange}
+            handleAcceptOffer={handleAcceptOffer}
+            acceptingTxHash={acceptingTxHash}
+            disabled={hasActiveTrip}
+            onBack={() => setSelectedRequestTxHash(null)}
+          />
+        ) : (
+          <>
             {ridesError && <div className="status-banner error">{ridesError}</div>}
-
-            <div
-              className="form-row"
-              style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}
-            >
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                {isLoadingRides && rideRequests.length === 0 ? 'Loading ride requests…' : 'Live updates + manual refresh'}
-              </span>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={fetchRideRequests}
-                disabled={isLoadingRides}
-                style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-              >
-                {isLoadingRides ? 'Refreshing…' : 'Refresh available rides'}
-              </button>
-            </div>
-
-            {rideRequests.length === 0 && !isLoadingRides && (
+            {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
+            {validRequests.length === 0 && !isLoadingRides && (
               <EmptyState
                 message={
                   ridesError
                     ? 'Could not load the list. Use refresh to try again, or wait for the live connection to recover.'
-                    : 'No ride requests yet. When passengers request rides, they will appear here.'
+                    : 'No ride requests yet. When passengers request rides, they appear here and on the map.'
                 }
                 action="Refresh available rides"
                 onAction={fetchRideRequests}
                 actionDisabled={isLoadingRides}
               />
             )}
-
-            {rideRequests.map((req) => (
-              <RideRequestCard
+            {validRequests.map((req) => (
+              <button
                 key={req.txHash}
-                req={req}
-                userProfile={userProfile}
-                hubSdk={hubSdk}
-                offerFares={offerFares}
-                handleFareChange={handleFareChange}
-                handleAcceptOffer={handleAcceptOffer}
-                acceptingTxHash={acceptingTxHash}
-                disabled={hasActiveTrip}
-              />
+                type="button"
+                className="request-row"
+                onClick={() => setSelectedRequestTxHash(req.txHash)}
+              >
+                <div className="request-row-main">
+                  <span className="request-row-address">{truncAddr(req.passengerAddress)}</span>
+                  <span className="request-row-meta">Tap to view route & make an offer</span>
+                </div>
+                <span className="fare-badge">{req.fare} CLT</span>
+              </button>
             ))}
-          </Section>
+          </>
         )}
-      </div>
+      </BottomSheet>
 
-      <div
-        role="tabpanel"
-        id="panel-recent"
-        aria-labelledby="tab-recent"
-        hidden={driverTab !== 'recent'}
-        style={{ display: driverTab === 'recent' ? 'block' : 'none' }}
+      <OverlayPanel
+        open={driverTab === 'recent'}
+        title="Recent rides"
+        onClose={() => {
+          setDriverTab('rides');
+          onTabSync?.('rides');
+        }}
       >
-        <Section
-          title="Recent rides"
-          icon="✅"
-          description={userProfile.publicKey ? 'Finished rides: fully paid or cancelled (not in progress).' : 'Connect your wallet to see your ride history.'}
-        >
-          {!userProfile.publicKey ? (
-            <EmptyState message="Connect your wallet above to view recent rides." />
-          ) : (
-            <>
-              {recentTripsError && <div className="status-banner error">{recentTripsError}</div>}
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
-                Includes completed trips and cancelled rides. Active trips stay under My Trips.
-              </p>
-              {recentTrips.length > 0 ? (
-                recentTrips.map((trip) => <CompletedTripCard key={trip.txHash} trip={trip} />)
-              ) : !recentTripsLoading && !recentTripsError ? (
-                <EmptyState message="No recent rides yet. When you finish paying or cancel a trip, it will appear here." />
-              ) : null}
-            </>
-          )}
-        </Section>
-      </div>
+        {!userProfile.publicKey ? (
+          <EmptyState message="Connect your wallet to view recent rides." />
+        ) : (
+          <>
+            {recentTripsError && <div className="status-banner error">{recentTripsError}</div>}
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
+              Includes completed trips and cancelled rides. Active trips stay on the map.
+            </p>
+            {recentTrips.length > 0 ? (
+              recentTrips.map((trip) => <CompletedTripCard key={trip.txHash} trip={trip} />)
+            ) : !recentTripsLoading && !recentTripsError ? (
+              <EmptyState message="No recent rides yet. When you finish paying or cancel a trip, it will appear here." />
+            ) : null}
+          </>
+        )}
+      </OverlayPanel>
 
       <PrivateKeyModal />
     </div>

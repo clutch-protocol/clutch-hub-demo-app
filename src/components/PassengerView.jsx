@@ -3,14 +3,15 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents 
 import MapFitBounds from './MapFitBounds';
 import ActiveTripCard from './ActiveTripCard';
 import CompletedTripCard from './CompletedTripCard';
-import { Section, EmptyState } from './layout';
+import { BottomSheet, OverlayPanel, Toast, EmptyState } from './layout';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config';
+import { API_URL, MAP_ATTRIBUTION, getMapTileUrl } from '../config';
 import { useClutchSdk } from '../hooks/useClutchSdk';
+import { useTheme } from '../hooks/useTheme';
 import { truncAddr } from '../utils/address';
 import {
   subscribeActiveTripsCompat,
@@ -310,7 +311,7 @@ const RideRequestCard = ({
   );
 };
 
-const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetSuccess, externalTab }) => {
+const PassengerView = ({ userProfile, externalTab, onTabSync }) => {
   const [fare, setFare] = useState('');
   const fareInputRef = useRef(null);
   const [pickup, setPickup] = useState(null);
@@ -318,10 +319,10 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
   const [isLoading, setIsLoading] = useState(false);
   const submittingRef = useRef(false);
   const [transactionStatus, setTransactionStatus] = useState(null);
-  const [refreshBalanceCounter, setRefreshBalanceCounter] = useState(0);
+  const [, setRefreshBalanceCounter] = useState(0);
   const [previousRequests, setPreviousRequests] = useState([]);
   const [activeTrips, setActiveTrips] = useState([]);
-  const [activeTripsLoading, setActiveTripsLoading] = useState(false);
+  const [, setActiveTripsLoading] = useState(false);
   const [activeTripsError, setActiveTripsError] = useState(null);
   const [recentTrips, setRecentTrips] = useState([]);
   const [recentTripsLoading, setRecentTripsLoading] = useState(false);
@@ -336,14 +337,19 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
   const [mapCenter, setMapCenter] = useState({ lat: defaultMapCenter[0], lng: defaultMapCenter[1] });
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState(null);
+  const [sheetSnap, setSheetSnap] = useState('peek');
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
   const hubSdk = useClutchSdk(userProfile.publicKey, '0x0', userProfile.privateKey);
 
+  const theme = useTheme();
+  const tileUrl = getMapTileUrl(theme);
+
   const hasConcurrent = activeTrips.length > 0 || previousRequests.length > 0;
   const hasActiveTrip = activeTrips.length > 0;
   const isRouteSelected = !!pickup && !!dropoff;
+  const phase = hasActiveTrip ? 'trip' : hasConcurrent ? 'waiting' : 'building';
   const mapActiveTrips = activeTrips.filter((t) => (
     Number.isFinite(Number(t?.pickupLocation?.latitude))
     && Number.isFinite(Number(t?.pickupLocation?.longitude))
@@ -582,6 +588,13 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
     fareInputRef.current?.focus();
   }, [isRouteSelected, hasConcurrent, hasActiveTrip]);
 
+  // Sheet position follows the flow: building stays low (map interaction),
+  // fare entry and waiting/trip lift the sheet so content is visible.
+  useEffect(() => {
+    if (phase === 'building') setSheetSnap(isRouteSelected ? 'half' : 'peek');
+    else setSheetSnap('half');
+  }, [phase, isRouteSelected]);
+
   // Try to center the map at the user's location on first render.
   useEffect(() => {
     if (!navigator.geolocation || currentLocation) return;
@@ -599,309 +612,224 @@ const PassengerView = ({ userProfile, onProfileUpdate, refreshTrigger, onFaucetS
     );
   }, [currentLocation]);
 
+  const stepIndex = !pickup ? 0 : !dropoff ? 1 : !fare ? 2 : 3;
+  const stepLabel = ['Set pickup', 'Set destination', 'Enter fare', 'Confirm request'][stepIndex];
+
+  const sheetHeader =
+    phase === 'trip' ? (
+      <div className="sheet-header-row">
+        <div>
+          <h2 className="sheet-title">Trip in progress</h2>
+          <p className="sheet-subtitle">Pay as you go; the trip completes when fully paid.</p>
+        </div>
+        <button type="button" className="btn-ghost" onClick={refreshPassengerMyTrips} disabled={myTripsRefreshing}>
+          {myTripsRefreshing ? '…' : 'Refresh'}
+        </button>
+      </div>
+    ) : phase === 'waiting' ? (
+      <div className="sheet-header-row">
+        <div>
+          <h2 className="sheet-title">Waiting for offers</h2>
+          <p className="sheet-subtitle">Your request is live. Offers appear below.</p>
+        </div>
+        <button type="button" className="btn-ghost" onClick={refreshMyRide} disabled={myRideRefreshing}>
+          {myRideRefreshing ? '…' : 'Refresh'}
+        </button>
+      </div>
+    ) : (
+      <div>
+        <div className="sheet-header-row">
+          <div>
+            <h2 className="sheet-title">Where to?</h2>
+            <p className="sheet-subtitle">Step {stepIndex + 1} of 4 — {stepLabel}</p>
+          </div>
+          {(!pickup || !dropoff) && (
+            <button type="button" className="btn-primary" onClick={handleSetFromCenter}>
+              {!pickup ? 'Set pickup' : 'Set drop-off'}
+            </button>
+          )}
+        </div>
+        <div className="sheet-step-pills" aria-hidden>
+          {[0, 1, 2, 3].map((i) => (
+            <span key={i} className={`sheet-step-pill ${i <= stepIndex ? 'sheet-step-pill--done' : ''}`} />
+          ))}
+        </div>
+      </div>
+    );
+
   return (
-    <div>
-      <div
-        role="tabpanel"
-        id="panel-rides"
-        aria-labelledby="tab-rides"
-        hidden={passengerTab !== 'rides'}
-        style={{ display: passengerTab === 'rides' ? 'block' : 'none' }}
-      >
-        <Section
-          title=" "
-          icon={null}
-          description={null}
-          action={
-            userProfile.publicKey ? (
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={refreshMyRide}
-                disabled={myRideRefreshing}
-                style={{ fontSize: '0.75rem' }}
-              >
-                {myRideRefreshing ? '…' : 'Refresh'}
-              </button>
-            ) : null
-          }
-        >
-          {!userProfile.publicKey ? (
-            <EmptyState message="Connect your wallet above to request a ride." />
-          ) : (
-            <>
-              <div className="passenger-ride-split"><div className="passenger-ride-mapcol"><div className="map-hero ride-builder-shell">
-                <div className="ride-builder-toolbar">
-                  {hasActiveTrip ? (
-                    <div className="step-pill">
-                      Active trip in progress
-                    </div>
-                  ) : (
-                    <div className="step-pill ride-builder-step-pill">
-                      Step {!pickup ? 1 : !dropoff ? 2 : !fare ? 3 : 4}:{' '}
-                      {!pickup ? 'Pick pickup' : !dropoff ? 'Pick destination' : !fare ? 'Enter fare' : 'Confirm'}
-                    </div>
-                  )}
-                  <div className="ride-builder-toolbar-actions">
-                    {!hasActiveTrip && !hasConcurrent && (
-                      <>
-                        {(!pickup || !dropoff) && (
-                          <button
-                            type="button"
-                            className="btn-secondary ride-builder-set-center-btn"
-                            onClick={handleSetFromCenter}
-                          >
-                            {!pickup ? 'Set pickup' : 'Set drop-off'}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="btn-secondary ride-builder-reset-btn"
-                          onClick={handleReset}
-                          disabled={isLoading}
-                        >
-                          Reset
-                        </button>
-                      </>
-                    )}
-                    <button
-                      type="button"
-                      className="btn-secondary ride-builder-location-btn"
-                      onClick={handleUseCurrentLocation}
-                      disabled={locating}
-                    >
-                      {locating ? 'Locating…' : 'My location'}
-                    </button>
-                  </div>
+    <div className="mapfirst-view">
+      <div className="mapfirst-map">
+        {!userProfile.publicKey ? null : (
+          <MapContainer
+            center={currentLocation ? [currentLocation.lat, currentLocation.lng] : defaultMapCenter}
+            zoom={12}
+            zoomControl={false}
+            style={{ height: '100%', width: '100%' }}
+          >
+            <TileLayer key={tileUrl} url={tileUrl} attribution={MAP_ATTRIBUTION} />
+            <MapCenterTracker onCenterChange={setMapCenter} />
+
+            {previousRequests.map((r) => (
+              !hasActiveTrip && (
+                <React.Fragment key={r.txHash}>
+                  <Marker position={[r.pickup.lat, r.pickup.lng]} icon={pickupIcon}><Popup>Pickup (awaiting offers)</Popup></Marker>
+                  <Marker position={[r.dropoff.lat, r.dropoff.lng]} icon={dropoffIcon}><Popup>Dropoff (awaiting offers)</Popup></Marker>
+                  <Polyline positions={[[r.pickup.lat, r.pickup.lng], [r.dropoff.lat, r.dropoff.lng]]} color="#94a3b8" weight={3} opacity={0.75} />
+                </React.Fragment>
+              )
+            ))}
+
+            {mapActiveTrips.map((t) => (
+              <React.Fragment key={t.txHash}>
+                <Marker position={[Number(t.pickupLocation.latitude), Number(t.pickupLocation.longitude)]} icon={pickupIcon}><Popup>Pickup (active trip)</Popup></Marker>
+                <Marker position={[Number(t.dropoffLocation.latitude), Number(t.dropoffLocation.longitude)]} icon={dropoffIcon}><Popup>Dropoff (active trip)</Popup></Marker>
+                <Polyline positions={[[Number(t.pickupLocation.latitude), Number(t.pickupLocation.longitude)], [Number(t.dropoffLocation.latitude), Number(t.dropoffLocation.longitude)]]} color="var(--accent)" weight={4} opacity={0.9} />
+              </React.Fragment>
+            ))}
+
+            {hasActiveTrip && activeTripPickup && activeTripDropoff && (
+              <MapFitBounds positions={[activeTripPickup, activeTripDropoff]} />
+            )}
+            {!hasActiveTrip && pickup && dropoff && (
+              <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />
+            )}
+            {currentLocation && <MapFlyToLocation location={currentLocation} />}
+            <LocationSelector
+              pickup={pickup}
+              dropoff={dropoff}
+              setPickup={hasConcurrent || isRouteSelected ? () => {} : setPickup}
+              setDropoff={hasConcurrent || isRouteSelected ? () => {} : setDropoff}
+            />
+            {currentLocation && <Marker position={currentLocation} icon={currentLocationIcon}><Popup>Your current location</Popup></Marker>}
+            {!hasActiveTrip && pickup && <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>}
+            {!hasActiveTrip && dropoff && <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>}
+            {!hasActiveTrip && pickup && dropoff && (
+              <Polyline
+                positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]}
+                color="var(--accent)"
+                weight={3}
+                opacity={0.8}
+              />
+            )}
+          </MapContainer>
+        )}
+        <MapLegend style={{ position: 'absolute', top: 'calc(4rem + env(safe-area-inset-top))', left: '0.75rem', zIndex: 900 }} />
+        {phase === 'building' && !isRouteSelected && userProfile.publicKey && (
+          <div className="map-center-pin" aria-hidden>
+            <div className="map-center-pin-head">+</div>
+            <div className="map-center-pin-stem" />
+          </div>
+        )}
+      </div>
+
+      <div className="map-fabs">
+        <button type="button" className="map-fab" onClick={handleUseCurrentLocation} disabled={locating}>
+          {locating ? 'Locating…' : '📍 My location'}
+        </button>
+        {phase === 'building' && (pickup || dropoff) && (
+          <button type="button" className="map-fab" onClick={handleReset} disabled={isLoading}>
+            ↺ Reset
+          </button>
+        )}
+      </div>
+
+      <Toast status={transactionStatus} onDismiss={() => setTransactionStatus(null)} />
+
+      <BottomSheet snap={sheetSnap} onSnapChange={setSheetSnap} header={sheetHeader} ariaLabel="Passenger ride panel">
+        {!userProfile.publicKey ? (
+          <EmptyState message="Connect your wallet to request a ride." />
+        ) : (
+          <>
+            {activeTripsError && <div className="status-banner error">{activeTripsError}</div>}
+            {myRideRefreshError && <div className="status-banner error">{myRideRefreshError}</div>}
+            {locationError && <div className="status-banner error">{locationError}</div>}
+
+            {phase === 'building' && (
+              <div className="ride-request-form-row" style={{ marginTop: '0.5rem' }}>
+                <div className="ride-request-fare-col">
+                  <label className="label">Fare (CLT)</label>
+                  <input
+                    ref={fareInputRef}
+                    type="number"
+                    value={fare}
+                    onChange={(e) => setFare(e.target.value)}
+                    className="input-field"
+                    min={0}
+                    placeholder="Enter fare after selecting route"
+                    disabled={!pickup || !dropoff}
+                  />
                 </div>
-                <div
-                  className="map-wrapper map-wrapper--ride"
-                >
-                  <MapLegend style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 700 }} />
-                  {!hasActiveTrip && !hasConcurrent && !isRouteSelected && (
-                    <div className="map-center-pin" aria-hidden>
-                      <div className="map-center-pin-head">+</div>
-                      <div className="map-center-pin-stem" />
-                    </div>
-                  )}
-                  <div className="map-gradient-overlay" />
-                  <MapContainer
-                    center={currentLocation ? [currentLocation.lat, currentLocation.lng] : defaultMapCenter}
-                    zoom={12}
-                    style={{ height: '100%', width: '100%' }}
+                <div className="ride-request-actions">
+                  <button
+                    type="button"
+                    className="btn-primary ride-request-btn"
+                    disabled={!(pickup && dropoff && fare) || isLoading}
+                    onClick={() => handleSubmit()}
                   >
-                    <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} />
-                    <MapCenterTracker onCenterChange={setMapCenter} />
-
-                    {previousRequests.map((r) => (
-                      !hasActiveTrip && (
-                        <React.Fragment key={r.txHash}>
-                          <Marker position={[r.pickup.lat, r.pickup.lng]} icon={pickupIcon}><Popup>Pickup (awaiting offers)</Popup></Marker>
-                          <Marker position={[r.dropoff.lat, r.dropoff.lng]} icon={dropoffIcon}><Popup>Dropoff (awaiting offers)</Popup></Marker>
-                          <Polyline positions={[[r.pickup.lat, r.pickup.lng], [r.dropoff.lat, r.dropoff.lng]]} color="#94a3b8" weight={3} opacity={0.75} />
-                        </React.Fragment>
-                      )
-                    ))}
-
-                    {mapActiveTrips.map((t) => (
-                      <React.Fragment key={t.txHash}>
-                        <Marker position={[Number(t.pickupLocation.latitude), Number(t.pickupLocation.longitude)]} icon={pickupIcon}><Popup>Pickup (active trip)</Popup></Marker>
-                        <Marker position={[Number(t.dropoffLocation.latitude), Number(t.dropoffLocation.longitude)]} icon={dropoffIcon}><Popup>Dropoff (active trip)</Popup></Marker>
-                        <Polyline positions={[[Number(t.pickupLocation.latitude), Number(t.pickupLocation.longitude)], [Number(t.dropoffLocation.latitude), Number(t.dropoffLocation.longitude)]]} color="var(--accent)" weight={4} opacity={0.9} />
-                      </React.Fragment>
-                    ))}
-
-                    {hasActiveTrip && activeTripPickup && activeTripDropoff && (
-                      <MapFitBounds positions={[activeTripPickup, activeTripDropoff]} />
-                    )}
-                    {!hasActiveTrip && pickup && dropoff && (
-                      <MapFitBounds positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]} />
-                    )}
-                    {currentLocation && <MapFlyToLocation location={currentLocation} />}
-                    <LocationSelector
-                      pickup={pickup}
-                      dropoff={dropoff}
-                      setPickup={hasConcurrent || isRouteSelected ? () => {} : setPickup}
-                      setDropoff={hasConcurrent || isRouteSelected ? () => {} : setDropoff}
-                    />
-                    {currentLocation && <Marker position={currentLocation} icon={currentLocationIcon}><Popup>Your current location</Popup></Marker>}
-                    {!hasActiveTrip && pickup && <Marker position={pickup} icon={pickupIcon}><Popup>Pickup</Popup></Marker>}
-                    {!hasActiveTrip && dropoff && <Marker position={dropoff} icon={dropoffIcon}><Popup>Dropoff</Popup></Marker>}
-                    {!hasActiveTrip && pickup && dropoff && (
-                      <Polyline
-                        positions={[[pickup.lat, pickup.lng], [dropoff.lat, dropoff.lng]]}
-                        color="var(--accent)"
-                        weight={3}
-                        opacity={0.8}
-                      />
-                    )}
-                  </MapContainer>
+                    {isLoading ? 'Submitting…' : 'Confirm request'}
+                  </button>
                 </div>
-
-                </div></div><div className="passenger-ride-sidecol">
-                  {!hasActiveTrip && transactionStatus && (
-                    <div className={`status-banner ${transactionStatus.type}`} style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
-                      {transactionStatus.message}
-                    </div>
-                  )}
-                  {!hasActiveTrip && hasConcurrent && (
-                    <div className="status-banner info" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
-                      Active request. Complete or cancel it first.
-                    </div>
-                  )}
-                  {activeTripsError && <div className="status-banner error" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>{activeTripsError}</div>}
-                  {myRideRefreshError && (
-                    <div className="status-banner error" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
-                      {myRideRefreshError}
-                    </div>
-                  )}
-                  {locationError && (
-                    <div className="status-banner error" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
-                      {locationError}
-                    </div>
-                  )}
-                  {hasActiveTrip && (
-                    <div className="status-banner info" style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
-                      Active trip in progress (origin → destination)
-                    </div>
-                  )}
-
-              {!hasActiveTrip && !hasConcurrent && (
-                <div className="card ride-request-card">
-                  <div className="card-title">Ride request</div>
-                  <div className="ride-request-form-row">
-                    <div className="ride-request-fare-col">
-                      <label className="label">Fare (CLT)</label>
-                      <input
-                        ref={fareInputRef}
-                        type="number"
-                        value={fare}
-                        onChange={(e) => setFare(e.target.value)}
-                        className="input-field"
-                        min={0}
-                        placeholder="Enter fare after selecting route"
-                        disabled={hasConcurrent || !pickup || !dropoff}
-                      />
-                    </div>
-                    <div className="ride-request-actions">
-                      <button
-                        type="button"
-                        className="btn-primary ride-request-btn"
-                        disabled={hasConcurrent || !(pickup && dropoff && fare) || isLoading}
-                        onClick={() => handleSubmit()}
-                      >
-                        {isLoading ? 'Submitting…' : 'Confirm request'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!hasActiveTrip && hasConcurrent && (
-                <div className="card wait-offers-card">
-                  <div className="wait-offers-title">Waiting for driver offers</div>
-                  <p className="wait-offers-text">
-                    Your ride request is live. Drivers can now send offers.
-                    Stay on this page and review offers below when they arrive.
-                  </p>
-                  <div className="wait-offers-actions">
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={refreshMyRide}
-                      disabled={myRideRefreshing}
-                    >
-                      {myRideRefreshing ? 'Refreshing…' : 'Refresh status'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="card">
-              <div className="form-row" style={{ justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--on-surface-variant)' }}>My trips</span>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={refreshPassengerMyTrips}
-                  disabled={myTripsRefreshing}
-                  style={{ fontSize: '0.75rem' }}
-                >
-                  {myTripsRefreshing ? '…' : 'Refresh'}
-                </button>
               </div>
-              {myTripsRefreshError && (
-                <div className="status-banner error" style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.8rem' }}>
-                  {myTripsRefreshError}
-                </div>
-              )}
-              {activeTrips.length > 0 && (
-                <div style={{ marginTop: '1rem' }}>
-                  {activeTrips.map((trip) => (
-                    <ActiveTripCard
-                      key={trip.txHash}
-                      trip={trip}
-                      passengerPayment={{ userProfile, onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1) }}
-                      cancelAction={{ userProfile, onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1) }}
-                    />
-                  ))}
-                </div>
-              )}
+            )}
 
-              {previousRequests.length > 0 && !hasActiveTrip && (
-                <div style={{ marginTop: '1rem', paddingTop: activeTrips.length > 0 ? '1rem' : 0 }}>
-                  {previousRequests.map((req, idx) => (
-                    <RideRequestCard
-                      key={req.txHash || idx}
-                      req={req}
-                      userProfile={userProfile}
-                      hubSdk={hubSdk}
-                      onAcceptSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
-                      onCancelSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
-                      requestPrivateKey={requestPrivateKey}
-                    />
-                  ))}
-                </div>
-              )}
+            {phase === 'waiting' && (
+              <div style={{ marginTop: '0.5rem' }}>
+                {previousRequests.map((req, idx) => (
+                  <RideRequestCard
+                    key={req.txHash || idx}
+                    req={req}
+                    userProfile={userProfile}
+                    hubSdk={hubSdk}
+                    onAcceptSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
+                    onCancelSuccess={() => setRefreshBalanceCounter((prev) => prev + 1)}
+                    requestPrivateKey={requestPrivateKey}
+                  />
+                ))}
+              </div>
+            )}
 
-              {activeTrips.length === 0 && previousRequests.length === 0 && !activeTripsLoading && !activeTripsError && (
-                <EmptyState message="Set your route on the map above, then enter the fare and confirm. Your request will appear here and on the map." />
-              )}
-              </div></div></div>
-            </>
-          )}
-        </Section>
-      </div>
+            {phase === 'trip' && (
+              <div style={{ marginTop: '0.5rem' }}>
+                {myTripsRefreshError && <div className="status-banner error">{myTripsRefreshError}</div>}
+                {activeTrips.map((trip) => (
+                  <ActiveTripCard
+                    key={trip.txHash}
+                    trip={trip}
+                    passengerPayment={{ userProfile, onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1) }}
+                    cancelAction={{ userProfile, onSuccess: () => setRefreshBalanceCounter((prev) => prev + 1) }}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </BottomSheet>
 
-      <div
-        role="tabpanel"
-        id="panel-recent"
-        aria-labelledby="tab-recent"
-        hidden={passengerTab !== 'recent'}
-        style={{ display: passengerTab === 'recent' ? 'block' : 'none' }}
+      <OverlayPanel
+        open={passengerTab === 'recent'}
+        title="Recent rides"
+        onClose={() => {
+          setPassengerTab('rides');
+          onTabSync?.('rides');
+        }}
       >
-        <Section
-          title="Recent rides"
-          icon="✅"
-          description={userProfile.publicKey ? 'Finished rides: fully paid or cancelled (not in progress).' : 'Connect your wallet to see your ride history.'}
-        >
-          {!userProfile.publicKey ? (
-            <EmptyState message="Connect your wallet above to view recent rides." />
-          ) : (
-            <>
-              {recentTripsError && <div className="status-banner error">{recentTripsError}</div>}
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
-                Includes completed trips and cancelled rides. Active trips stay under My Ride.
-              </p>
-              {recentTrips.length > 0 ? (
-                recentTrips.map((trip) => <CompletedTripCard key={trip.txHash} trip={trip} />)
-              ) : !recentTripsLoading && !recentTripsError ? (
-                <EmptyState message="No recent rides yet. When you finish paying or cancel a trip, it will appear here." />
-              ) : null}
-            </>
-          )}
-        </Section>
-      </div>
+        {!userProfile.publicKey ? (
+          <EmptyState message="Connect your wallet to view recent rides." />
+        ) : (
+          <>
+            {recentTripsError && <div className="status-banner error">{recentTripsError}</div>}
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
+              Includes completed trips and cancelled rides. Active trips stay on the map.
+            </p>
+            {recentTrips.length > 0 ? (
+              recentTrips.map((trip) => <CompletedTripCard key={trip.txHash} trip={trip} />)
+            ) : !recentTripsLoading && !recentTripsError ? (
+              <EmptyState message="No recent rides yet. When you finish paying or cancel a trip, it will appear here." />
+            ) : null}
+          </>
+        )}
+      </OverlayPanel>
 
       <PrivateKeyModal />
     </div>

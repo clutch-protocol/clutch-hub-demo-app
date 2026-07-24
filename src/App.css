@@ -808,55 +808,6 @@ body {
   box-shadow: var(--shadow-md);
 }
 
-.ride-builder-shell {
-  margin-bottom: 0.75rem;
-}
-
-.ride-builder-toolbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem 0.75rem;
-  margin-bottom: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.ride-builder-step-pill {
-  flex: 1 1 12rem;
-  min-width: 0;
-  line-height: 1.35;
-}
-
-.ride-builder-toolbar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.4rem;
-  flex: 1 1 auto;
-}
-
-.ride-builder-set-center-btn,
-.ride-builder-reset-btn,
-.ride-builder-location-btn {
-  font-size: 0.75rem;
-  padding: 0.4rem 0.65rem;
-}
-
-.map-wrapper--ride {
-  height: calc(100vh - 170px);
-  min-height: 560px;
-  max-height: none;
-  border-radius: var(--radius-xl);
-}
-
-@media (min-width: 901px) {
-  .map-wrapper--ride {
-    height: clamp(420px, 60vh, 640px);
-    min-height: 420px;
-  }
-}
-
 .map-wrapper .leaflet-container {
   background: var(--leaflet-container-bg);
 }
@@ -1099,38 +1050,6 @@ body {
 .ride-step--active {
   color: var(--on-surface);
   font-weight: 600;
-}
-
-.wait-offers-card {
-  margin-bottom: 1.5rem;
-  padding: 1rem 1.1rem;
-  background: linear-gradient(180deg, var(--surface-container-high), var(--surface-container));
-  border: 1px solid var(--outline-variant);
-}
-
-.wait-offers-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--on-surface);
-  margin-bottom: 0.35rem;
-}
-
-.wait-offers-text {
-  margin: 0;
-  font-size: 0.83rem;
-  line-height: 1.5;
-  color: var(--on-surface-variant);
-}
-
-.wait-offers-actions {
-  margin-top: 0.8rem;
-  display: flex;
-  justify-content: flex-start;
-}
-
-.ride-request-card {
-  margin-bottom: 1.5rem;
-  padding: 1rem 1.1rem;
 }
 
 .ride-request-form-row {
@@ -1926,32 +1845,6 @@ body {
   animation: fadeIn 0.35s ease both;
 }
 
-/* Passenger ride split layout */
-.passenger-ride-split {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-.passenger-ride-mapcol {
-  min-width: 0;
-}
-
-.passenger-ride-sidecol {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-@media (min-width: 901px) {
-  .passenger-ride-split {
-    grid-template-columns: minmax(0, 1fr) 380px;
-    gap: 1.25rem;
-  }
-}
-
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
   .bottom-nav {
@@ -1965,33 +1858,6 @@ body {
     padding-bottom: 5.5rem;
   }
 
-  /* Mobile/tablet: prioritize map as primary full-view area. */
-  .passenger-ride-split {
-    display: flex;
-    flex-direction: column;
-    max-height: none;
-    min-height: 0;
-    overflow: visible;
-  }
-
-  .passenger-ride-mapcol {
-    flex: 0 0 auto;
-    min-height: 0;
-  }
-
-  .passenger-ride-sidecol {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: visible;
-    padding-bottom: 5.75rem;
-    scroll-padding-bottom: 5.75rem;
-  }
-
-  .map-wrapper--ride {
-    height: clamp(320px, calc(100dvh - 260px), 620px);
-    max-height: calc(100dvh - 260px);
-    min-height: 320px;
-  }
 
   .ride-request-actions {
     display: flex;
@@ -2096,43 +1962,6 @@ body {
   .explorer-tab {
     padding: 0.55rem 0.9rem;
     font-size: 0.8rem;
-  }
-
-  .map-hero .map-wrapper {
-    border-radius: var(--radius-md);
-  }
-
-  .ride-builder-toolbar {
-    align-items: stretch;
-  }
-
-  /* Two-column action grid + full-width location: fewer rows than a vertical stack. */
-  .ride-builder-toolbar-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    width: 100%;
-    flex: none;
-    gap: 0.4rem;
-  }
-
-  .ride-builder-toolbar-actions .ride-builder-location-btn {
-    grid-column: 1 / -1;
-  }
-
-  .ride-builder-toolbar-actions > :only-child {
-    grid-column: 1 / -1;
-  }
-
-  .ride-builder-toolbar-actions .btn-secondary {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .map-wrapper--ride {
-    height: clamp(300px, calc(100dvh - 250px), 560px);
-    max-height: calc(100dvh - 250px);
-    min-height: 300px;
-    border-radius: var(--radius-md);
   }
 
   .map-wrapper {

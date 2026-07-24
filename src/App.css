@@ -413,10 +413,19 @@ body {
   margin-top: 0.1rem;
 }
 
+.app--entry {
+  min-height: 100dvh;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(39, 110, 241, 0.35), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(254, 160, 251, 0.18), transparent 60%),
+    var(--background);
+}
+
 .app--entry .app-main--entry {
   max-width: 480px;
   width: min(100%, 480px);
   margin: 0 auto;
+  padding: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -489,6 +498,13 @@ body {
 /* ===== Entry role selection screen ===== */
 .role-entry {
   width: 100%;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  padding: 2rem 1.75rem;
 }
 
 .role-entry-header {

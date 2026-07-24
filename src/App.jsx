@@ -7,6 +7,7 @@ import TransactionHistoryPage from './components/TransactionHistoryPage';
 import ExplorerTabs from './components/ExplorerTabs';
 import RoleEntry, { persistRole } from './components/RoleEntry';
 import BalanceDisplay from './components/BalanceDisplay';
+import { OverlayPanel } from './components/layout';
 import { truncAddr } from './utils/address';
 import './App.css';
 
@@ -135,224 +136,112 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <div className="app-logo">
-          <img src="/clutch-logo.svg" alt="Clutch" className="app-logo-icon" width={32} height={32} />
-          <span className="app-logo-text">Clutch Stage</span>
+    <div className="app-shell">
+      <div
+        className="view-layer"
+        role="tabpanel"
+        id="role-panel-passenger"
+        hidden={activeTab !== 'passenger'}
+        style={{ display: activeTab === 'passenger' ? 'block' : 'none' }}
+      >
+        <PassengerView
+          userProfile={userProfile}
+          onProfileUpdate={setUserProfile}
+          refreshTrigger={walletRefresh}
+          onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+          externalTab={passengerViewTab}
+          onTabSync={setPassengerViewTab}
+        />
+      </div>
+      <div
+        className="view-layer"
+        role="tabpanel"
+        id="role-panel-driver"
+        hidden={activeTab !== 'driver'}
+        style={{ display: activeTab === 'driver' ? 'block' : 'none' }}
+      >
+        <DriverView
+          userProfile={userProfile}
+          onProfileUpdate={setUserProfile}
+          refreshTrigger={walletRefresh}
+          onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
+          externalTab={driverViewTab}
+          onTabSync={setDriverViewTab}
+        />
+      </div>
+
+      <header className="top-bar">
+        <div className="top-pill top-pill--logo">
+          <img src="/clutch-logo.svg" alt="Clutch" className="app-logo-icon" width={22} height={22} />
+          <span className="top-bar-logo-text">Clutch Stage</span>
         </div>
-        <div className="app-header-right">
+        <div className="top-bar-right">
+          {userProfile.publicKey && (
+            <button
+              type="button"
+              className="top-pill top-pill--wallet"
+              title={userProfile.publicKey}
+              onClick={handleCopyWalletAddress}
+            >
+              {walletCopied ? 'Copied!' : truncAddr(userProfile.publicKey)}
+            </button>
+          )}
           <button
             type="button"
-            className="hamburger-btn"
+            className="top-pill top-pill--menu"
             onClick={() => setMenuOpen((open) => !open)}
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           >
-            <span />
-            <span />
-            <span />
-          </button>
-          <button
-            type="button"
-            className="theme-toggle-btn"
-            onClick={toggleTheme}
-            aria-label="Toggle dark/light mode"
-          >
-            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            ☰
           </button>
         </div>
       </header>
-      <div className="app-layout">
-        <aside className="app-sidebar" aria-label="App navigation">
-          <div className="card app-menu-card app-sidebar-profile-card">
-            <div className="app-menu-section-header">
-              <span className="app-menu-section-label">Profile</span>
-            </div>
-            <div className="app-menu-profile-card">
-              <div className="app-menu-profile-head">
-                <div className="app-menu-profile-avatar" aria-hidden>
-                  {mode === 'driver' ? 'D' : 'P'}
-                </div>
-                <div>
-                  <div className="app-menu-profile-role-label">Role</div>
-                  <div className="app-menu-profile-role-value">
-                    <span style={{ textTransform: 'capitalize' }}>{mode}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="app-menu-profile-wallet">
-                <div className="app-menu-profile-role-label">Wallet</div>
-                {userProfile.publicKey ? (
-                  <div className="app-menu-profile-wallet-row">
-                    <button
-                      type="button"
-                      className="app-menu-wallet-address"
-                      title={userProfile.publicKey}
-                      onClick={handleCopyWalletAddress}
-                    >
-                      {walletCopied ? 'Copied!' : truncAddr(userProfile.publicKey)}
-                    </button>
-                    <BalanceDisplay
-                      publicKey={userProfile.publicKey}
-                      onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
-                    />
-                  </div>
-                ) : (
-                  <span className="app-menu-profile-wallet-empty">Not connected</span>
-                )}
-              </div>
-            </div>
 
-            <div className="app-menu-actions">
-              <button
-                type="button"
-                className="btn-secondary app-menu-signout-btn"
-                onClick={() => {
-                  handleSignOut();
-                }}
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
+      <OverlayPanel
+        open={activeTab === 'hub'}
+        title="About & network"
+        onClose={() => setActiveTab(mode)}
+      >
+        <ExplorerTabs
+          tabs={[
+            { id: 'about', label: 'About', icon: 'ℹ️' },
+            { id: 'transactions', label: 'Tx', icon: '📋' },
+            { id: 'network', label: 'Network', icon: '🔍' },
+          ]}
+          activeTab={hubSubTab}
+          onTabChange={setHubSubTab}
+          showCounts={false}
+        />
+        <div
+          role="tabpanel"
+          id="panel-about"
+          aria-labelledby="tab-about"
+          hidden={hubSubTab !== 'about'}
+          style={{ display: hubSubTab === 'about' ? 'block' : 'none' }}
+        >
+          <GeneralView />
+        </div>
+        <div
+          role="tabpanel"
+          id="panel-transactions"
+          aria-labelledby="tab-transactions"
+          hidden={hubSubTab !== 'transactions'}
+          style={{ display: hubSubTab === 'transactions' ? 'block' : 'none' }}
+        >
+          <TransactionHistoryPage userPublicKey={userProfile.publicKey} />
+        </div>
+        <div
+          role="tabpanel"
+          id="panel-network"
+          aria-labelledby="tab-network"
+          hidden={hubSubTab !== 'network'}
+          style={{ display: hubSubTab === 'network' ? 'block' : 'none' }}
+        >
+          <NetworkView />
+        </div>
+      </OverlayPanel>
 
-          <nav className="app-menu-nav" aria-label="Primary navigation">
-            <button
-              type="button"
-              className={`app-menu-nav-item ${activeTab === mode && !isRecentRidesActive ? 'active' : ''}`}
-              onClick={() => {
-                if (mode === 'driver') {
-                  setDriverViewTab('rides');
-                  setActiveTab('driver');
-                } else {
-                  setPassengerViewTab('rides');
-                  setActiveTab('passenger');
-                }
-              }}
-            >
-              <span className="app-menu-nav-title">{mode === 'driver' ? 'Driver view' : 'Passenger view'}</span>
-              <span className="app-menu-nav-subtitle">
-                {mode === 'driver' ? 'See available rides and active trips' : 'Request rides and track your trips'}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              className={`app-menu-nav-item ${isRecentRidesActive ? 'active' : ''}`}
-              onClick={() => {
-                if (mode === 'driver') {
-                  setDriverViewTab('recent');
-                  setActiveTab('driver');
-                } else {
-                  setPassengerViewTab('recent');
-                  setActiveTab('passenger');
-                }
-              }}
-            >
-              <span className="app-menu-nav-title">Recent rides</span>
-              <span className="app-menu-nav-subtitle">View your completed and cancelled trips</span>
-            </button>
-
-            <button
-              type="button"
-              className={`app-menu-nav-item ${activeTab === 'hub' ? 'active' : ''}`}
-              onClick={() => setActiveTab('hub')}
-            >
-              <span className="app-menu-nav-title">About &amp; network</span>
-              <span className="app-menu-nav-subtitle">About, transaction history, and explorer</span>
-            </button>
-          </nav>
-        </aside>
-
-        <main className="app-main" aria-live="polite">
-          <div
-            className="fade-in"
-            role="tabpanel"
-            id="role-panel-passenger"
-            aria-labelledby="role-tab-passenger"
-            hidden={activeTab !== 'passenger'}
-            style={{
-              display: activeTab === 'passenger' ? 'block' : 'none',
-              animationDelay: '0.05s',
-            }}
-          >
-            <PassengerView
-              userProfile={userProfile}
-              onProfileUpdate={setUserProfile}
-              refreshTrigger={walletRefresh}
-              onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
-              externalTab={passengerViewTab}
-            />
-          </div>
-          <div
-            className="fade-in"
-            role="tabpanel"
-            id="role-panel-driver"
-            aria-labelledby="role-tab-driver"
-            hidden={activeTab !== 'driver'}
-            style={{
-              display: activeTab === 'driver' ? 'block' : 'none',
-              animationDelay: '0.05s',
-            }}
-          >
-            <DriverView
-              userProfile={userProfile}
-              onProfileUpdate={setUserProfile}
-              refreshTrigger={walletRefresh}
-              onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
-              externalTab={driverViewTab}
-            />
-          </div>
-          <div
-            className="fade-in hub-tools-panel"
-            role="tabpanel"
-            id="role-panel-hub"
-            aria-labelledby="role-tab-hub"
-            hidden={activeTab !== 'hub'}
-            style={{ display: activeTab === 'hub' ? 'block' : 'none', animationDelay: '0.05s' }}
-          >
-            <ExplorerTabs
-              tabs={[
-                { id: 'about', label: 'About', icon: 'ℹ️' },
-                { id: 'transactions', label: 'Tx', icon: '📋' },
-                { id: 'network', label: 'Network', icon: '🔍' },
-              ]}
-              activeTab={hubSubTab}
-              onTabChange={setHubSubTab}
-              showCounts={false}
-            />
-            <div
-              role="tabpanel"
-              id="panel-about"
-              aria-labelledby="tab-about"
-              hidden={hubSubTab !== 'about'}
-              style={{ display: hubSubTab === 'about' ? 'block' : 'none' }}
-            >
-              <GeneralView />
-            </div>
-            <div
-              role="tabpanel"
-              id="panel-transactions"
-              aria-labelledby="tab-transactions"
-              hidden={hubSubTab !== 'transactions'}
-              style={{ display: hubSubTab === 'transactions' ? 'block' : 'none' }}
-            >
-              <TransactionHistoryPage userPublicKey={userProfile.publicKey} />
-            </div>
-            <div
-              role="tabpanel"
-              id="panel-network"
-              aria-labelledby="tab-network"
-              hidden={hubSubTab !== 'network'}
-              style={{ display: hubSubTab === 'network' ? 'block' : 'none' }}
-            >
-              <NetworkView />
-            </div>
-          </div>
-        </main>
-      </div>
-
-      <nav className="bottom-nav" aria-label="Mobile navigation">
+      <nav className="bottom-nav" aria-label="App navigation">
         <button
           type="button"
           className={`bottom-nav-item ${activeTab === mode && !isRecentRidesActive ? 'active' : ''}`}
@@ -369,7 +258,7 @@ function App() {
           <span className="bottom-nav-icon" aria-hidden>
             {mode === 'driver' ? '🚕' : '🚗'}
           </span>
-          <span className="bottom-nav-label">{mode === 'driver' ? 'Rides' : 'Rides'}</span>
+          <span className="bottom-nav-label">Rides</span>
         </button>
 
         <button
@@ -456,6 +345,9 @@ function App() {
                 </div>
               </div>
               <div className="app-menu-actions">
+                <button type="button" className="btn-secondary" onClick={toggleTheme}>
+                  {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                </button>
                 <button
                   type="button"
                   className="btn-secondary app-menu-signout-btn"

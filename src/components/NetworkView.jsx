@@ -13,6 +13,7 @@ import { API_URL, MAP_ATTRIBUTION, getMapTileUrl } from '../config';
 import { useTheme } from '../hooks/useTheme';
 import { useClutchSdk } from '../hooks/useClutchSdk';
 import { truncAddr } from '../utils/address';
+import { formatUsd } from '../utils/money';
 import Icon from './Icon';
 import {
   subscribeActiveTripsCompat,
@@ -207,7 +208,7 @@ const NetworkView = () => {
                     >
                       <Popup>
                         <div style={{ maxWidth: 240, fontSize: '0.8rem', lineHeight: 1.6 }}>
-                          <strong>Pickup</strong> &mdash; {req.fare} CLT<br />
+                          <strong>Pickup</strong> &mdash; {formatUsd(req.fare)}<br />
                           Dropoff: {req.dropoffLocation.latitude.toFixed(4)}, {req.dropoffLocation.longitude.toFixed(4)}<br />
                           Passenger: {truncAddr(req.passengerAddress)}
                         </div>
@@ -228,7 +229,7 @@ const NetworkView = () => {
                       <Marker position={[selectedRequest.dropoffLocation.latitude, selectedRequest.dropoffLocation.longitude]}>
                         <Popup>
                           <div style={{ maxWidth: 240, fontSize: '0.8rem' }}>
-                            <strong>Dropoff</strong> &mdash; {selectedRequest.fare} CLT
+                            <strong>Dropoff</strong> &mdash; {formatUsd(selectedRequest.fare)}
                           </div>
                         </Popup>
                       </Marker>
@@ -243,7 +244,7 @@ const NetworkView = () => {
                     <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--on-surface-variant)' }}>
                       Offers ({offers.length})
                     </span>
-                    <span className="fare-badge">{selectedRequest.fare} CLT</span>
+                    <span className="fare-badge" title={`${selectedRequest.fare} CLT`}>{formatUsd(selectedRequest.fare)}</span>
                   </div>
                   {offersLoading ? (
                     <p style={{ fontSize: '0.8rem', color: 'var(--on-surface-variant)', margin: 0 }}>Loading...</p>
@@ -262,7 +263,7 @@ const NetworkView = () => {
                           </div>
                         </div>
                         <div>
-                          <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--on-surface)', margin: 0 }}>{offer.fare} CLT</p>
+                          <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--on-surface)', margin: 0 }} title={`${offer.fare} CLT`}>{formatUsd(offer.fare)}</p>
                         </div>
                       </div>
                     ))

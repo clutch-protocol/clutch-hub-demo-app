@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL } from '../config';
+import { API_URL, CHAIN_ID } from '../config';
 
 /**
  * Memoized ClutchHubSdk for the configured hub URL.
@@ -10,6 +10,9 @@ import { API_URL } from '../config';
  * private key whenever authenticated (JWT-guarded) calls will be made. If the key is only
  * available later (e.g. collected via modal), call `sdk.setPrivateKey(pk)` before the first
  * authenticated call instead.
+ *
+ * Always passes `CHAIN_ID` (app config, never the hub) as the 4th constructor arg — required for
+ * the chain-bound auth challenge and pinned for `signTransaction`'s verification.
  *
  * @param {string | undefined | null} publicKey
  * @param {string} [fallbackPublicKey='0x0'] Used when `publicKey` is empty (anonymous read-only hub calls).
@@ -25,7 +28,7 @@ export function useClutchSdk(publicKey, fallbackPublicKey = '0x0', privateKey) {
       ? String(privateKey).trim()
       : undefined;
   return useMemo(
-    () => new ClutchHubSdk(API_URL, effective, effectivePrivateKey),
+    () => new ClutchHubSdk(API_URL, effective, effectivePrivateKey, CHAIN_ID),
     [effective, effectivePrivateKey]
   );
 }

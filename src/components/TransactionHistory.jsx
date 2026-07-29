@@ -1,4 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatUsd } from '../utils/money';
+
+/** Formats a stored tx's fare (bigint, integer number, or numeric string) as USD; null if unparseable. */
+function formatTxFare(fare) {
+  if (fare == null) return null;
+  try {
+    return formatUsd(BigInt(fare));
+  } catch {
+    return null;
+  }
+}
 
 function truncHash(hash) {
   if (!hash || hash.length < 14) return hash || '';
@@ -91,7 +102,7 @@ const TransactionHistory = ({ userPublicKey, refreshTrigger, contentOnly = false
             <span className="timeline-time">{timeAgo(tx.timestamp)}</span>
           </div>
           <div className="timeline-details">
-            {tx.fare != null && <span>{tx.fare} CLT</span>}
+            {formatTxFare(tx.fare) && <span>{formatTxFare(tx.fare)}</span>}
             {tx.txHash && <span> &middot; {truncHash(tx.txHash)}</span>}
             {tx.status && (
               <span style={{ color: tx.status === 'success' ? 'var(--success)' : tx.status === 'failed' ? 'var(--error)' : 'var(--warning)', marginLeft: '0.35rem', fontWeight: 500 }}>

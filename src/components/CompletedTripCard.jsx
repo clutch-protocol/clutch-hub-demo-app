@@ -4,6 +4,7 @@ import MapFitBounds from './MapFitBounds';
 import { MAP_ATTRIBUTION, getMapTileUrl } from '../config';
 import { useTheme } from '../hooks/useTheme';
 import { truncAddr } from '../utils/address';
+import { formatUsd } from '../utils/money';
 import { pickupIcon, dropoffIcon } from '../utils/mapMarkers';
 import MapLegend from './MapLegend';
 
@@ -31,8 +32,8 @@ function CopyableAddress({ address }) {
 const CompletedTripCard = ({ trip }) => {
   const theme = useTheme();
   const tileUrl = getMapTileUrl(theme);
-  const farePaid = trip.farePaid ?? trip.fare_paid ?? 0;
-  const totalFare = trip.fare;
+  const farePaid = BigInt(trip.farePaid ?? trip.fare_paid ?? 0);
+  const totalFare = BigInt(trip.fare);
   const rawStatus = (trip.tripStatus ?? trip.trip_status ?? 'completed').toLowerCase();
   const isCancelled = rawStatus === 'cancelled';
 
@@ -43,7 +44,9 @@ const CompletedTripCard = ({ trip }) => {
   const statusClass = isCancelled ? 'status-dot--warn' : 'status-dot--done';
   const lineColor = isCancelled ? 'var(--warning, #f59e0b)' : 'var(--success)';
   const progressPct =
-    totalFare > 0 ? Math.min(100, Math.round((farePaid / totalFare) * 100)) : isCancelled ? 0 : 100;
+    totalFare > 0n
+      ? Math.min(100, Number((farePaid * 100n) / totalFare))
+      : isCancelled ? 0 : 100;
 
   return (
     <div className="card active-trip-card completed-trip-card">
@@ -53,11 +56,11 @@ const CompletedTripCard = ({ trip }) => {
           {statusLabel}
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-          <span className="fare-badge">
-            {isCancelled ? `${totalFare} CLT offer` : `${totalFare} CLT paid`}
+          <span className="fare-badge" title={`${totalFare} CLT`}>
+            {isCancelled ? `${formatUsd(totalFare)} offer` : `${formatUsd(totalFare)} paid`}
           </span>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {farePaid} CLT settled
+            {formatUsd(farePaid)} settled
             {isCancelled && ' · trip cancelled'}
           </span>
         </div>

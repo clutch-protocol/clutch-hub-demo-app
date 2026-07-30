@@ -8,11 +8,12 @@ import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
-import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL, MAP_ATTRIBUTION, getMapTileUrl } from '../config';
+import { ClutchHubSdk, verifyUnsignedTransaction } from 'clutch-hub-sdk-js';
+import { API_URL, CHAIN_ID, MAP_ATTRIBUTION, getMapTileUrl } from '../config';
 import { useClutchSdk } from '../hooks/useClutchSdk';
 import { useTheme } from '../hooks/useTheme';
 import { truncAddr } from '../utils/address';
+import { formatUsd, parseUsdToClt } from '../utils/money';
 import {
   subscribeActiveTripsCompat,
   subscribeRecentTripsCompat,
@@ -35,6 +36,7 @@ const RequestDetail = ({
   handleFareChange,
   handleAcceptOffer,
   acceptingTxHash,
+  offerReferrer,
   disabled,
   onBack,
 }) => {
@@ -47,7 +49,7 @@ const RequestDetail = ({
     setLoadingOffers(true);
     setOffersError(null);
     try {
-      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey || '0x0');
+      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey || '0x0', undefined, CHAIN_ID);
       const fetchedOffers = await sdk.listRideOffers(req.txHash);
       setOffers(fetchedOffers);
     } catch (err) {
@@ -62,7 +64,7 @@ const RequestDetail = ({
     if (!req.txHash) return undefined;
     setLoadingOffers(true);
     setOffersError(null);
-    const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey || '0x0');
+    const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey || '0x0', undefined, CHAIN_ID);
     const dispose = subscribeRideOffersCompat(sdk, req.txHash, {
       onData: (list) => {
         setOffers(list);
@@ -84,7 +86,7 @@ const RequestDetail = ({
         <span className="truncate-address" title={req.passengerAddress}>
           Passenger: {truncAddr(req.passengerAddress)}
         </span>
-        <span className="fare-badge">{req.fare} CLT</span>
+        <span className="fare-badge" title={`${req.fare} CLT`}>{formatUsd(req.fare)}</span>
       </div>
 
       <div style={{ marginBottom: '0.875rem' }}>
@@ -107,7 +109,7 @@ const RequestDetail = ({
                 <p className="offer-row-driver-label">Driver</p>
               </div>
             </div>
-            <div className="offer-row-price">{offer.fare} CLT</div>
+            <div className="offer-row-price" title={`${offer.fare} CLT`}>{formatUsd(offer.fare)}</div>
           </div>
         ))}
       </div>
@@ -116,15 +118,15 @@ const RequestDetail = ({
         <div className="form-row">
           <label className="label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Your offer</label>
           <input
-            type="number"
-            min={0}
-            value={offerFares[req.txHash] !== undefined ? offerFares[req.txHash] : req.fare}
+            type="text"
+            inputMode="decimal"
+            value={offerFares[req.txHash] !== undefined ? offerFares[req.txHash] : formatUsd(req.fare).slice(1)}
             onChange={(e) => handleFareChange(req.txHash, e.target.value)}
             className="input-field"
             style={{ width: 100, padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
             disabled={disabled || acceptingTxHash === req.txHash}
           />
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>CLT</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>$</span>
           <button
             type="button"
             className="btn-primary"
@@ -135,6 +137,11 @@ const RequestDetail = ({
             {acceptingTxHash === req.txHash ? 'Submitting...' : disabled ? 'Finish trip first' : userProfile.publicKey ? 'Make Offer' : 'Connect wallet'}
           </button>
         </div>
+        {acceptingTxHash === req.txHash && offerReferrer && (
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '0.5rem 0 0 0' }}>
+            Referrer on this offer: {offerReferrer}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -159,6 +166,7 @@ const DriverView = ({ userProfile, externalTab, onTabSync }) => {
   const [myTripsRefreshError, setMyTripsRefreshError] = useState(null);
   const [sheetSnap, setSheetSnap] = useState('half');
   const [selectedRequestTxHash, setSelectedRequestTxHash] = useState(null);
+  const [offerReferrer, setOfferReferrer] = useState(null);
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
@@ -285,8 +293,16 @@ const DriverView = ({ userProfile, externalTab, onTabSync }) => {
       setAcceptStatus({ type: 'warning', message: 'Connect your wallet first.' });
       return;
     }
+    let offerFare;
+    try {
+      offerFare = offerFares[req.txHash] !== undefined ? parseUsdToClt(offerFares[req.txHash]) : req.fare;
+    } catch {
+      setAcceptStatus({ type: 'error', message: 'Enter a valid offer amount.' });
+      return;
+    }
     setAcceptingTxHash(req.txHash);
     setAcceptStatus(null);
+    setOfferReferrer(null);
     try {
       // Private key needed before createUnsigned*: generateToken requires a signed challenge.
       let privateKey = userProfile.privateKey;
@@ -299,9 +315,10 @@ const DriverView = ({ userProfile, externalTab, onTabSync }) => {
         }
       }
       hubSdk.setPrivateKey(privateKey);
-      const offerFare = offerFares[req.txHash] !== undefined ? Number(offerFares[req.txHash]) : req.fare;
       const unsignedTx = await hubSdk.createUnsignedRideOffer({ rideRequestTxHash: req.txHash, fare: offerFare });
-      const signature = await hubSdk.signTransaction(unsignedTx, privateKey);
+      const expected = { type: 'RideOffer', fare: offerFare, refTxHash: req.txHash };
+      setOfferReferrer(verifyUnsignedTransaction(unsignedTx, expected).referrer);
+      const signature = await hubSdk.signTransaction(unsignedTx, privateKey, expected);
       await hubSdk.submitTransaction(signature.rawTransaction);
       setAcceptStatus({ type: 'success', message: 'Offer submitted!' });
       setRefreshBalanceCounter((c) => c + 1);
@@ -309,7 +326,7 @@ const DriverView = ({ userProfile, externalTab, onTabSync }) => {
         type: 'Offer',
         timestamp: Date.now(),
         rideRequestTxHash: req.txHash,
-        fare: req.fare,
+        fare: offerFare.toString(),
         status: 'success',
         txHash: signature.txHash || '',
       });
@@ -321,7 +338,7 @@ const DriverView = ({ userProfile, externalTab, onTabSync }) => {
         type: 'Offer',
         timestamp: Date.now(),
         rideRequestTxHash: req.txHash,
-        fare: req.fare,
+        fare: offerFare.toString(),
         status: 'failed',
         error: err.message,
       });
@@ -398,7 +415,7 @@ const DriverView = ({ userProfile, externalTab, onTabSync }) => {
               icon={pickupIcon}
               eventHandlers={{ click: () => setSelectedRequestTxHash(req.txHash) }}
             >
-              <Popup>Pickup · {req.fare} CLT</Popup>
+              <Popup>Pickup · {formatUsd(req.fare)}</Popup>
             </Marker>
           ))}
 
@@ -465,6 +482,7 @@ const DriverView = ({ userProfile, externalTab, onTabSync }) => {
             handleFareChange={handleFareChange}
             handleAcceptOffer={handleAcceptOffer}
             acceptingTxHash={acceptingTxHash}
+            offerReferrer={offerReferrer}
             disabled={hasActiveTrip}
             onBack={() => setSelectedRequestTxHash(null)}
           />
@@ -495,7 +513,7 @@ const DriverView = ({ userProfile, externalTab, onTabSync }) => {
                   <span className="request-row-address">{truncAddr(req.passengerAddress)}</span>
                   <span className="request-row-meta">Tap to view route & make an offer</span>
                 </div>
-                <span className="fare-badge">{req.fare} CLT</span>
+                <span className="fare-badge" title={`${req.fare} CLT`}>{formatUsd(req.fare)}</span>
               </button>
             ))}
           </>

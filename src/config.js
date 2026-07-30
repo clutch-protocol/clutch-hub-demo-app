@@ -36,6 +36,16 @@ export const API_URL =
   (typeof viteApi === "string" && viteApi.length > 0 ? viteApi : null) ||
   "http://localhost:3000";
 
+/**
+ * This chain's id — pinned client-side (never sourced from the hub) for the chain-bound auth
+ * challenge and as the `signTransaction` verification pin. See `ClutchHubSdk` constructor docs.
+ */
+const viteChainId = import.meta.env.VITE_CHAIN_ID;
+export const CHAIN_ID =
+  typeof viteChainId === "string" && viteChainId.trim().length > 0
+    ? Number(viteChainId)
+    : 2077;
+
 /** Hub API base without trailing slash */
 export const HUB_API_BASE_URL = API_URL.replace(/\/$/, "");
 

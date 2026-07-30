@@ -8,11 +8,12 @@ import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
-import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL, MAP_ATTRIBUTION, getMapTileUrl } from '../config';
+import { ClutchHubSdk, verifyUnsignedTransaction } from 'clutch-hub-sdk-js';
+import { API_URL, CHAIN_ID, MAP_ATTRIBUTION, getMapTileUrl } from '../config';
 import { useClutchSdk } from '../hooks/useClutchSdk';
 import { useTheme } from '../hooks/useTheme';
 import { truncAddr } from '../utils/address';
+import { formatUsd, parseUsdToClt } from '../utils/money';
 import {
   subscribeActiveTripsCompat,
   subscribeRecentTripsCompat,
@@ -133,7 +134,7 @@ const RideRequestCard = ({
     setLoading(true);
     setError(null);
     try {
-      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey);
+      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey, undefined, CHAIN_ID);
       const fetchedOffers = await sdk.listRideOffers(req.txHash);
       setOffers(fetchedOffers);
     } catch (err) {
@@ -148,7 +149,7 @@ const RideRequestCard = ({
     if (!userProfile.publicKey || !req.txHash) return undefined;
     setLoading(true);
     setError(null);
-    const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey);
+    const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey, undefined, CHAIN_ID);
     const dispose = subscribeRideOffersCompat(sdk, req.txHash, {
       onData: (list) => {
         setOffers(list);
@@ -178,10 +179,13 @@ const RideRequestCard = ({
           return;
         }
       }
-      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey, privateKey);
+      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey, privateKey, CHAIN_ID);
       sdk.setPrivateKey(privateKey);
       const unsignedTx = await sdk.createUnsignedRideAcceptance({ rideOfferTxHash: offer.txHash });
-      const signature = await sdk.signTransaction(unsignedTx, privateKey);
+      const signature = await sdk.signTransaction(unsignedTx, privateKey, {
+        type: 'RideAcceptance',
+        refTxHash: offer.txHash,
+      });
       await sdk.submitTransaction(signature.rawTransaction);
       TransactionHistory.addTransaction(userProfile.publicKey, {
         type: 'Ride Acceptance',
@@ -221,10 +225,13 @@ const RideRequestCard = ({
           return;
         }
       }
-      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey, privateKey);
+      const sdk = hubSdk ?? new ClutchHubSdk(API_URL, userProfile.publicKey, privateKey, CHAIN_ID);
       sdk.setPrivateKey(privateKey);
       const unsignedTx = await sdk.createUnsignedRideRequestCancel({ rideRequestTxHash: req.txHash });
-      const signature = await sdk.signTransaction(unsignedTx, privateKey);
+      const signature = await sdk.signTransaction(unsignedTx, privateKey, {
+        type: 'RideRequestCancel',
+        refTxHash: req.txHash,
+      });
       await sdk.submitTransaction(signature.rawTransaction);
       TransactionHistory.addTransaction(userProfile.publicKey, {
         type: 'Ride Request Cancel',
@@ -253,7 +260,7 @@ const RideRequestCard = ({
     <div className="card" style={{ marginBottom: '1rem' }}>
       <div className="form-row" style={{ justifyContent: 'space-between', marginBottom: '0.75rem' }}>
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(req.timestamp).toLocaleString()}</span>
-        <span className="fare-badge">{req.fare} CLT</span>
+        <span className="fare-badge" title={`${req.fare} CLT`}>{formatUsd(req.fare)}</span>
       </div>
 
       <div>
@@ -293,7 +300,7 @@ const RideRequestCard = ({
               </div>
             </div>
             <div className="offer-row-actions">
-              <div className="offer-row-price">{offer.fare} CLT</div>
+              <div className="offer-row-price" title={`${offer.fare} CLT`}>{formatUsd(offer.fare)}</div>
               <button
                 type="button"
                 className="btn-primary"
@@ -319,6 +326,7 @@ const PassengerView = ({ userProfile, externalTab, onTabSync }) => {
   const [isLoading, setIsLoading] = useState(false);
   const submittingRef = useRef(false);
   const [transactionStatus, setTransactionStatus] = useState(null);
+  const [requestReferrer, setRequestReferrer] = useState(null);
   const [, setRefreshBalanceCounter] = useState(0);
   const [previousRequests, setPreviousRequests] = useState([]);
   const [activeTrips, setActiveTrips] = useState([]);
@@ -445,6 +453,7 @@ const PassengerView = ({ userProfile, externalTab, onTabSync }) => {
     setDropoff(null);
     setFare('');
     setTransactionStatus(null);
+    setRequestReferrer(null);
   }, []);
 
   const handleSubmit = useCallback(async (e) => {
@@ -453,8 +462,16 @@ const PassengerView = ({ userProfile, externalTab, onTabSync }) => {
     }
     if (!pickup || !dropoff || !userProfile.publicKey) return;
     if (submittingRef.current) return;
+    let fareClt;
+    try {
+      fareClt = parseUsdToClt(fare);
+    } catch {
+      setTransactionStatus({ type: 'error', message: 'Enter a valid fare amount.' });
+      return;
+    }
     submittingRef.current = true;
     setIsLoading(true);
+    setRequestReferrer(null);
     try {
       // The private key is needed up front: creating the unsigned tx authenticates via
       // generateToken, which requires a signed proof-of-key-ownership challenge.
@@ -470,16 +487,18 @@ const PassengerView = ({ userProfile, externalTab, onTabSync }) => {
       }
       hubSdk.setPrivateKey(privateKey);
       setTransactionStatus({ type: 'info', message: 'Creating transaction...' });
-      const unsignedTx = await hubSdk.createUnsignedRideRequest({ pickup, dropoff, fare: Number(fare) });
+      const unsignedTx = await hubSdk.createUnsignedRideRequest({ pickup, dropoff, fare: fareClt });
+      const expected = { type: 'RideRequest', fare: fareClt };
+      setRequestReferrer(verifyUnsignedTransaction(unsignedTx, expected).referrer);
       setTransactionStatus({ type: 'info', message: 'Signing...' });
-      const signature = await hubSdk.signTransaction(unsignedTx, privateKey);
+      const signature = await hubSdk.signTransaction(unsignedTx, privateKey, expected);
       setTransactionStatus({ type: 'info', message: 'Submitting...' });
       await hubSdk.submitTransaction(signature.rawTransaction);
       TransactionHistory.addTransaction(userProfile.publicKey, {
         type: 'Ride Request',
         timestamp: Date.now(),
         pickup, dropoff,
-        fare: Number(fare),
+        fare: fareClt.toString(),
         status: 'success',
         txHash: signature.txHash || '',
       });
@@ -492,7 +511,7 @@ const PassengerView = ({ userProfile, externalTab, onTabSync }) => {
         type: 'Ride Request',
         timestamp: Date.now(),
         pickup, dropoff,
-        fare: Number(fare),
+        fare: fareClt.toString(),
         status: 'failed',
         error: err.message,
       });
@@ -748,14 +767,14 @@ const PassengerView = ({ userProfile, externalTab, onTabSync }) => {
             {phase === 'building' && (
               <div className="ride-request-form-row" style={{ marginTop: '0.5rem' }}>
                 <div className="ride-request-fare-col">
-                  <label className="label">Fare (CLT)</label>
+                  <label className="label">Fare ($)</label>
                   <input
                     ref={fareInputRef}
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={fare}
                     onChange={(e) => setFare(e.target.value)}
                     className="input-field"
-                    min={0}
                     placeholder="Enter fare after selecting route"
                     disabled={!pickup || !dropoff}
                   />
@@ -771,6 +790,11 @@ const PassengerView = ({ userProfile, externalTab, onTabSync }) => {
                   </button>
                 </div>
               </div>
+            )}
+            {requestReferrer && (
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '0.5rem 0 0 0' }}>
+                Referrer on this request: {requestReferrer}
+              </p>
             )}
 
             {phase === 'waiting' && (

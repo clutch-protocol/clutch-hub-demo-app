@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useClutchSdk } from '../hooks/useClutchSdk';
+import { formatUsd } from '../utils/money';
 
 const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
   const [balance, setBalance] = useState(null);
@@ -34,7 +35,7 @@ const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
     try {
       const res = await sdk.requestFaucet(publicKey);
       if (res.ok) {
-        setFaucetMessage(`+${res.amount_clt} CLT`);
+        setFaucetMessage(`+${formatUsd(BigInt(res.amount_clt))}`);
         onFaucetSuccess?.();
       } else {
         setFaucetMessage(res.error || 'Faucet failed');
@@ -58,11 +59,8 @@ const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-      <div style={{ textAlign: 'right' }}>
-        <span className="wallet-balance">
-          {typeof balance === 'object' ? balance.toString() : balance}
-        </span>
-        <span className="wallet-balance-unit">CLT</span>
+      <div style={{ textAlign: 'right' }} title={`${balance} CLT`}>
+        <span className="wallet-balance">{formatUsd(BigInt(balance))}</span>
       </div>
       <button
         type="button"

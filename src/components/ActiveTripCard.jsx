@@ -1,13 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import MapFitBounds from './MapFitBounds';
-import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL, MAP_ATTRIBUTION, getMapTileUrl } from '../config';
+import { ClutchHubSdk, verifyUnsignedTransaction } from 'clutch-hub-sdk-js';
+import { API_URL, CHAIN_ID, MAP_ATTRIBUTION, getMapTileUrl } from '../config';
 import { useTheme } from '../hooks/useTheme';
 import TransactionHistory from './TransactionHistory';
 import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
 import { useConfirmDialog } from './layout/useConfirmDialog.jsx';
 import { truncAddr } from '../utils/address';
+import { formatUsd, parseUsdToClt } from '../utils/money';
 import { pickupIcon, dropoffIcon } from '../utils/mapMarkers';
 import MapLegend from './MapLegend';
 
@@ -40,13 +41,14 @@ function CopyableAddress({ address }) {
 const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
   const theme = useTheme();
   const tileUrl = getMapTileUrl(theme);
-  const farePaid = trip.farePaid ?? trip.fare_paid ?? 0;
-  const totalFare = trip.fare;
-  const remaining = Math.max(0, totalFare - farePaid);
+  const farePaid = BigInt(trip.farePaid ?? trip.fare_paid ?? 0);
+  const totalFare = BigInt(trip.fare);
+  const remaining = totalFare > farePaid ? totalFare - farePaid : 0n;
 
   const [payAmount, setPayAmount] = useState('');
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
+  const [referrer, setReferrer] = useState(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState(null);
 
@@ -56,27 +58,34 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
   const showPayUi =
     passengerPayment?.userProfile?.publicKey &&
     normAddr(passengerPayment.userProfile.publicKey) === normAddr(trip.passengerAddress) &&
-    remaining > 0;
+    remaining > 0n;
 
   const canCancel =
     cancelAction?.userProfile?.publicKey &&
-    remaining > 0 &&
+    remaining > 0n &&
     (normAddr(cancelAction.userProfile.publicKey) === normAddr(trip.passengerAddress) ||
       normAddr(cancelAction.userProfile.publicKey) === normAddr(trip.driverAddress));
 
   const handlePay = useCallback(async () => {
     if (!passengerPayment?.userProfile?.publicKey) return;
-    const amount = Number(payAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
+    let fare;
+    try {
+      fare = parseUsdToClt(payAmount);
+    } catch {
       setPayError('Enter a positive amount.');
       return;
     }
-    if (amount > remaining) {
-      setPayError(`Amount cannot exceed remaining ${remaining} CLT.`);
+    if (fare <= 0n) {
+      setPayError('Enter a positive amount.');
+      return;
+    }
+    if (fare > remaining) {
+      setPayError(`Amount cannot exceed remaining ${formatUsd(remaining)}.`);
       return;
     }
     setPaying(true);
     setPayError(null);
+    setReferrer(null);
     try {
       const { publicKey, privateKey } = passengerPayment.userProfile;
       // Private key needed before createUnsigned*: generateToken requires a signed challenge.
@@ -89,17 +98,19 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
           return;
         }
       }
-      const sdk = new ClutchHubSdk(API_URL, publicKey, pk);
+      const sdk = new ClutchHubSdk(API_URL, publicKey, pk, CHAIN_ID);
       const unsignedTx = await sdk.createUnsignedRidePay({
         rideAcceptanceTxHash: trip.txHash,
-        fare: Math.floor(amount),
+        fare,
       });
-      const signature = await sdk.signTransaction(unsignedTx, pk);
+      const expected = { type: 'RidePay', fare, refTxHash: trip.txHash };
+      setReferrer(verifyUnsignedTransaction(unsignedTx, expected).referrer);
+      const signature = await sdk.signTransaction(unsignedTx, pk, expected);
       await sdk.submitTransaction(signature.rawTransaction);
       TransactionHistory.addTransaction(publicKey, {
         type: 'Ride Pay',
         timestamp: Date.now(),
-        fare: Math.floor(amount),
+        fare: fare.toString(),
         status: 'success',
         txHash: signature.txHash || '',
       });
@@ -111,7 +122,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
       TransactionHistory.addTransaction(passengerPayment.userProfile.publicKey, {
         type: 'Ride Pay',
         timestamp: Date.now(),
-        fare: Math.floor(Number(payAmount) || 0),
+        fare: fare.toString(),
         status: 'failed',
         error: err.message,
       });
@@ -120,13 +131,15 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
     }
   }, [passengerPayment, payAmount, remaining, trip.txHash, requestPrivateKey]);
 
-  const setQuickPay = (fraction) => {
-    const v = Math.max(1, Math.floor(remaining * fraction));
-    setPayAmount(String(Math.min(v, remaining)));
+  /** @param {bigint} numerator @param {bigint} denominator */
+  const setQuickPay = (numerator, denominator) => {
+    const v = (remaining * numerator) / denominator;
+    const clamped = (v > 0n ? v : 1n) < remaining ? (v > 0n ? v : 1n) : remaining;
+    setPayAmount(formatUsd(clamped).slice(1));
   };
 
   const handleCancel = useCallback(async () => {
-    if (!cancelAction?.userProfile?.publicKey || remaining <= 0) return;
+    if (!cancelAction?.userProfile?.publicKey || remaining <= 0n) return;
     const ok = await requestConfirm({
       title: 'Cancel this ride?',
       desc: 'Unpaid fare will be refunded to the passenger.',
@@ -148,11 +161,12 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
           return;
         }
       }
-      const sdk = new ClutchHubSdk(API_URL, publicKey, pk);
+      const sdk = new ClutchHubSdk(API_URL, publicKey, pk, CHAIN_ID);
       const unsignedTx = await sdk.createUnsignedRideCancel({
         rideAcceptanceTxHash: trip.txHash,
       });
-      const signature = await sdk.signTransaction(unsignedTx, pk);
+      const expected = { type: 'RideCancel', refTxHash: trip.txHash };
+      const signature = await sdk.signTransaction(unsignedTx, pk, expected);
       await sdk.submitTransaction(signature.rawTransaction);
       TransactionHistory.addTransaction(publicKey, {
         type: 'Ride Cancel',
@@ -191,17 +205,17 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
           In Progress
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-          <span className="fare-badge">{totalFare} CLT total</span>
-          {farePaid > 0 && (
+          <span className="fare-badge" title={`${totalFare} CLT`}>{formatUsd(totalFare)} total</span>
+          {farePaid > 0n && (
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Paid {farePaid} CLT
-              {remaining > 0 ? ` · ${remaining} CLT left` : ''}
+              Paid {formatUsd(farePaid)}
+              {remaining > 0n ? ` · ${formatUsd(remaining)} left` : ''}
             </span>
           )}
         </div>
       </div>
 
-      {remaining > 0 && (
+      {remaining > 0n && (
         <div
           className="trip-progress-bar"
           style={{
@@ -216,7 +230,7 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
             className="trip-progress-fill"
             style={{
               height: '100%',
-              width: `${Math.min(100, (farePaid / totalFare) * 100)}%`,
+              width: `${totalFare > 0n ? Number((farePaid * 100n) / totalFare) : 0}%`,
               background: 'linear-gradient(90deg, var(--primary-dim), var(--primary), var(--tertiary))',
               transition: 'width 0.3s ease',
             }}
@@ -258,26 +272,25 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
         <div style={{ marginTop: '1rem', paddingTop: '1rem' }}>
           <p className="card-title" style={{ marginBottom: '0.5rem' }}>Pay driver (partial OK)</p>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>
-            Pay in portions as the ride progresses. Up to <strong>{remaining} CLT</strong> remaining.
+            Pay in portions as the ride progresses. Up to <strong>{formatUsd(remaining)}</strong> remaining.
           </p>
           <div className="form-row" style={{ marginBottom: '0.5rem', flexWrap: 'wrap' }}>
             <input
-              type="number"
-              min={1}
-              max={remaining}
+              type="text"
+              inputMode="decimal"
               value={payAmount}
               onChange={(e) => setPayAmount(e.target.value)}
               className="input-field"
               style={{ width: 120 }}
-              placeholder="Amount"
+              placeholder="Amount ($)"
             />
-            <button type="button" className="btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setQuickPay(0.25)}>
+            <button type="button" className="btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setQuickPay(25n, 100n)}>
               25%
             </button>
-            <button type="button" className="btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setQuickPay(0.5)}>
+            <button type="button" className="btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setQuickPay(50n, 100n)}>
               50%
             </button>
-            <button type="button" className="btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setPayAmount(String(remaining))}>
+            <button type="button" className="btn-secondary" style={{ fontSize: '0.75rem' }} onClick={() => setPayAmount(formatUsd(remaining).slice(1))}>
               Remaining
             </button>
             <button
@@ -290,13 +303,18 @@ const ActiveTripCard = ({ trip, passengerPayment, cancelAction }) => {
               {paying ? 'Paying…' : 'Pay'}
             </button>
           </div>
+          {referrer && (
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '0 0 0.5rem 0' }}>
+              Referrer on this transaction: <CopyableAddress address={referrer} />
+            </p>
+          )}
           {payError && <div className="status-banner error" style={{ padding: '0.5rem', fontSize: '0.8rem' }}>{payError}</div>}
         </div>
       )}
 
-      {!showPayUi && remaining > 0 && (
+      {!showPayUi && remaining > 0n && (
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.75rem 0 0 0' }}>
-          {farePaid > 0 ? `Passenger has paid ${farePaid} / ${totalFare} CLT.` : 'Awaiting passenger payment.'}
+          {farePaid > 0n ? `Passenger has paid ${formatUsd(farePaid)} / ${formatUsd(totalFare)}.` : 'Awaiting passenger payment.'}
         </p>
       )}
 

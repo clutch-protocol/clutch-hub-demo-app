@@ -49,6 +49,21 @@ export const CHAIN_ID =
 /** Hub API base without trailing slash */
 export const HUB_API_BASE_URL = API_URL.replace(/\/$/, "");
 
+/**
+ * payment-orchestrator base URL (deposit intents — `POST/GET /api/v1/deposits`).
+ *
+ * Unlike the hub API, the orchestrator has no split stage subdomain: clutch-deploy's nginx
+ * proxies it same-origin at `/payment/` (see config/nginx/nginx*.conf), so the deployed default
+ * is a relative path — no hostname sniffing needed. Local dev is the one case that's actually
+ * cross-origin (Vite on :5173, orchestrator published on :8091), which is what `VITE_ORCHESTRATOR_URL`
+ * (docker-compose.dev.yml) is for; the orchestrator's CORS config allows that origin.
+ */
+const viteOrchestrator = import.meta.env.VITE_ORCHESTRATOR_URL;
+export const ORCHESTRATOR_BASE_URL =
+  typeof viteOrchestrator === "string" && viteOrchestrator.trim().length > 0
+    ? viteOrchestrator.replace(/\/$/, "")
+    : "/payment";
+
 export const HUB_HEALTH_URL = `${HUB_API_BASE_URL}/health`;
 export const HUB_GRAPHQL_HTTP_URL = `${HUB_API_BASE_URL}/graphql`;
 

@@ -7,6 +7,7 @@ import TransactionHistoryPage from './components/TransactionHistoryPage';
 import ExplorerTabs from './components/ExplorerTabs';
 import RoleEntry, { persistRole } from './components/RoleEntry';
 import BalanceDisplay from './components/BalanceDisplay';
+import DepositPanel from './components/DepositPanel';
 import { OverlayPanel } from './components/layout';
 import { truncAddr } from './utils/address';
 import './App.css';
@@ -34,6 +35,7 @@ function App() {
   const [passengerViewTab, setPassengerViewTab] = useState(null);
   const [driverViewTab, setDriverViewTab] = useState(null);
   const [walletCopied, setWalletCopied] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
 
   const initialTheme = useMemo(() => {
     if (typeof window === 'undefined') return 'dark';
@@ -241,6 +243,17 @@ function App() {
         </div>
       </OverlayPanel>
 
+      <OverlayPanel
+        open={depositOpen}
+        title="Top up with USDT"
+        onClose={() => setDepositOpen(false)}
+      >
+        <DepositPanel
+          userProfile={userProfile}
+          onCredited={() => setWalletRefresh((c) => c + 1)}
+        />
+      </OverlayPanel>
+
       <nav className="bottom-nav" aria-label="App navigation">
         <button
           type="button"
@@ -345,6 +358,18 @@ function App() {
                 </div>
               </div>
               <div className="app-menu-actions">
+                {userProfile.publicKey && (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setDepositOpen(true);
+                    }}
+                  >
+                    Top up with USDT
+                  </button>
+                )}
                 <button type="button" className="btn-secondary" onClick={toggleTheme}>
                   {theme === 'dark' ? 'Light mode' : 'Dark mode'}
                 </button>

@@ -41,3 +41,26 @@ export function parseUsdToClt(input) {
   if (!m) throw new Error('invalid amount');
   return BigInt(m[1]) * 1_000_000n + BigInt((m[2] ?? '').padEnd(6, '0'));
 }
+
+/**
+ * Format a micro-USDT integer as an EXACT 6-decimal string — never rounded, truncated, or
+ * comma-grouped. This is deliberately NOT `formatUsd`: `formatUsd` floors to cents and exists for
+ * display convenience, but the orchestrator's `pay_amount_usdt` carries a per-deposit
+ * discriminator in its low digits (e.g. request 5.000000 -> pay 5.000921) that is the ONLY thing
+ * identifying a deposit on the shared static Tron custody address. Rounding it away means the
+ * user's payment matches nothing. Integer arithmetic only, per the same rule as the rest of this
+ * file — `Number(x) / 1e6` is unsafe for the same reason `parseFloat` is banned above.
+ *
+ * Accepts whatever the wire actually sends (bigint, number, or numeric string) — the hub/orchestrator
+ * boundary has already proven itself inconsistent about number vs decimal-string (see `formatUsd`
+ * above), so this defends the same way rather than assuming a shape.
+ *
+ * @param {bigint|number|string} microUsdt
+ * @returns {string} e.g. "5.000921"
+ * @throws {Error} if the value can't be read as an integer
+ */
+export function formatExactUsdt(microUsdt) {
+  const n = typeof microUsdt === 'bigint' ? microUsdt : BigInt(microUsdt);
+  if (n < 0n) throw new Error('amount must not be negative');
+  return `${n / 1_000_000n}.${(n % 1_000_000n).toString().padStart(6, '0')}`;
+}

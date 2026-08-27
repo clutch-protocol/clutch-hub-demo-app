@@ -30,6 +30,28 @@ const legacyPort81ApiUrl = (() => {
 
 const viteApi = import.meta.env.VITE_API_URL;
 
+/**
+ * Is this deployment pointed at a TEST network?
+ *
+ * Drives testnet-only guidance -- the faucet instructions on the deposit panel, which tell people
+ * to go and get free USDT. On a real deployment that text is worse than unhelpful: it frames real
+ * money as play money, right next to a field that takes real money.
+ *
+ * So this is an ALLOW-LIST and must stay one. Unknown host means false, and a deployment that
+ * genuinely is a testnet simply shows no faucet hint until its hostname is added here -- a missing
+ * hint costs someone a support question, while a wrongly-shown one costs them USDT.
+ *
+ * Hostname-derived, like API_URL above, because the app has no other signal: which chain the
+ * orchestrator watches is decided by its own config and never reaches the browser. If that ever
+ * changes, read it from the server instead of guessing from a URL.
+ */
+export const IS_TESTNET =
+  host.startsWith("app-stage.") ||
+  host.startsWith("stageweb.") ||
+  isStageWebOn81 ||
+  host === "localhost" ||
+  host === "127.0.0.1";
+
 export const API_URL =
   cloudflareStageApiUrl ||
   legacyPort81ApiUrl ||

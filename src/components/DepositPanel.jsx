@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
-import { API_URL, CHAIN_ID, ORCHESTRATOR_BASE_URL } from '../config';
+import { API_URL, CHAIN_ID, IS_TESTNET, ORCHESTRATOR_BASE_URL } from '../config';
 import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
 import { parseUsdToClt, formatExactUsdt } from '../utils/money';
 
@@ -54,6 +54,52 @@ function CopyableValue({ value, className }) {
  *
  * Redemptions/withdrawals are deliberately out of scope — the treasury's payout rail is a stub.
  */
+/**
+ * Where to get test USDT, on testnet deployments only.
+ *
+ * Without this the deposit panel is a dead end for anyone who has not already got Nile USDT: it
+ * asks for a token that cannot be bought and has no obvious source. The faucet is the answer and
+ * it is not discoverable from here.
+ *
+ * Collapsed by default -- it is a one-time setup step, and expanded it would outweigh the form it
+ * sits above for everyone who has already done it.
+ *
+ * Rendered ONLY when IS_TESTNET (see config.js). "Free" and "not real money" next to a field that
+ * takes real money would be actively dangerous on a live deployment.
+ */
+const TestnetFaucetGuide = () => (
+  <details className="card" style={{ marginBottom: '1rem', padding: '0.75rem 1rem' }}>
+    <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
+      Testnet — how to get USDT to deposit
+    </summary>
+    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.6rem', lineHeight: 1.55 }}>
+      <p style={{ marginTop: 0 }}>
+        This deployment settles on the <strong>Tron Nile testnet</strong>. The USDT here is test
+        currency with no value — you cannot buy it, and nothing you deposit is real money.
+      </p>
+      <ol style={{ paddingLeft: '1.2rem', margin: '0.5rem 0' }}>
+        <li>
+          Install a Tron wallet (e.g.{' '}
+          <a href="https://www.tronlink.org/" target="_blank" rel="noopener noreferrer">TronLink</a>)
+          and switch its network to <strong>Nile</strong>. A mainnet wallet cannot see this chain.
+        </li>
+        <li>
+          Open the{' '}
+          <a href="https://nileex.io/join/getJoinPage" target="_blank" rel="noopener noreferrer">
+            Nile faucet
+          </a>
+          , paste your Tron address, and request funds. It sends test TRX and test USDT.
+        </li>
+        <li>Come back, enter an amount, and pay the address this panel gives you.</li>
+      </ol>
+      <p style={{ marginBottom: 0 }}>
+        Send <strong>only Nile USDT (TRC-20)</strong>. Mainnet USDT, TRX, or any other token sent to
+        a deposit address will not be credited and cannot be returned.
+      </p>
+    </div>
+  </details>
+);
+
 const DepositPanel = ({ userProfile, onCredited }) => {
   const [amountInput, setAmountInput] = useState('');
   const [creating, setCreating] = useState(false);
@@ -170,6 +216,8 @@ const DepositPanel = ({ userProfile, onCredited }) => {
   return (
     <div className="card">
       <h3 className="card-title">Top up with USDT</h3>
+
+      {IS_TESTNET && <TestnetFaucetGuide />}
 
       {!deposit && (
         <form onSubmit={handleCreate}>

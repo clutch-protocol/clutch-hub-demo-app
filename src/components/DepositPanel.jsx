@@ -200,19 +200,28 @@ const DepositPanel = ({ userProfile, onCredited }) => {
             {STATUS_LABEL[deposit.status] || deposit.status}
           </div>
 
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '0.35rem' }}>
-            Send EXACTLY this amount of USDT (TRC-20) — not the amount you entered. The exact
-            fractional amount is how this deposit is matched; a rounded payment will not be credited.
+          {/* Address first, because the address IS the identity: it is derived for this deposit
+              alone and nothing else is paid into it. The amount used to carry that job, via a
+              fractional discriminator, and this panel used to lead with it and demand an exact
+              payment. Both are gone. */}
+          <p className="label">Pay to address</p>
+          <div className="form-row" style={{ marginBottom: '0.35rem' }}>
+            <CopyableValue value={deposit.pay_address} className="wallet-address" />
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            This address belongs to this deposit only. Send <strong>USDT (TRC-20)</strong> — any
+            other token or network sent here cannot be recovered.
           </p>
-          <div className="form-row" style={{ marginBottom: '1rem', alignItems: 'baseline' }}>
+
+          <p className="label">Amount</p>
+          <div className="form-row" style={{ marginBottom: '0.35rem', alignItems: 'baseline' }}>
             <CopyableValue value={formatExactUsdt(deposit.pay_amount_usdt)} className="wallet-balance" />
             <span style={{ color: 'var(--text-muted)' }}>USDT</span>
           </div>
-
-          <p className="label">Pay to address</p>
-          <div className="form-row" style={{ marginBottom: '1rem' }}>
-            <CopyableValue value={deposit.pay_address} className="wallet-address" />
-          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            A minimum, not an exact figure. Send more and the extra is credited too, and several
+            transfers add up. Send less and the deposit waits for the rest.
+          </p>
 
           {deposit.expires_at && !DONE_STATUSES.has(deposit.status) && (
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>

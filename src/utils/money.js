@@ -44,19 +44,24 @@ export function parseUsdToClt(input) {
 
 /**
  * Format a micro-USDT integer as an EXACT 6-decimal string — never rounded, truncated, or
- * comma-grouped. This is deliberately NOT `formatUsd`: `formatUsd` floors to cents and exists for
- * display convenience, but the orchestrator's `pay_amount_usdt` carries a per-deposit
- * discriminator in its low digits (e.g. request 5.000000 -> pay 5.000921) that is the ONLY thing
- * identifying a deposit on the shared static Tron custody address. Rounding it away means the
- * user's payment matches nothing. Integer arithmetic only, per the same rule as the rest of this
- * file — `Number(x) / 1e6` is unsafe for the same reason `parseFloat` is banned above.
+ * comma-grouped. This is deliberately NOT `formatUsd`: `formatUsd` floors to cents, which is fine
+ * for display but wrong here, because `pay_amount_usdt` is the MINIMUM that settles the deposit and
+ * the user pays what this string says. A request for 5.123456 shown as "5.12" is a payment 0.003456
+ * short — and short does not settle, it sits as a partial payment waiting for the remainder.
+ *
+ * (This used to be about a fractional discriminator identifying a deposit on one shared custody
+ * address. That design is gone — each deposit has its own derived address now — but flooring is
+ * still wrong, for the simpler reason above.)
+ *
+ * Integer arithmetic only, per the same rule as the rest of this file — `Number(x) / 1e6` is unsafe
+ * for the same reason `parseFloat` is banned above.
  *
  * Accepts whatever the wire actually sends (bigint, number, or numeric string) — the hub/orchestrator
  * boundary has already proven itself inconsistent about number vs decimal-string (see `formatUsd`
  * above), so this defends the same way rather than assuming a shape.
  *
  * @param {bigint|number|string} microUsdt
- * @returns {string} e.g. "5.000921"
+ * @returns {string} e.g. "5.123456"
  * @throws {Error} if the value can't be read as an integer
  */
 export function formatExactUsdt(microUsdt) {

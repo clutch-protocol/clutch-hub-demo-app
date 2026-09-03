@@ -31,6 +31,20 @@ const DEPOSIT_STATUS_LABELS = {
   needs_manual: 'Needs review',
 };
 
+/** `formatExactUsdt` throws on anything it can't read as a non-negative integer — correct for a
+ * payment-amount field where a bad value should fail loudly, wrong here: this app has no error
+ * boundary, so letting that throw escape render would blank the whole panel (or app) over one bad
+ * history row. Also trims trailing zeros down to a minimum of two decimals — `formatExactUsdt`
+ * keeps all six for payment fields on purpose, but "50.000000" is just busy in a history row. */
+function formatDepositAmount(microUsdt) {
+  try {
+    const [whole, frac] = formatExactUsdt(microUsdt).split('.');
+    return `${whole}.${frac.replace(/0+$/, '').padEnd(2, '0')}`;
+  } catch {
+    return '—';
+  }
+}
+
 /** Click-to-copy for the exact address — NOT `truncAddr`'d like ActiveTripCard's CopyableAddress,
  * because truncating the one value that must be pasted exactly defeats the point. */
 function CopyableValue({ value, className }) {
@@ -125,8 +139,11 @@ const DepositPanel = ({ userProfile, open }) => {
 
     let cancelled = false;
     let intervalId = null;
+    let fetching = false; // in-flight guard: a slow response must not be overwritten by a newer one
 
     const fetchDeposits = async (sdk) => {
+      if (fetching) return;
+      fetching = true;
       try {
         const authHeaders = await sdk.getAuthHeaders();
         const res = await fetch(`${ORCHESTRATOR_BASE_URL}/api/v1/deposits`, {
@@ -139,6 +156,8 @@ const DepositPanel = ({ userProfile, open }) => {
       } catch (err) {
         console.error('deposit list fetch failed', err);
         // Leave the previously-loaded list in place — this is best-effort next to the address.
+      } finally {
+        fetching = false;
       }
     };
 
@@ -175,10 +194,13 @@ const DepositPanel = ({ userProfile, open }) => {
         if (!cancelled) setAddress(body.address);
 
         // Best-effort: only bother once we know deposits are actually on (the POST above didn't
-        // 503) and the effect hasn't already been cleaned up while we were awaiting it.
+        // 503) and the effect hasn't already been cleaned up while we were awaiting it. Re-check
+        // cancelled AFTER the await too — the panel can close while that first fetch is still in
+        // flight, and starting the interval unconditionally afterward would leak a timer (holding
+        // the private-key-bearing sdk reachable) for the life of the tab.
         if (!cancelled) {
           await fetchDeposits(sdk);
-          intervalId = setInterval(() => fetchDeposits(sdk), 10000);
+          if (!cancelled) intervalId = setInterval(() => fetchDeposits(sdk), 10000);
         }
       } catch (err) {
         console.error('deposit address fetch failed', err);
@@ -242,7 +264,7 @@ const DepositPanel = ({ userProfile, open }) => {
                 fontSize: '0.8rem',
               }}
             >
-              <span>{formatExactUsdt(d.amount_usdt)} USDT</span>
+              <span>{formatDepositAmount(d.amount_usdt)} USDT</span>
               <span style={{ color: 'var(--text-secondary)' }}>
                 {DEPOSIT_STATUS_LABELS[d.status] ?? d.status}
               </span>

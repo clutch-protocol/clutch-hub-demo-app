@@ -73,7 +73,7 @@ const TestnetFaucetGuide = () => (
 
 const DepositPanel = ({ userProfile, open }) => {
   const [address, setAddress] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [unavailable, setUnavailable] = useState(false);
 
@@ -122,6 +122,7 @@ const DepositPanel = ({ userProfile, open }) => {
         }
         if (!cancelled) setAddress(body.address);
       } catch (err) {
+        console.error('deposit address fetch failed', err);
         if (!cancelled) setError(err.message || 'Failed to load deposit address');
       } finally {
         if (!cancelled) setLoading(false);

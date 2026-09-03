@@ -116,11 +116,30 @@ export const PUBLIC_NODE_ENDPOINTS =
         .filter(Boolean)
     : [];
 
-/** Light map tiles for better visibility (Voyager style) */
-export const MAP_TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-export const MAP_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+/**
+ * Map tiles.
+ *
+ * CARTO's public basemaps (Voyager / Dark Matter) started requiring an API key: without one every tile
+ * renders as an "API KEY REQUIRED" watermark, which is what stage showed. OpenStreetMap's standard
+ * tiles need no key, so they are the default. Set VITE_CARTO_API_KEY to get CARTO back — it is a
+ * basemap key meant to live in a browser bundle, domain-restricted on CARTO's side, not a secret.
+ *
+ * OSM has no dark basemap, so without a CARTO key the dark theme gets the light tiles. Cosmetic.
+ * OSM's tile usage policy is fine for a testnet demo's traffic; a production launch should bring a key.
+ */
+const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY;
 
-/** Dark map tiles for the dark theme (CARTO Dark Matter) */
-export const MAP_TILE_URL_DARK = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const OSM_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+export const MAP_TILE_URL = CARTO_API_KEY
+  ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`
+  : OSM_TILE_URL;
+export const MAP_TILE_URL_DARK = CARTO_API_KEY
+  ? `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=${CARTO_API_KEY}`
+  : OSM_TILE_URL;
+export const MAP_ATTRIBUTION = CARTO_API_KEY
+  ? `${OSM_ATTRIBUTION} &copy; <a href="https://carto.com/attributions">CARTO</a>`
+  : OSM_ATTRIBUTION;
 
 export const getMapTileUrl = (theme) => (theme === "dark" ? MAP_TILE_URL_DARK : MAP_TILE_URL);

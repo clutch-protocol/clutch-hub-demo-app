@@ -250,7 +250,7 @@ function App() {
       >
         <DepositPanel
           userProfile={userProfile}
-          onCredited={() => setWalletRefresh((c) => c + 1)}
+          open={depositOpen}
         />
       </OverlayPanel>
 

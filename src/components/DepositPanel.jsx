@@ -71,7 +71,7 @@ const TestnetFaucetGuide = () => (
   </details>
 );
 
-const DepositPanel = ({ userProfile }) => {
+const DepositPanel = ({ userProfile, open }) => {
   const [address, setAddress] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -79,12 +79,14 @@ const DepositPanel = ({ userProfile }) => {
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
-  // Fetches the account's permanent deposit address. Runs once the profile has a public key, and
-  // again if it changes (e.g. a different wallet is loaded) — not a loop, just re-derives for a
-  // different identity. `userProfile` starts as `{publicKey: '', privateKey: ''}` before a wallet
-  // exists (see App.jsx), so this guards on a real key rather than firing on first app mount.
+  // Fetches the account's permanent deposit address each time the panel opens — that POST IS the
+  // "user is about to deposit" signal the backend uses to mark the address hot. `DepositPanel` is
+  // permanently mounted by `OverlayPanel` (hidden via CSS, never unmounted — see App.jsx), so `open`
+  // is what actually tracks visibility; without it this would fire for every signed-in user on
+  // every app load. `userProfile?.publicKey` additionally guards the case where the panel opens
+  // before a wallet exists (`userProfile` starts as `{publicKey: '', privateKey: ''}`).
   useEffect(() => {
-    if (!userProfile?.publicKey) return undefined;
+    if (!open || !userProfile?.publicKey) return undefined;
 
     let cancelled = false;
 
@@ -92,7 +94,8 @@ const DepositPanel = ({ userProfile }) => {
       setLoading(true);
       setError(null);
       setUnavailable(false);
-      setAddress(null);
+      // Deliberately NOT setAddress(null) here: a reopen re-POSTs (same address comes back), and
+      // blanking the address first would flash the panel to empty on every reopen.
       try {
         const { publicKey, privateKey } = userProfile;
         let pk = privateKey;
@@ -128,7 +131,7 @@ const DepositPanel = ({ userProfile }) => {
     return () => {
       cancelled = true;
     };
-  }, [userProfile, requestPrivateKey]);
+  }, [open, userProfile, requestPrivateKey]);
 
   return (
     <div className="card">
@@ -136,21 +139,21 @@ const DepositPanel = ({ userProfile }) => {
 
       {IS_TESTNET && <TestnetFaucetGuide />}
 
-      {loading && (
+      {loading && !address && (
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Loading your deposit address…</p>
       )}
 
-      {!loading && unavailable && (
+      {!loading && !address && unavailable && (
         <div className="status-banner info">
           Top-ups are temporarily unavailable. Please check back later.
         </div>
       )}
 
-      {!loading && !unavailable && error && (
+      {!loading && !address && error && (
         <div className="status-banner error">{error}</div>
       )}
 
-      {!loading && !unavailable && !error && address && (
+      {address && (
         <div>
           <p className="label">Pay to address</p>
           <div className="form-row" style={{ marginBottom: '0.35rem' }}>

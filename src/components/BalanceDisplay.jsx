@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useClutchSdk } from '../hooks/useClutchSdk';
 import { formatUsd } from '../utils/money';
 
-const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
+const BalanceDisplay = ({ publicKey }) => {
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [faucetLoading, setFaucetLoading] = useState(false);
-  const [faucetMessage, setFaucetMessage] = useState(null);
 
   const sdk = useClutchSdk(publicKey || undefined, '0x0');
 
@@ -28,25 +26,6 @@ const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
     return () => dispose();
   }, [publicKey, sdk]);
 
-  const handleFaucet = useCallback(async () => {
-    if (!publicKey) return;
-    setFaucetMessage(null);
-    setFaucetLoading(true);
-    try {
-      const res = await sdk.requestFaucet(publicKey);
-      if (res.ok) {
-        setFaucetMessage(`+${formatUsd(BigInt(res.amount_clt))}`);
-        onFaucetSuccess?.();
-      } else {
-        setFaucetMessage(res.error || 'Faucet failed');
-      }
-    } catch (err) {
-      setFaucetMessage(err?.message || 'Faucet failed');
-    } finally {
-      setFaucetLoading(false);
-    }
-  }, [publicKey, onFaucetSuccess, sdk]);
-
   if (!publicKey) return null;
 
   if (loading) {
@@ -62,26 +41,6 @@ const BalanceDisplay = ({ publicKey, onFaucetSuccess }) => {
       <div style={{ textAlign: 'right' }} title={`${balance} CLT`}>
         <span className="wallet-balance">{formatUsd(BigInt(balance))}</span>
       </div>
-      <button
-        type="button"
-        onClick={handleFaucet}
-        disabled={faucetLoading}
-        className="btn-secondary"
-        style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', minWidth: 'auto' }}
-        title="Request test CLT from faucet"
-      >
-        {faucetLoading ? '...' : 'Faucet'}
-      </button>
-      {faucetMessage && (
-        <span
-          style={{
-            fontSize: '0.75rem',
-            color: faucetMessage.startsWith('+') ? 'var(--success, #22c55e)' : 'var(--error, #ef4444)',
-          }}
-        >
-          {faucetMessage}
-        </span>
-      )}
     </div>
   );
 };

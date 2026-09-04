@@ -18,8 +18,6 @@ const RoleEntry = ({
   onSelectRole,
   userProfile,
   onProfileUpdate,
-  refreshTrigger,
-  onFaucetSuccess,
 }) => {
   const title = selectedRole ? 'Select your wallet' : 'Select your account';
   const subtitle = selectedRole
@@ -70,8 +68,6 @@ const RoleEntry = ({
             role={selectedRole}
             userProfile={userProfile}
             onProfileUpdate={onProfileUpdate}
-            refreshTrigger={refreshTrigger}
-            onFaucetSuccess={onFaucetSuccess}
           />
         </div>
       )}

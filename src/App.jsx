@@ -31,7 +31,6 @@ function App() {
   const themeStorageKey = 'clutch_demo_theme';
 
   const [userProfile, setUserProfile] = useState({ publicKey: '', privateKey: '' });
-  const [walletRefresh, setWalletRefresh] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [passengerViewTab, setPassengerViewTab] = useState(null);
   const [driverViewTab, setDriverViewTab] = useState(null);
@@ -131,8 +130,6 @@ function App() {
             onSelectRole={handleEntryRoleSelect}
             userProfile={userProfile}
             onProfileUpdate={setUserProfile}
-            refreshTrigger={walletRefresh}
-            onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
           />
         </main>
       </div>
@@ -151,8 +148,6 @@ function App() {
         <PassengerView
           userProfile={userProfile}
           onProfileUpdate={setUserProfile}
-          refreshTrigger={walletRefresh}
-          onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
           externalTab={passengerViewTab}
           onTabSync={setPassengerViewTab}
         />
@@ -167,8 +162,6 @@ function App() {
         <DriverView
           userProfile={userProfile}
           onProfileUpdate={setUserProfile}
-          refreshTrigger={walletRefresh}
-          onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
           externalTab={driverViewTab}
           onTabSync={setDriverViewTab}
         />
@@ -362,7 +355,6 @@ function App() {
                       </button>
                       <BalanceDisplay
                         publicKey={userProfile.publicKey}
-                        onFaucetSuccess={() => setWalletRefresh((c) => c + 1)}
                       />
                     </div>
                   ) : (

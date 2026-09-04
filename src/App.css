@@ -453,6 +453,35 @@ body {
   background: var(--surface-container-highest);
 }
 
+/* Withdraw (redemption) panel — see components/WithdrawPanel.jsx. The payout address and the
+   redemption reference reuse .deposit-address above, for the same reason it exists: a value that
+   has to be checked or pasted must be readable in full. */
+.redeem-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--outline-variant);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.redeem-row-label {
+  color: var(--text-secondary);
+}
+
+.redeem-status {
+  font-weight: 600;
+}
+
+.redeem-note {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0.6rem 0 0;
+}
+
 .wallet-address:hover {
   background: var(--surface-container-highest);
 }

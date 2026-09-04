@@ -8,6 +8,7 @@ import ExplorerTabs from './components/ExplorerTabs';
 import RoleEntry, { persistRole } from './components/RoleEntry';
 import BalanceDisplay from './components/BalanceDisplay';
 import DepositPanel from './components/DepositPanel';
+import WithdrawPanel from './components/WithdrawPanel';
 import { OverlayPanel } from './components/layout';
 import { truncAddr } from './utils/address';
 import './App.css';
@@ -36,6 +37,7 @@ function App() {
   const [driverViewTab, setDriverViewTab] = useState(null);
   const [walletCopied, setWalletCopied] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   const initialTheme = useMemo(() => {
     if (typeof window === 'undefined') return 'dark';
@@ -254,6 +256,17 @@ function App() {
         />
       </OverlayPanel>
 
+      <OverlayPanel
+        open={withdrawOpen}
+        title="Withdraw to USDT"
+        onClose={() => setWithdrawOpen(false)}
+      >
+        <WithdrawPanel
+          userProfile={userProfile}
+          open={withdrawOpen}
+        />
+      </OverlayPanel>
+
       <nav className="bottom-nav" aria-label="App navigation">
         <button
           type="button"
@@ -368,6 +381,18 @@ function App() {
                     }}
                   >
                     Top up with USDT
+                  </button>
+                )}
+                {userProfile.publicKey && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setWithdrawOpen(true);
+                    }}
+                  >
+                    Withdraw to USDT
                   </button>
                 )}
                 <button type="button" className="btn-secondary" onClick={toggleTheme}>

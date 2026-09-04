@@ -27,23 +27,7 @@ RUN npm run build
 FROM nginx:alpine
 
 COPY --from=builder /build/clutch-hub-demo-app/dist /usr/share/nginx/html
-RUN echo 'server { \
-  listen 80; \
-  root /usr/share/nginx/html; \
-  index index.html; \
-  # Never serve HTML as a response for the web app manifest or service worker.
-  location = /manifest.webmanifest { \
-    default_type application/manifest+json; \
-    try_files $uri =404; \
-  } \
-  location = /sw.js { \
-    try_files $uri =404; \
-  } \
-  location = /registerSW.js { \
-    try_files $uri =404; \
-  } \
-  location / { try_files $uri $uri/ /index.html; } \
-}' > /etc/nginx/conf.d/default.conf
+COPY clutch-hub-demo-app/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

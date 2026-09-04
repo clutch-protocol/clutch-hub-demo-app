@@ -431,6 +431,28 @@ body {
   border: none;
 }
 
+.deposit-address {
+  /* Deliberately NOT .wallet-address: that one is a 140px chip with an ellipsis, which is right
+     for showing someone their own address and wrong for one they are about to send money to.
+     An address you cannot read in full is an address you cannot check against what you pasted. */
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface-container-high);
+  border-radius: var(--radius);
+  transition: background var(--transition);
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  user-select: all;
+}
+
+.deposit-address:hover {
+  background: var(--surface-container-highest);
+}
+
 .wallet-address:hover {
   background: var(--surface-container-highest);
 }

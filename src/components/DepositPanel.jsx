@@ -2,6 +2,48 @@ import React, { useEffect, useState } from 'react';
 import { ClutchHubSdk } from 'clutch-hub-sdk-js';
 import { API_URL, CHAIN_ID, IS_TESTNET, ORCHESTRATOR_BASE_URL } from '../config';
 import { usePrivateKeyRequest } from './layout/usePrivateKeyRequest.jsx';
+import { formatExactUsdt } from '../utils/money';
+
+/** `truncHash`/`timeAgo`, copied from `TransactionHistory.jsx` (module-private there, not
+ * exported) rather than imported — a few duplicated lines beat coupling this panel to a
+ * ride-history component. Keep in sync by eye if that file's versions change. */
+function truncHash(hash) {
+  if (!hash || hash.length < 14) return hash || '';
+  return `${hash.slice(0, 8)}...${hash.slice(-4)}`;
+}
+
+function timeAgo(timestamp) {
+  const diff = Date.now() - timestamp;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return new Date(timestamp).toLocaleDateString();
+}
+
+/** Per the status table in
+ * `clutch-treasury/docs/superpowers/specs/2026-09-04-deposit-history-panel-design.md` — the API
+ * keeps returning the raw backend status; this is where (and only where) it becomes a word a user
+ * reads. A status not listed here renders as its own raw string rather than guessing a label. */
+const DEPOSIT_STATUS_LABELS = {
+  confirmed: 'Detected',
+  mint_requested: 'Minting',
+  credited: 'Credited',
+  needs_manual: 'Needs review',
+};
+
+/** `formatExactUsdt` throws on anything it can't read as a non-negative integer — correct for a
+ * payment-amount field where a bad value should fail loudly, wrong here: this app has no error
+ * boundary, so letting that throw escape render would blank the whole panel (or app) over one bad
+ * history row. Also trims trailing zeros down to a minimum of two decimals — `formatExactUsdt`
+ * keeps all six for payment fields on purpose, but "50.000000" is just busy in a history row. */
+function formatDepositAmount(microUsdt) {
+  try {
+    const [whole, frac] = formatExactUsdt(microUsdt).split('.');
+    return `${whole}.${frac.replace(/0+$/, '').padEnd(2, '0')}`;
+  } catch {
+    return '—';
+  }
+}
 
 /** Click-to-copy for the exact address — NOT `truncAddr`'d like ActiveTripCard's CopyableAddress,
  * because truncating the one value that must be pasted exactly defeats the point. */
@@ -76,6 +118,7 @@ const DepositPanel = ({ userProfile, open }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [unavailable, setUnavailable] = useState(false);
+  const [deposits, setDeposits] = useState([]);
 
   const { PrivateKeyModal, requestPrivateKey } = usePrivateKeyRequest();
 
@@ -85,10 +128,38 @@ const DepositPanel = ({ userProfile, open }) => {
   // is what actually tracks visibility; without it this would fire for every signed-in user on
   // every app load. `userProfile?.publicKey` additionally guards the case where the panel opens
   // before a wallet exists (`userProfile` starts as `{publicKey: '', privateKey: ''}`).
+  //
+  // The same effect also fetches the caller's recent deposit list and refreshes it on a 10s
+  // interval while the panel stays open — a deposit's status moves through confirmed / minting /
+  // credited on its own schedule, and this is the only signal a user gets of that without
+  // reopening the panel. A failed list refresh is logged and otherwise ignored: it must never
+  // clobber the address already on screen.
   useEffect(() => {
     if (!open || !userProfile?.publicKey) return undefined;
 
     let cancelled = false;
+    let intervalId = null;
+    let fetching = false; // in-flight guard: a slow response must not be overwritten by a newer one
+
+    const fetchDeposits = async (sdk) => {
+      if (fetching) return;
+      fetching = true;
+      try {
+        const authHeaders = await sdk.getAuthHeaders();
+        const res = await fetch(`${ORCHESTRATOR_BASE_URL}/api/v1/deposits`, {
+          method: 'GET',
+          headers: authHeaders,
+        });
+        if (!res.ok) throw new Error(`deposit list failed (${res.status})`);
+        const body = await res.json();
+        if (!cancelled) setDeposits(body.deposits || []);
+      } catch (err) {
+        console.error('deposit list fetch failed', err);
+        // Leave the previously-loaded list in place — this is best-effort next to the address.
+      } finally {
+        fetching = false;
+      }
+    };
 
     (async () => {
       setLoading(true);
@@ -121,6 +192,16 @@ const DepositPanel = ({ userProfile, open }) => {
           throw new Error(body.error || `deposit request failed (${res.status})`);
         }
         if (!cancelled) setAddress(body.address);
+
+        // Best-effort: only bother once we know deposits are actually on (the POST above didn't
+        // 503) and the effect hasn't already been cleaned up while we were awaiting it. Re-check
+        // cancelled AFTER the await too — the panel can close while that first fetch is still in
+        // flight, and starting the interval unconditionally afterward would leak a timer (holding
+        // the private-key-bearing sdk reachable) for the life of the tab.
+        if (!cancelled) {
+          await fetchDeposits(sdk);
+          if (!cancelled) intervalId = setInterval(() => fetchDeposits(sdk), 10000);
+        }
       } catch (err) {
         console.error('deposit address fetch failed', err);
         if (!cancelled) setError(err.message || 'Failed to load deposit address');
@@ -131,6 +212,7 @@ const DepositPanel = ({ userProfile, open }) => {
 
     return () => {
       cancelled = true;
+      if (intervalId) clearInterval(intervalId);
     };
   }, [open, userProfile, requestPrivateKey]);
 
@@ -165,6 +247,33 @@ const DepositPanel = ({ userProfile, open }) => {
             it is credited automatically, appearing in your balance. Any other token or network sent
             here cannot be recovered.
           </p>
+        </div>
+      )}
+
+      {deposits.length > 0 && (
+        <div style={{ marginTop: '1rem' }}>
+          <p className="label">Recent deposits</p>
+          {deposits.map((d) => (
+            <div
+              key={d.id}
+              className="form-row"
+              style={{
+                justifyContent: 'space-between',
+                padding: '0.5rem 0',
+                borderBottom: '1px solid var(--outline-variant)',
+                fontSize: '0.8rem',
+              }}
+            >
+              <span>{formatDepositAmount(d.amount_usdt)} USDT</span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {DEPOSIT_STATUS_LABELS[d.status] ?? d.status}
+              </span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {timeAgo(new Date(d.created_at).getTime())}
+              </span>
+              <span style={{ color: 'var(--text-muted)' }}>{truncHash(d.tron_tx_id)}</span>
+            </div>
+          ))}
         </div>
       )}
 

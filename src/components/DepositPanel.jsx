@@ -46,8 +46,12 @@ function formatDepositAmount(microUsdt) {
 }
 
 /** Click-to-copy for the exact address — NOT `truncAddr`'d like ActiveTripCard's CopyableAddress,
- * because truncating the one value that must be pasted exactly defeats the point. */
-function CopyableValue({ value, className }) {
+ * because truncating the one value that must be pasted exactly defeats the point.
+ *
+ * Exported for `WithdrawPanel`, which needs the same treatment for the payout address and the
+ * redemption reference. Shared rather than copied because the reason it exists (show the whole
+ * value, make it pasteable) is identical on both panels. */
+export function CopyableValue({ value, className }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(String(value)).then(() => {

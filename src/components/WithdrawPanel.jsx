@@ -21,6 +21,8 @@ const REDEMPTION_STATUS_LABELS = {
   paid: 'Paid',
   expired: 'Needs review',
   failed: 'Needs review',
+  // Not a treasury status — set by this client alone when the status route 404s (see the poller).
+  gone: 'No longer found',
 };
 
 /** The orchestrator has no "list my redemptions" route — only `POST /api/v1/redemptions` and
@@ -60,9 +62,11 @@ function saveRedemption(publicKey, record) {
  * no error boundary, so one bad stored value would blank the whole panel. Trailing zeros are
  * trimmed to a minimum of two decimals — lossless, since only zeros are removed.
  *
- * `formatExactUsdt` (÷1_000_000) and not `formatUsd` (÷10_000): 1e6 is the scale
- * `parseUsdToClt` produces and the scale the orchestrator's own bounds are written in
- * (`min_redemption_clt = 1000000`, i.e. 1 CLT). */
+ * `formatExactUsdt` and not `formatUsd`, for the same reason the deposit amount uses it:
+ * `formatUsd` FLOORS to cents, and a burn amount has to display exactly — this number is what
+ * gets destroyed. Both read the same 1e6 scale (`formatUsd` divides by 10,000 to cents and then
+ * by 100 to dollars), which is the scale `parseUsdToClt` produces and the scale the
+ * orchestrator's own bounds are written in (`min_redemption_clt = 1000000`, i.e. 1 CLT). */
 function formatCltAmount(baseUnits) {
   try {
     const [whole, frac] = formatExactUsdt(baseUnits).split('.');
@@ -83,7 +87,8 @@ function formatCltAmount(baseUnits) {
  * So the order is fixed and not negotiable:
  *   1. `POST /api/v1/redemptions` → `{id, redemption_ref, amount_clt, status}`
  *   2. `sdk.createUnsignedBurn({ amount, redemptionRef })` with the ref from step 1
- *   3. `sdk.signTransaction` (local, as everywhere else in this app)
+ *   3. `sdk.signTransaction` (local, as everywhere else in this app) with an `expected` blob, so
+ *      the hub's answer is verified against what we asked for instead of signed blind
  *   4. `sdk.submitTransaction`
  *   5. poll `GET /api/v1/redemptions/:id`
  *
@@ -157,9 +162,28 @@ const WithdrawPanel = ({ userProfile, open }) => {
           method: 'GET',
           headers: authHeaders,
         });
+        // 404 is the one non-2xx that must not be swallowed. The orchestrator answers it when the
+        // mapping row is gone — which is what an orchestrator DB reset looks like, and stage gets
+        // those. Swallowed, the record sits at `created` forever and the panel keeps offering a
+        // burn against a ref no intent exists for. Kept in state only, not written to storage: a
+        // reload should re-ask rather than remember a verdict this client invented.
+        if (res.status === 404) {
+          setRedemption((prev) =>
+            prev && prev.id === redemptionId && prev.status !== 'gone'
+              ? { ...prev, status: 'gone' }
+              : prev
+          );
+          return;
+        }
         if (!res.ok) throw new Error(`redemption status failed (${res.status})`);
         const body = await res.json();
-        if (cancelled || !body.status) return;
+        // `status_live: false` means the orchestrator could not reach the treasury and fell back to
+        // the status stored at creation time — which is always `created`, because only the treasury
+        // watcher advances a redemption. Writing that back would downgrade a live `payout_pending`
+        // to `created` and put "Nothing has been burned yet — your CLT is untouched" on screen over
+        // destroyed money. The orchestrator returns the flag precisely so a client can tell "not
+        // yet" from "we couldn't ask"; a status we couldn't ask for is not a status that changed.
+        if (cancelled || !body.status || body.status_live === false) return;
         setRedemption((prev) =>
           prev && prev.id === redemptionId ? { ...prev, status: body.status } : prev
         );
@@ -227,6 +251,12 @@ const WithdrawPanel = ({ userProfile, open }) => {
         const res = await fetch(`${ORCHESTRATOR_BASE_URL}/api/v1/redemptions`, {
           method: 'POST',
           headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          // ponytail: `Number()` on a money bigint, which `utils/money.js` otherwise bans. The
+          // orchestrator's `amount_clt` is a JSON number (i64 server-side) and a string there is a
+          // 400, so the wire format is not ours to change here. Ceiling: exact only below 2^53;
+          // today's `max_redemption_clt` is 50 CLT (5e7), eight orders of magnitude under it, and
+          // the server re-checks its own bounds either way. Upgrade path: teach the orchestrator to
+          // accept a decimal string, as the hub already does for `fare`, then send `.toString()`.
           body: JSON.stringify({ payout_tron_address: to, amount_clt: Number(amountClt) }),
         });
         if (res.status === 503) {
@@ -288,6 +318,30 @@ const WithdrawPanel = ({ userProfile, open }) => {
     });
     if (!confirmed) return;
 
+    // The guards above read `redemption` — the closure from the render that drew the button. The
+    // confirm dialog is an UNBOUNDED await, and `openSession` (possibly another modal) plus a
+    // network round trip follow it, so by the time the burn happens that closure can be minutes
+    // stale: a second tab on the same wallet, or this dialog answered after lunch, both reach a
+    // second burn otherwise. Everything downstream uses `current`, never `redemption`.
+    //
+    // ponytail: read-then-write, not atomic across tabs — nothing in localStorage can be. It
+    // narrows a multi-minute window to the gap between this read and the `burnAttempted` write
+    // below. A cross-tab lock would need a Web Lock or a server-side claim; the treasury already
+    // refuses to pay one ref twice, which is the bound that actually protects the money.
+    const current = loadRedemption(publicKey);
+    // The id check is not redundant with the status checks: if storage now holds a DIFFERENT
+    // redemption, burning it would spend a confirmation the user gave for another amount and
+    // another address.
+    if (
+      !current?.redemptionRef ||
+      current.id !== redemption.id ||
+      current.burnAttempted ||
+      current.status !== 'created'
+    ) {
+      setError('This withdrawal has already moved on — reopen the panel to see its status.');
+      return;
+    }
+
     setBusy(true);
     let broadcastAttempted = false;
     try {
@@ -297,28 +351,44 @@ const WithdrawPanel = ({ userProfile, open }) => {
         return;
       }
       const unsignedTx = await session.sdk.createUnsignedBurn({
-        amount: BigInt(redemption.amountClt),
-        redemptionRef: redemption.redemptionRef,
+        amount: BigInt(current.amountClt),
+        redemptionRef: current.redemptionRef,
       });
-      const signature = await session.sdk.signTransaction(unsignedTx, session.privateKey);
+      // Never blind-sign the burn. The hub builds this blob and the hub is the untrusted party in
+      // this design — that is the whole reason the key stays here. `verifyUnsignedTransaction`
+      // pins the amount and the ref against what WE asked for, plus `from` and `chain_id`, which
+      // `signTransaction` fills in from this SDK instance. A wrong amount or a dropped ref would
+      // otherwise get signed unread, and a ref-less burn is CLT destroyed with nothing on the
+      // treasury side pointing at it. It throws before signing, while `broadcastAttempted` is
+      // still false, so the "Nothing was burned" branch below is the one that runs.
+      const signature = await session.sdk.signTransaction(unsignedTx, session.privateKey, {
+        type: 'Burn',
+        amount: BigInt(current.amountClt),
+        redemptionRef: current.redemptionRef,
+      });
 
       // Written BEFORE the broadcast, and to storage rather than only to state. A lost response, a
       // crash, or a reload must never bring the burn button back for this reference.
       broadcastAttempted = true;
-      const attempted = { ...redemption, burnAttempted: true };
+      const attempted = { ...current, burnAttempted: true };
       saveRedemption(publicKey, attempted);
       setRedemption(attempted);
 
       await session.sdk.submitTransaction(signature.rawTransaction);
-      // No `fare` field: the local log renders it with `formatUsd` (÷10_000) while redemption
-      // amounts are 1e6-scaled, so a number there would read 100x wrong. Type and hash still give
-      // the burn a trace in the user's history, which is the point.
-      TransactionHistory.addTransaction(publicKey, {
-        type: 'Withdraw burn',
-        timestamp: Date.now(),
-        status: 'success',
-        txHash: signature.txHash || '',
-      });
+      // In a try of its own: the burn succeeded, and a localStorage failure here (private mode,
+      // quota) must not fall into the catch below and tell the user their burn "did not get a
+      // clean answer back". Losing a history row is not losing money.
+      try {
+        TransactionHistory.addTransaction(publicKey, {
+          type: 'Withdraw burn',
+          timestamp: Date.now(),
+          fare: String(current.amountClt),
+          status: 'success',
+          txHash: signature.txHash || '',
+        });
+      } catch (logErr) {
+        console.error('withdraw burn history write failed', logErr);
+      }
     } catch (err) {
       console.error('redemption burn failed', err);
       setError(
@@ -334,15 +404,28 @@ const WithdrawPanel = ({ userProfile, open }) => {
     }
   }, [openSession, publicKey, redemption, requestConfirm]);
 
-  // Only offered once the current redemption is past the point of being burned (see
-  // `canStartAnother`), so it can never be the "create a second redemption for the same intent"
-  // mistake. It clears local tracking only — the redemption itself keeps existing treasury-side,
-  // which is why the reference above is copyable and the caption says to keep it.
-  const handleStartAnother = useCallback(() => {
+  // Never offered while the burn is still on the table (see `canStartAnother`), so it can never be
+  // the "create a second redemption for the same intent" mistake. It clears local tracking only —
+  // the redemption itself keeps existing treasury-side, which is why the reference above is
+  // copyable and the caption says to keep it.
+  //
+  // Behind a confirm because it IS reachable while a burn is confirming (`awaitingBurn`), and this
+  // app has no "list my redemptions" route: one click deletes the only copy of the id and the ref
+  // for an irreversible burn that is already in flight.
+  const handleStartAnother = useCallback(async () => {
+    const confirmed = await requestConfirm({
+      title: 'Stop tracking this withdrawal?',
+      desc:
+        'This clears it from this device only — the withdrawal keeps running at the treasury. ' +
+        'The reference is the only way to look it up afterwards, so copy it first.',
+      confirmText: 'Clear it from this device',
+      cancelText: 'Keep tracking it',
+    });
+    if (!confirmed) return;
     saveRedemption(publicKey, null);
     setRedemption(null);
     setError(null);
-  }, [publicKey]);
+  }, [publicKey, requestConfirm]);
 
   const status = redemption?.status || '';
   const canBurn = !!redemption && !redemption.burnAttempted && status === 'created';
@@ -453,11 +536,22 @@ const WithdrawPanel = ({ userProfile, open }) => {
             </p>
           )}
 
+          {/* Deliberately does NOT say the payout is owed. `failed` is written in exactly one
+              place treasury-side — the burn-mismatch branch of `watcher::confirm_burn`, which ends
+              "failing intent, never paying out". Telling someone their money is on its way when
+              the treasury has refused it is worse than telling them nothing. */}
           {needsReview && (
             <p className="redeem-note">
-              A person is completing this one by hand. The amount and reference above are what the
-              treasury has on record, and the payout is owed and accounted for — send support that
-              reference and they can finish it.
+              Something about this withdrawal did not match what the treasury expected, and a person
+              is reviewing it. Send support the amount and reference above — do not start another
+              withdrawal for it.
+            </p>
+          )}
+
+          {status === 'gone' && (
+            <p className="redeem-note">
+              The withdrawal service can no longer find this withdrawal. Do not burn anything for
+              it. Keep the reference above and send it to support.
             </p>
           )}
 

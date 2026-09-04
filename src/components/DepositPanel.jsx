@@ -240,7 +240,7 @@ const DepositPanel = ({ userProfile, open }) => {
         <div>
           <p className="label">Pay to address</p>
           <div className="form-row" style={{ marginBottom: '0.35rem' }}>
-            <CopyableValue value={address} className="wallet-address" />
+            <CopyableValue value={address} className="deposit-address" />
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
             This is your permanent deposit address — send any amount of Nile USDT (TRC-20) to it and

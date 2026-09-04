@@ -25,7 +25,7 @@ Env vars (Vite, must be prefixed `VITE_`):
   - `PassengerView.jsx` — largest file: map-based ride builder, open requests + offers, active/recent trips.
   - `DriverView.jsx` — available ride requests, make-offer form, driver trips.
   - `ActiveTripCard.jsx` — shared trip card with pay (passenger-only UI) and cancel (either party) actions.
-  - `CompletedTripCard.jsx`, `RideForm.jsx`, `BalanceDisplay.jsx` (balance subscription + faucet button), `UserProfile.jsx` (generate/import wallet), `TransactionHistory.jsx` / `TransactionHistoryPage.jsx` (local tx log), `GeneralView.jsx` (About/endpoints), `NetworkView.jsx` (network-wide explorer), `ExplorerTabs.jsx`, `MapFitBounds.jsx`, `MapLegend.jsx`, `Icon.jsx`.
+  - `CompletedTripCard.jsx`, `RideForm.jsx`, `BalanceDisplay.jsx` (balance subscription), `UserProfile.jsx` (generate/import wallet), `TransactionHistory.jsx` / `TransactionHistoryPage.jsx` (local tx log), `GeneralView.jsx` (About/endpoints), `NetworkView.jsx` (network-wide explorer), `ExplorerTabs.jsx`, `MapFitBounds.jsx`, `MapLegend.jsx`, `Icon.jsx`.
   - `layout/` — `Section`, `EmptyState`, `WalletBar`, `useConfirmDialog.jsx`, `usePrivateKeyRequest.jsx` (promise-based modal that collects a private key when none is stored).
   - `RoleSelector.jsx` is legacy — not imported by `App.jsx` (superseded by `RoleEntry`).
 - `utils/` — `wallet.js` (secp256k1 + keccak256 keypair generation, matches hub-api derivation), `address.js` (`truncAddr`), `mapMarkers.js` (leaflet `divIcon`s for pickup/dropoff/current-location).
@@ -34,7 +34,7 @@ Env vars (Vite, must be prefixed `VITE_`):
 
 - No Redux/Zustand/Context — plain `useState` in `App.jsx` passed down as props. `userProfile` (`{publicKey, privateKey}`) is the central shared state, lifted to App and updated by `UserProfile` via `onProfileUpdate`.
 - Live data comes from per-component SDK subscriptions (`sdkRealtime.js` wrappers) in `useEffect`, each returning a dispose fn. Refresh buttons do one-shot `list*` calls into the same state.
-- `walletRefresh` / `refreshBalanceCounter` counters are bumped to force re-fetches after faucet/pay/accept.
+- `refreshBalanceCounter` counters are bumped to force re-fetches after pay/accept.
 - Cross-component tx-history sync uses a custom `clutch:tx-updated` window event plus the `storage` event.
 
 ## Ride lifecycle (all mutations follow the same 3-step SDK pattern)

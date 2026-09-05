@@ -76,6 +76,27 @@ function formatCltAmount(baseUnits) {
   }
 }
 
+/** What actually arrives, in base units, as a string.
+ *
+ * The treasury quotes two numbers: the CLT to burn and the USDT that will be paid after its
+ * redemption fee. They are equal only where no fee is configured. Falls back to the burn amount
+ * because a record stored before this app knew about fees has no net on it, and because an
+ * orchestrator too old to send one is by definition charging nothing — in both cases par is the
+ * true answer, not a guess.
+ */
+function netOf(record) {
+  return record?.payoutAmountUsdt ?? record?.amountClt;
+}
+
+/** The fee as base units, or `0n` when there is none to show. */
+function feeOf(record) {
+  try {
+    return BigInt(record.amountClt) - BigInt(netOf(record));
+  } catch {
+    return 0n;
+  }
+}
+
 /**
  * "Withdraw to USDT": burn CLT, get USDT back at a Tron address the user names.
  *
@@ -274,6 +295,10 @@ const WithdrawPanel = ({ userProfile, open }) => {
           id: body.id,
           redemptionRef: body.redemption_ref,
           amountClt: String(body.amount_clt ?? amountClt),
+          // The server's quote for the USDT leg, stored rather than recomputed here: the treasury
+          // fixes it at creation precisely so it cannot move between what the user is shown and
+          // what they are paid, and recomputing it client-side would throw that guarantee away.
+          payoutAmountUsdt: String(body.payout_amount_usdt ?? body.amount_clt ?? amountClt),
           payoutAddress: to,
           status: body.status || 'created',
           burnAttempted: false,
@@ -306,12 +331,20 @@ const WithdrawPanel = ({ userProfile, open }) => {
 
     setError(null);
     const amountLabel = formatCltAmount(redemption.amountClt);
+    const netLabel = formatCltAmount(netOf(redemption));
+    const fee = feeOf(redemption);
+    // Naming the net here is not a nicety. The burn is irreversible and happens before the payout,
+    // so this dialog is the last moment a user can decline — and a fee they only discover
+    // afterwards is one they never agreed to.
+    const feeSentence =
+      fee > 0n ? ` A withdrawal fee of ${formatCltAmount(fee.toString())} USDT is deducted.` : '';
     const confirmed = await requestConfirm({
       title: `Burn ${amountLabel} CLT?`,
       // Address in full, never truncated — the same reasoning as the deposit address: an address
       // you cannot read in full is one you cannot check.
       desc:
-        `${amountLabel} CLT will be destroyed and the USDT sent to ${redemption.payoutAddress}. ` +
+        `${amountLabel} CLT will be destroyed and ${netLabel} USDT sent to ` +
+        `${redemption.payoutAddress}.${feeSentence} ` +
         'A burn cannot be undone and the address cannot be changed afterwards.',
       confirmText: 'Burn and withdraw',
       cancelText: 'Keep my CLT',
@@ -499,8 +532,18 @@ const WithdrawPanel = ({ userProfile, open }) => {
       {redemption && (
         <div>
           <div className="redeem-row">
-            <span className="redeem-row-label">Amount</span>
+            <span className="redeem-row-label">Burning</span>
             <span>{formatCltAmount(redemption.amountClt)} CLT</span>
+          </div>
+          {feeOf(redemption) > 0n && (
+            <div className="redeem-row">
+              <span className="redeem-row-label">Withdrawal fee</span>
+              <span>{formatCltAmount(feeOf(redemption).toString())} USDT</span>
+            </div>
+          )}
+          <div className="redeem-row">
+            <span className="redeem-row-label">You receive</span>
+            <span>{formatCltAmount(netOf(redemption))} USDT</span>
           </div>
           <div className="redeem-row">
             <span className="redeem-row-label">Status</span>
